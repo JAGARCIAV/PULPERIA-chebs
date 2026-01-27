@@ -47,4 +47,23 @@ class Lote {
 
         return true;
     }
+
+    // 🔹 Obtener stock total disponible de un producto
+    public static function obtenerStockDisponible($producto_id)
+    {
+        $con = Conexion::conectar();
+
+        $sql = "SELECT SUM(cantidad_unidades) AS total
+                FROM lotes
+                WHERE producto_id = ?
+                AND cantidad_unidades > 0";
+
+        $stmt = $con->prepare($sql);
+        $stmt->execute([$producto_id]);
+
+        $res = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int)($res['total'] ?? 0);
+    }
+
 }

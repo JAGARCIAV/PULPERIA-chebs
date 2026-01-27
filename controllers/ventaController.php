@@ -5,9 +5,6 @@ require_once "../model/lote/Lote.php";
 require_once "../model/venta/Venta.php";
 require_once "../model/venta/DetalleVenta.php";
 
-echo "<pre>";
-print_r($_POST);
-exit;
 
 // 1️⃣ Validar que venga por POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -41,8 +38,16 @@ if ($tipo_venta === "unidad") {
     die("Tipo de venta inválido");
 }
 
+// 🔍 Validar stock disponible
+$stock_disponible = Lote::obtenerStockDisponible($producto_id);
+
+if ($stock_disponible < $unidades) {
+    die("❌ Stock insuficiente. Disponible: $stock_disponible unidades");
+}
+
 // 6️⃣ Descontar stock por lotes (FIFO)
 $stock_ok = Lote::descontarStock($producto_id, $unidades);
+
 if (!$stock_ok) {
     die("No hay stock suficiente");
 }

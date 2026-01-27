@@ -2,7 +2,6 @@
 require_once "../../model/producto/Producto.php";
 $productos = Producto::obtenerTodos();
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -12,47 +11,68 @@ $productos = Producto::obtenerTodos();
 </head>
 <body>
 
-<?php if (isset($_GET['ok'])): ?>
-    <p style="color:green;">
-        ✅ Venta registrada correctamente (ID: <?= $_GET['venta_id'] ?>)
-    </p>
-<?php endif; ?>
-
 <h2>Registrar Venta</h2>
 
-<form action="../../controllers/ventaController.php" method="POST">
+<!-- 🔲 FUTURO: LECTOR DE CÓDIGO DE BARRAS -->
+<!--
+<input type="text" id="codigo_barras" placeholder="Escanee el código">
+-->
 
-    <!-- PRODUCTO -->
+<!-- FORMULARIO SOLO PARA AGREGAR AL CARRITO -->
+<form id="form_producto">
+
     <label>Producto</label><br>
-
     <input type="text" name="producto_nombre" list="lista_productos"
-        placeholder="🔍 Escriba el nombre del producto" required>
+           placeholder="🔍 Escriba el nombre del producto" required>
 
     <datalist id="lista_productos">
-        <!-- productos cargados con PHP -->
-        datalist id="lista_productos">
         <?php foreach ($productos as $p): ?>
-            <option value="<?= $p['nombre'] ?>" data-id="<?= $p['id'] ?>">
+            <option value="<?= $p['nombre'] ?>" data-id="<?= $p['id'] ?>"></option>
         <?php endforeach; ?>
-        </datalist>
     </datalist>
 
-    <input type="hidden" name="producto_id" id="producto_id">    <br><br>
+    <input type="hidden" id="producto_id">
 
-    <!-- TIPO DE VENTA -->
+    <br><br>
+
     <label>Tipo de venta</label><br>
-    <select name="tipo_venta" id="tipo_venta" required>
+    <select id="tipo_venta">
         <option value="unidad">Unidad</option>
         <option value="paquete">Paquete</option>
-    </select><br><br>
+    </select>
 
-    <!-- CANTIDAD -->
+    <br><br>
+
     <label>Cantidad</label><br>
-    <input type="number" name="cantidad" min="1" required><br><br>
+    <input type="number" id="cantidad" min="1" value="1">
 
-    <button type="submit">Vender</button>
+    <br><br>
 
+    <button type="button" onclick="agregarDesdeFormulario()">Agregar</button>
 </form>
 
+<hr>
+
+<h3>🧾 Detalle de la venta</h3>
+
+<table border="1" width="100%" id="tabla_detalle">
+    <thead>
+        <tr>
+            <th>Producto</th>
+            <th>Tipo</th>
+            <th>Cantidad</th>
+            <th>Precio</th>
+            <th>Subtotal</th>
+            <th>❌</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<h3>Total: Bs <span id="total">0.00</span></h3>
+
+<button id="btn_confirmar">Confirmar venta</button>
+
+<script src="../../public/js/venta.js"></script>
 </body>
 </html>
