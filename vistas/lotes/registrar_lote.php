@@ -1,10 +1,12 @@
 <?php
 require_once "../../config/conexion.php";
+require_once "../../modelos/producto_modelo.php";
 require_once "../../modelos/lote_modelo.php";
 include "../layout/header.php";
 
 $productos = obtenerProductos($conexion);
 ?>
+
 
 <h2>Ingreso de Mercadería (Lote)</h2>
 
