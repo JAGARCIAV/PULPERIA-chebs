@@ -6,6 +6,8 @@ function guardarLote($conexion, $producto_id, $fecha_vencimiento, $cantidad) {
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("isi", $producto_id, $fecha_vencimiento, $cantidad);
     $stmt->execute();
+
+    
 }
 
 function obtenerProductosSelect($conexion) {
