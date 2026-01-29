@@ -6,6 +6,11 @@ function guardarLote($conexion, $producto_id, $fecha_vencimiento, $cantidad) {
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("isi", $producto_id, $fecha_vencimiento, $cantidad);
     $stmt->execute();
+
+    $sql2 = "UPDATE productos SET stock_actual = stock_actual + ? WHERE id = ?";
+    $stmt2 = $conexion->prepare($sql2);
+    $stmt2->bind_param("ii", $cantidad, $producto_id);
+    $stmt2->execute();
 }
 
 function obtenerProductosSelect($conexion) {
