@@ -13,7 +13,7 @@ function obtenerProductos($conexion) {
     return $conexion->query($sql);
 }
 
-// ✅ NUEVO: obtener producto por ID (para precios, unidades_paquete, etc.)
+//  NUEVO: obtener producto por ID (para precios, unidades_paquete, etc.)
 function obtenerProductoPorId($conexion, $id) {
     $sql = "SELECT * FROM productos WHERE id = ?";
     $stmt = $conexion->prepare($sql);

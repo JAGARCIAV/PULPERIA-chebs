@@ -2,8 +2,15 @@
 require_once "../../config/conexion.php";
 require_once "../../modelos/producto_modelo.php";
 require_once "../../modelos/venta_modelo.php";
+require_once "../../modelos/caja_turno_modelo.php";
 
 include "../layout/header.php";
+
+$turno = turnoActual();
+$totalTurno = totalTurnoHoy($conexion, $turno);
+$yaCerrado = existeCierreTurnoHoy($conexion, $turno);
+$cierresHoy = obtenerCierresHoy($conexion);
+$totalDiaCierres = totalDiaDesdeCierres($conexion); // ✅ total del día sumando cierres
 
 $productos = obtenerProductos($conexion);
 $totalHoy = obtenerTotalVentasHoy($conexion);
@@ -20,8 +27,8 @@ $ultimasVentas = obtenerUltimasVentas($conexion, 10);
     <form id="form_producto" onsubmit="return false;">
 
         <label>Producto</label><br>
-        <input type="text" name="producto_nombre" list="lista_productos"
-               placeholder="🔍 Escriba el nombre de" required>
+        <input id="producto_nombre" type="text" name="producto_nombre" list="lista_productos"
+               placeholder="Escriba el nombre de" required>
 
         <datalist id="lista_productos">
             <?php while($p = $productos->fetch_assoc()) { ?>
@@ -43,12 +50,14 @@ $ultimasVentas = obtenerUltimasVentas($conexion, 10);
         <input type="number" id="cantidad" min="1" value="1">
         <br><br>
 
+        <div id="stock_info" style="color:#555; font-size:13px; margin-bottom:10px;"></div>
+
         <button type="button" onclick="agregarDesdeFormulario()">Agregar</button>
     </form>
 
     <hr>
 
-    <h3>🧾 Detalle de la venta</h3>
+    <h3>Detalle de la venta</h3>
 
     <table border="1" width="100%" id="tabla_detalle">
         <thead>
@@ -70,9 +79,10 @@ $ultimasVentas = obtenerUltimasVentas($conexion, 10);
 
   </div>
 
-  <!-- COLUMNA DERECHA: HISTORIAL -->
+  <!-- COLUMNA DERECHA: HISTORIAL + CAJA -->
   <div style="flex:1; border:1px solid #ccc; padding:10px; max-height:80vh; overflow:auto;">
-    <h3>🧾 Últimas ventas</h3>
+
+    <h3>Últimas ventas (hoy)</h3>
 
     <form action="../../controladores/ventas_limpiar.php" method="POST" style="margin-bottom:10px;">
       <button type="submit" onclick="return confirm('¿Seguro que desea limpiar el historial del día?')">
@@ -111,12 +121,73 @@ $ultimasVentas = obtenerUltimasVentas($conexion, 10);
       </div>
     <?php } ?>
 
-    <!-- ✅ TOTAL DEL DÍA / CAJA -->
+    <!-- TOTAL DEL DÍA -->
     <div style="margin-top:15px; padding-top:10px; border-top:2px solid #000;">
-      <h3 style="margin:0;">💰 Total vendido hoy</h3>
+      <h3 style="margin:0;">Total vendido hoy</h3>
       <p style="font-size:18px; font-weight:bold; margin:6px 0; text-align:right;">
         Bs <?= number_format($totalHoy, 2) ?>
       </p>
+    </div>
+
+    <!-- ✅ CAJA POR TURNO (DENTRO DE LA COLUMNA DERECHA) -->
+    <div style="margin-top:15px; padding-top:10px; border-top:2px solid #000;">
+      <h3 style="margin:0;">📦 Caja por turno</h3>
+
+      <?php if (isset($_GET["turno_ok"])) { ?>
+        <div style="background:#e9ffe9; border:1px solid #6c6; padding:8px; margin:10px 0;">
+          ✅ Turno cerrado correctamente.
+        </div>
+      <?php } ?>
+
+      <?php if (isset($_GET["turno_err"])) { ?>
+        <div style="background:#ffe9e9; border:1px solid #c66; padding:8px; margin:10px 0;">
+          ❌ <?= htmlspecialchars($_GET["turno_err"]) ?>
+        </div>
+      <?php } ?>
+
+      <p style="margin:6px 0;">
+        <b>Turno actual:</b> <?= htmlspecialchars($turno) ?><br>
+        <b>Total turno:</b> Bs <?= number_format($totalTurno, 2) ?>
+      </p>
+
+      <form action="../../controladores/cerrar_turno.php" method="POST">
+        <input type="hidden" name="turno" value="<?= htmlspecialchars($turno) ?>">
+        <input type="text" name="observacion" placeholder="Observación (opcional)" style="width:100%; margin-bottom:8px; box-sizing:border-box;">
+        <button type="submit" style="width:100%; padding:10px; font-weight:bold;"
+          <?= $yaCerrado ? "disabled" : "" ?>
+          onclick="return confirm('¿Cerrar caja del turno <?= $turno ?>?')">
+          ✅ Cerrar turno
+        </button>
+      </form>
+
+      <?php if ($yaCerrado) { ?>
+        <div style="color:green; margin-top:6px;">✅ Turno ya cerrado.</div>
+      <?php } ?>
+
+      <hr>
+
+      <h4 style="margin:6px 0;">Cierres de hoy</h4>
+      <?php
+        $hay = false;
+        while($c = $cierresHoy->fetch_assoc()) {
+          $hay = true;
+      ?>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span><?= htmlspecialchars($c["turno"]) ?></span>
+          <b>Bs <?= number_format((float)$c["total_ventas"],2) ?></b>
+        </div>
+      <?php } ?>
+
+      <?php if (!$hay) { ?>
+        <div style="color:#666;">Aún no hay cierres hoy.</div>
+      <?php } ?>
+
+      <div style="border-top:1px solid #aaa; margin-top:10px; padding-top:10px; text-align:right;">
+        <div style="font-size:12px; color:#666;">Total del día (sumando cierres)</div>
+        <div style="font-size:18px; font-weight:bold;">
+          Bs <?= number_format($totalDiaCierres,2) ?>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -124,5 +195,4 @@ $ultimasVentas = obtenerUltimasVentas($conexion, 10);
 </div>
 
 <script src="../../public/js/venta.js"></script>
-
 <?php include "../layout/footer.php"; ?>

@@ -21,10 +21,29 @@ function limpiarFormulario() {
     hidden.value = "";
     document.getElementById("cantidad").value = 1;
     document.getElementById("tipo_venta").value = "unidad";
+
+    // opcional: limpiar texto de stock si existe
+    const stockInfo = document.getElementById("stock_info");
+    if (stockInfo) stockInfo.innerText = "";
 }
 
+// ✅ NUEVO: obtener precio real usando POST JSON
 async function obtenerPrecioReal(producto_id, tipo) {
-    const res = await fetch(`../../controladores/producto_ajax.php?id=${producto_id}&tipo=${tipo}`);
+    const res = await fetch("../../controladores/producto_fetch.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: parseInt(producto_id), tipo })
+    });
+    return await res.json();
+}
+
+// (Opcional) obtener stock usando POST JSON
+async function obtenerStock(producto_id) {
+    const res = await fetch("../../controladores/stock_fetch.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ producto_id: parseInt(producto_id) })
+    });
     return await res.json();
 }
 
@@ -43,7 +62,15 @@ async function agregarDesdeFormulario() {
         return;
     }
 
-    // precio real desde BD
+    // ✅ (Opcional) validar stock antes de agregar
+    // Si NO quieres validar aquí, puedes comentar este bloque y validar solo al confirmar
+    /*
+    const stockData = await obtenerStock(producto_id);
+    if (stockData.error) { alert(stockData.error); return; }
+    // ojo: si tipo paquete necesitas calcular unidades, aquí solo mostramos stock disponible
+    */
+
+    // ✅ precio real desde BD
     const data = await obtenerPrecioReal(producto_id, tipo);
     if (data.error) {
         alert(data.error);
@@ -58,13 +85,12 @@ async function agregarDesdeFormulario() {
 
     if (idx !== -1) {
         carrito[idx].cantidad += cantidad;
-        carrito[idx].precio = precio; // por si cambió el precio
+        carrito[idx].precio = precio;
         renderizarTabla();
         limpiarFormulario();
         return;
     }
 
-    // agregar nuevo
     carrito.push({
         producto_id: parseInt(producto_id),
         nombre,
@@ -128,11 +154,8 @@ document.getElementById("btn_confirmar").addEventListener("click", async () => {
 
     alert("✅ Venta registrada. ID: " + data.venta_id);
 
-    // limpiar todo
     carrito = [];
     renderizarTabla();
     limpiarFormulario();
-
-    // refrescar historial
     location.reload();
 });

@@ -1,8 +1,12 @@
 <?php
 
 function crearVenta($conexion) {
-    $sql = "INSERT INTO ventas (fecha, total) VALUES (NOW(), 0)";
-    $conexion->query($sql);
+    $turno = (date("H") < 14) ? "mañana" : "tarde";
+
+    $sql = "INSERT INTO ventas (fecha, total, turno) VALUES (NOW(), 0, ?)";
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("s", $turno);
+    $stmt->execute();
     return $conexion->insert_id;
 }
 
@@ -38,7 +42,7 @@ function obtenerUltimasVentas($conexion, $limite = 10) {
 
 
 /**
- * ✅ NUEVO: obtener detalle de una venta (para mostrar tipo factura/nota)
+ *  NUEVO: obtener detalle de una venta (para mostrar tipo factura/nota)
  */
 function obtenerDetalleVenta($conexion, $venta_id) {
     $sql = "SELECT d.tipo_venta, d.cantidad, d.precio_unitario, d.subtotal, p.nombre

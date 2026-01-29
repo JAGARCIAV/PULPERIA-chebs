@@ -7,8 +7,38 @@ function guardarLote($conexion, $producto_id, $fecha_vencimiento, $cantidad) {
     $stmt->bind_param("isi", $producto_id, $fecha_vencimiento, $cantidad);
     $stmt->execute();
 
-    
+    $sql2 = "UPDATE productos SET stock_actual = stock_actual + ? WHERE id = ?";
+    $stmt2 = $conexion->prepare($sql2);
+    $stmt2->bind_param("ii", $cantidad, $producto_id);
+    $stmt2->execute();
 }
+
+
+/*
+ OTRA OPCION 
+function guardarLote($conexion, $producto_id, $fecha_vencimiento, $cantidad) {
+
+    $producto_id = (int)$producto_id;
+    $cantidad = (int)$cantidad;
+
+    if ($producto_id <= 0) die("Producto inválido");
+    if (!$fecha_vencimiento) die("Fecha requerida");
+    if ($cantidad <= 0) die("Cantidad inválida");
+
+    $sql = "INSERT INTO lotes (producto_id, fecha_vencimiento, cantidad_unidades, fecha_ingreso)
+            VALUES (?, ?, ?, NOW())";
+
+    $stmt = $conexion->prepare($sql);
+    if(!$stmt) die("Error prepare: " . $conexion->error);
+
+    $stmt->bind_param("isi", $producto_id, $fecha_vencimiento, $cantidad);
+
+    if(!$stmt->execute()) die("Error execute: " . $stmt->error);
+
+    $stmt->close();
+}*/
+
+
 
 function obtenerProductosSelect($conexion) {
     $sql = "SELECT id, nombre FROM productos";

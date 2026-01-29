@@ -95,7 +95,20 @@ CREATE TABLE `ventas` (
   `total` decimal(10,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
+-- AGREGAR 
+-- NUEVA TABLA CIERRE DE CAJAS 
+CREATE TABLE IF NOT EXISTS cierres_caja (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  fecha DATE NOT NULL,
+  turno ENUM('mañana','tarde') NOT NULL,
+  total_ventas DECIMAL(10,2) NOT NULL DEFAULT 0,
+  observacion VARCHAR(255) NULL,
+  creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_fecha_turno (fecha, turno)
+);
+
+
+
 -- Índices para tablas volcadas
 --
 
@@ -191,6 +204,16 @@ ALTER TABLE `promociones`
   ADD CONSTRAINT `promociones_ibfk_1` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id`) ON DELETE CASCADE;
 COMMIT;
 
+--AGREGAR
+-- NUEVO Flitros para tabla VENTAS
+ALTER TABLE ventas
+ADD turno ENUM('mañana','tarde') NOT NULL DEFAULT 'mañana';
+
+
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+
+
+/* NUEVA TABLA */

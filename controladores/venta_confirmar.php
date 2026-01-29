@@ -16,7 +16,7 @@ if (!$data || !isset($data["carrito"]) || !is_array($data["carrito"]) || count($
 
 $carrito = $data["carrito"];
 
-// ✅ Transacción para que sea seguro (todo o nada)
+// Transacción para que sea seguro (todo o nada)
 $conexion->begin_transaction();
 
 try {
