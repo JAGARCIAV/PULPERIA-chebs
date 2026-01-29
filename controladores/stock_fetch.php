@@ -4,7 +4,6 @@ require_once "../modelos/lote_modelo.php";
 
 header("Content-Type: application/json; charset=utf-8");
 
-// leer JSON
 $data = json_decode(file_get_contents("php://input"), true);
 
 $producto_id = isset($data["producto_id"]) ? (int)$data["producto_id"] : 0;
@@ -16,7 +15,5 @@ if ($producto_id <= 0) {
 
 $stock = obtenerStockDisponible($conexion, $producto_id);
 
-echo json_encode([
-    "producto_id" => $producto_id,
-    "stock" => $stock
-]);
+echo json_encode(["stock" => (int)$stock]);
+exit;

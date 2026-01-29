@@ -16,16 +16,22 @@ if (!$data || !isset($data["carrito"]) || !is_array($data["carrito"]) || count($
 
 $carrito = $data["carrito"];
 
-// Transacción para que sea seguro (todo o nada)
+// ✅ Transacción (todo o nada)
 $conexion->begin_transaction();
 
 try {
+
+    // ✅ Crear venta (depende de turno abierto)
     $venta_id = crearVenta($conexion);
 
+    if (!$venta_id) {
+        throw new Exception("No hay turno abierto. Abra turno antes de vender.");
+    }
+
     foreach ($carrito as $item) {
-        $producto_id = (int)$item["producto_id"];
-        $tipo = $item["tipo"] === "paquete" ? "paquete" : "unidad";
-        $cantidad = (int)$item["cantidad"];
+        $producto_id = (int)($item["producto_id"] ?? 0);
+        $tipo = (($item["tipo"] ?? "unidad") === "paquete") ? "paquete" : "unidad";
+        $cantidad = (int)($item["cantidad"] ?? 0);
 
         if ($producto_id <= 0 || $cantidad <= 0) {
             throw new Exception("Datos inválidos en carrito");
@@ -34,28 +40,30 @@ try {
         $p = obtenerProductoPorId($conexion, $producto_id);
         if (!$p) throw new Exception("Producto no existe");
 
-        // precio real
+        // Precio real
         $precio = ($tipo === "paquete") ? (float)$p["precio_paquete"] : (float)$p["precio_unidad"];
 
-        // unidades reales a descontar
+        // Unidades reales a descontar
         $unidades = ($tipo === "paquete")
             ? $cantidad * (int)$p["unidades_por_paquete"]
             : $cantidad;
 
-        // validar stock
+        // Validar stock
         $stock = obtenerStockDisponible($conexion, $producto_id);
         if ($stock < $unidades) {
             throw new Exception("Stock insuficiente para {$p['nombre']} (disp: $stock, req: $unidades)");
         }
 
-        // descontar FIFO
+        // Descontar FIFO
         $ok = descontarStockFIFO($conexion, $producto_id, $unidades);
         if (!$ok) throw new Exception("No se pudo descontar stock FIFO");
 
-        $subtotal = $precio * $cantidad;
+        // Guardar detalle
+        $subtotal = round($precio * $cantidad, 2);
         agregarDetalleVenta($conexion, $venta_id, $producto_id, $tipo, $cantidad, $precio, $subtotal);
     }
 
+    // Actualizar total de venta
     actualizarTotalVenta($conexion, $venta_id);
 
     $conexion->commit();

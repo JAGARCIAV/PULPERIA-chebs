@@ -4,7 +4,6 @@ require_once "../modelos/producto_modelo.php";
 
 header("Content-Type: application/json; charset=utf-8");
 
-// leer JSON
 $data = json_decode(file_get_contents("php://input"), true);
 
 $id   = isset($data["id"]) ? (int)$data["id"] : 0;
@@ -36,3 +35,4 @@ echo json_encode([
     "precio" => $precio,
     "unidades_por_paquete" => (int)$p["unidades_por_paquete"]
 ]);
+exit;

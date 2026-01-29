@@ -1,12 +1,27 @@
 <?php
+require_once __DIR__ . "/turno_modelo.php";
 
 function crearVenta($conexion) {
-    $turno = (date("H") < 14) ? "mañana" : "tarde";
 
-    $sql = "INSERT INTO ventas (fecha, total, turno) VALUES (NOW(), 0, ?)";
+    // ✅ Turno abierto (desde modelo)
+    $turno = obtenerTurnoAbiertoHoy($conexion);
+
+    if (!$turno) {
+        return 0; // controlador mostrará mensaje
+    }
+
+    $turno_id = (int)$turno["id"];
+
+    // ✅ Crear venta ligada al turno abierto
+    $sql = "INSERT INTO ventas (fecha, total, turno_id)
+            VALUES (NOW(), 0, ?)";
     $stmt = $conexion->prepare($sql);
-    $stmt->bind_param("s", $turno);
-    $stmt->execute();
+    $stmt->bind_param("i", $turno_id);
+
+    if (!$stmt->execute()) {
+        return 0; // si falla, evitamos que todo siga
+    }
+
     return $conexion->insert_id;
 }
 
@@ -28,21 +43,20 @@ function actualizarTotalVenta($conexion, $venta_id) {
     $stmt->execute();
 }
 
-function obtenerUltimasVentas($conexion, $limite = 10) {
+function obtenerUltimasVentasDesde($conexion, $desde_id = 0, $limite = 10) {
     $sql = "SELECT id, fecha, total
             FROM ventas
-            WHERE DATE(fecha) = CURDATE()
+            WHERE DATE(fecha)=CURDATE() AND id > ?
             ORDER BY id DESC
             LIMIT ?";
     $stmt = $conexion->prepare($sql);
-    $stmt->bind_param("i", $limite);
+    $stmt->bind_param("ii", $desde_id, $limite);
     $stmt->execute();
     return $stmt->get_result();
 }
 
-
 /**
- *  NUEVO: obtener detalle de una venta (para mostrar tipo factura/nota)
+ * ✅ obtener detalle de una venta (para mostrar tipo factura/nota)
  */
 function obtenerDetalleVenta($conexion, $venta_id) {
     $sql = "SELECT d.tipo_venta, d.cantidad, d.precio_unitario, d.subtotal, p.nombre
@@ -64,6 +78,3 @@ function obtenerTotalVentasHoy($conexion) {
     $row = $res->fetch_assoc();
     return (float)$row["total_hoy"];
 }
-
-
-?>
