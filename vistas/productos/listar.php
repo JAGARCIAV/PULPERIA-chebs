@@ -25,7 +25,7 @@ $productos = obtenerProductos($conexion);
     <td><?= $p['nombre'] ?></td>
     <td><?= $p['precio_unidad'] ?></td>
     <td><?= $p['precio_paquete'] ?></td>
-    <td><?= $p['stock_actual'] ?></td>
+    <td><?= $cantidad = obtenerStockTotal($conexion, $p['id']); ?></td>
 </tr>
 <?php } ?>
 

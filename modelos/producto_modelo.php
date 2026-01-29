@@ -21,4 +21,13 @@ function obtenerProductoPorId($conexion, $id) {
     $stmt->execute();
     return $stmt->get_result()->fetch_assoc();
 }
+
+function obtenerStockTotal($conexion, $producto_id) {
+    $sql = "SELECT SUM(cantidad_unidades) AS total_stock FROM lotes WHERE producto_id = ?";
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("i", $producto_id);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    return $result['total_stock'] ?? 0;
+}
 ?>
