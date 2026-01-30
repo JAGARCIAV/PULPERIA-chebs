@@ -1,4 +1,10 @@
-<?php include "../layout/header.php"; ?>
+<?php
+require_once __DIR__ . "/../../config/auth.php";
+require_role(['admin']);
+?>
+
+<?php 
+include "../layout/header.php"; ?>
 
 <h2>Crear Producto</h2>
 

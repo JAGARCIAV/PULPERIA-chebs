@@ -1,24 +1,35 @@
 <?php
-require_once "../config/conexion.php";
-require_once "../modelos/turno_modelo.php";
+require_once __DIR__ . "/../config/auth.php";
+require_role(['admin','empleado']);
 
-if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    die("Método no permitido");
-}
+require_once __DIR__ . "/../config/conexion.php";
+require_once __DIR__ . "/../modelos/turno_modelo.php";
 
-$responsable = $_POST["responsable"] ?? "SIN_USUARIO";
-$monto = isset($_POST["monto_inicial"]) ? (float)$_POST["monto_inicial"] : 0;
+if (session_status() === PHP_SESSION_NONE) session_start();
 
-// ✅ última venta (para marcar desde dónde empieza el historial)
-$res = $conexion->query("SELECT COALESCE(MAX(id),0) id FROM ventas");
-$desde = (int)$res->fetch_assoc()["id"];
+$efectivoInicial = (float)($_POST['monto_inicial'] ?? 0);
+if ($efectivoInicial < 0) $efectivoInicial = 0;
 
-$result = abrirTurno($conexion, $responsable, $monto, $desde);
+// Responsable desde sesión
+$userId = (int)($_SESSION['user']['id'] ?? 0);
+$nombre = $_SESSION['user']['nombre'] ?? 'SIN_USUARIO';
 
-if (!$result["ok"]) {
-    header("Location: ../vistas/ventas/venta.php?turno_err=" . urlencode($result["msg"]));
+if ($userId <= 0) {
+    header("Location: /PULPERIA-CHEBS/vistas/login.php");
     exit;
 }
 
-header("Location: ../vistas/ventas/venta.php?turno_ok=1");
+// desde qué venta inicia historial (déjalo en 0 por ahora)
+$desde = 0;
+
+$res = abrirTurno($conexion, $nombre, $userId, $efectivoInicial, $desde);
+
+if (!$res["ok"]) {
+    header("Location: /PULPERIA-CHEBS/vistas/ventas/venta.php?turno_err=" . urlencode($res["msg"]));
+    exit;
+}
+
+$_SESSION['turno_id'] = (int)$res["turno_id"];
+
+header("Location: /PULPERIA-CHEBS/vistas/ventas/venta.php?turno_ok=1");
 exit;

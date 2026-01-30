@@ -1,4 +1,9 @@
 <?php
+require_once __DIR__ . "/../../config/auth.php";
+require_role(['admin']);
+?>
+
+<?php
 require_once "../../config/conexion.php";
 require_once "../../modelos/producto_modelo.php";
 include "../layout/header.php";

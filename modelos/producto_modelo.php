@@ -13,7 +13,6 @@ function obtenerProductos($conexion) {
     return $conexion->query($sql);
 }
 
-//  NUEVO: obtener producto por ID (para precios, unidades_paquete, etc.)
 function obtenerProductoPorId($conexion, $id) {
     $sql = "SELECT * FROM productos WHERE id = ?";
     $stmt = $conexion->prepare($sql);
@@ -23,11 +22,13 @@ function obtenerProductoPorId($conexion, $id) {
 }
 
 function obtenerStockTotal($conexion, $producto_id) {
-    $sql = "SELECT SUM(cantidad_unidades) AS total_stock FROM lotes WHERE producto_id = ?";
+    // ✅ solo lotes activos
+    $sql = "SELECT COALESCE(SUM(cantidad_unidades),0) AS total_stock
+            FROM lotes
+            WHERE producto_id = ? AND activo = 1";
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("i", $producto_id);
     $stmt->execute();
     $result = $stmt->get_result()->fetch_assoc();
-    return $result['total_stock'] ?? 0;
+    return (int)($result['total_stock'] ?? 0);
 }
-?>

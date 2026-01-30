@@ -19,10 +19,10 @@ function crearVenta($conexion) {
     $stmt->bind_param("i", $turno_id);
 
     if (!$stmt->execute()) {
-        return 0; // si falla, evitamos que todo siga
+        return 0;
     }
 
-    return $conexion->insert_id;
+    return (int)$conexion->insert_id;
 }
 
 function agregarDetalleVenta($conexion, $venta_id, $producto_id, $tipo_venta, $cantidad, $precio_unitario, $subtotal) {
@@ -55,9 +55,6 @@ function obtenerUltimasVentasDesde($conexion, $desde_id = 0, $limite = 10) {
     return $stmt->get_result();
 }
 
-/**
- * ✅ obtener detalle de una venta (para mostrar tipo factura/nota)
- */
 function obtenerDetalleVenta($conexion, $venta_id) {
     $sql = "SELECT d.tipo_venta, d.cantidad, d.precio_unitario, d.subtotal, p.nombre
             FROM detalle_venta d
