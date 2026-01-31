@@ -1,248 +1,243 @@
-// ✅ BASE FIJA (así no fallan rutas)
-const BASE_URL = "/PULPERIA-CHEBS";
+(() => {
+  // ✅ BASE FIJA
+  const BASE_URL = "/PULPERIA-CHEBS";
 
-// 🔹 Manejo del datalist → obtener ID del producto
-const input = document.querySelector('input[list="lista_productos"]');
-const hidden = document.getElementById('producto_id');
-const options = document.querySelectorAll('#lista_productos option');
+  // ✅ Elementos (ahora por ID, no por datalist list="")
+  const inputNombre = document.getElementById("producto_nombre");
+  const hiddenId = document.getElementById("producto_id");
+  const tipoVentaEl = document.getElementById("tipo_venta");
+  const cantidadEl = document.getElementById("cantidad");
+  const totalEl = document.getElementById("total");
+  const tablaBody = document.querySelector("#tabla_detalle tbody");
+  const btnConfirmar = document.getElementById("btn_confirmar");
 
-const stockInfo = document.getElementById("stock_info");
-
-// 🔹 Carrito
-let carrito = [];
-let total = 0;
-
-// ✅ flag para recargar cuando el usuario cierre el modal
-let recargarDespuesDeOk = false;
-
-function limpiarFormulario() {
-  input.value = "";
-  hidden.value = "";
-  document.getElementById("cantidad").value = 1;
-  document.getElementById("tipo_venta").value = "unidad";
-  if (stockInfo) stockInfo.innerText = "";
-}
-
-// ✅ Helper: fetch JSON con manejo de errores
-async function fetchJSON(url, payload) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-
-  const text = await res.text();
-  try {
-    return JSON.parse(text);
-  } catch {
-    console.error("Respuesta no JSON:", text);
-
-    if (typeof mostrarMensaje === "function") {
-      mostrarMensaje("❌ Error", "Respuesta inválida del servidor (no es JSON). Revisa errores PHP.");
-    }
-
-    return { error: "Respuesta inválida del servidor (no es JSON). Revisa errores PHP." };
+  // Si por algo falta algo, no rompas todo
+  if (!inputNombre || !hiddenId || !tipoVentaEl || !cantidadEl || !totalEl || !tablaBody) {
+    console.error("❌ Faltan elementos en la página (IDs). Revisa venta.php.");
+    return;
   }
-}
 
-// ✅ obtener precio real desde BD
-async function obtenerPrecioReal(producto_id, tipo) {
-  return await fetchJSON(`${BASE_URL}/controladores/producto_fetch.php`, {
-    id: parseInt(producto_id),
-    tipo
-  });
-}
+  // 🔹 Carrito
+  let carrito = [];
+  let total = 0;
 
-// ✅ obtener stock (solo lotes activos)
-async function obtenerStock(producto_id) {
-  return await fetchJSON(`${BASE_URL}/controladores/stock_fetch.php`, {
-    producto_id: parseInt(producto_id)
-  });
-}
+  // ✅ flag para recargar cuando el usuario cierre el modal
+  let recargarDespuesDeOk = false;
 
-// ✅ cuando escribe/elige producto del datalist
-if (input) {
-  input.addEventListener('input', async () => {
-    hidden.value = '';
+  function limpiarFormulario() {
+    inputNombre.value = "";
+    hiddenId.value = "";
+    cantidadEl.value = 1;
+    tipoVentaEl.value = "unidad";
+    // el stockInfo lo maneja tu script inline (autocomplete) si existe
+  }
 
-    // buscar match exacto
-    options.forEach(option => {
-      if (option.value === input.value) {
-        hidden.value = option.dataset.id;
-      }
+  // ✅ Helper: fetch JSON con manejo de errores
+  async function fetchJSON(url, payload) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
     });
 
-    // Mostrar stock cuando el producto es válido
-    if (hidden.value && stockInfo) {
-      const s = await obtenerStock(hidden.value);
-      if (s.error) {
-        stockInfo.innerText = "Stock: error";
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      console.error("Respuesta no JSON:", text);
+      if (typeof mostrarMensaje === "function") {
+        mostrarMensaje("❌ Error", "Respuesta inválida del servidor (no es JSON). Revisa errores PHP.");
       } else {
-        stockInfo.innerText = `Stock disponible: ${parseInt(s.stock)}`;
+        alert("❌ Respuesta inválida del servidor (no es JSON). Revisa errores PHP.");
       }
-    } else {
-      if (stockInfo) stockInfo.innerText = "";
+      return { error: "Respuesta inválida del servidor (no es JSON)." };
     }
-  });
-}
-
-async function agregarDesdeFormulario() {
-  const nombre = input.value.trim();
-  const producto_id = hidden.value;
-  const tipo = document.getElementById("tipo_venta").value;
-  const cantidad = parseInt(document.getElementById("cantidad").value);
-
-  if (!producto_id || !nombre) {
-    mostrarMensaje?.("⚠️ Atención", "Selecciona un producto válido de la lista.");
-    input.focus();
-    return;
-  }
-  if (!cantidad || cantidad <= 0) {
-    mostrarMensaje?.("⚠️ Atención", "Cantidad inválida.");
-    document.getElementById("cantidad").focus();
-    return;
   }
 
-  // ✅ precio real desde BD
-  const data = await obtenerPrecioReal(producto_id, tipo);
-  if (data.error) {
-    mostrarMensaje?.("❌ Error", data.error);
-    return;
+  // ✅ obtener precio real desde BD
+  async function obtenerPrecioReal(producto_id, tipo) {
+    return await fetchJSON(`${BASE_URL}/controladores/producto_fetch.php`, {
+      id: parseInt(producto_id, 10),
+      tipo
+    });
   }
-  const precio = parseFloat(data.precio);
 
-  // ✅ ACUMULAR si ya existe el mismo producto con el mismo tipo
-  const idx = carrito.findIndex(x =>
-    x.producto_id === parseInt(producto_id) && x.tipo === tipo
-  );
+  // ✅ Render tabla
+  function renderizarTabla() {
+    tablaBody.innerHTML = "";
+    total = 0;
 
-  if (idx !== -1) {
-    carrito[idx].cantidad += cantidad;
-    carrito[idx].precio = precio;
+    carrito.forEach((item, index) => {
+      const subtotal = item.precio * item.cantidad;
+      total += subtotal;
+
+      tablaBody.innerHTML += `
+        <tr class="hover:bg-chebs-soft/40">
+          <td class="px-4 py-3">${item.nombre}</td>
+          <td class="px-4 py-3">${item.tipo}</td>
+          <td class="px-4 py-3">${item.cantidad}</td>
+          <td class="px-4 py-3">${item.precio.toFixed(2)}</td>
+          <td class="px-4 py-3">${subtotal.toFixed(2)}</td>
+          <td class="px-4 py-3">
+            <button type="button"
+                    class="px-3 py-2 rounded-xl border border-chebs-line hover:bg-red-50 hover:border-red-200"
+                    onclick="eliminarProducto(${index})">✕</button>
+          </td>
+        </tr>
+      `;
+    });
+
+    totalEl.innerText = total.toFixed(2);
+  }
+
+  // ✅ Exponer funciones globales (porque tu HTML las llama)
+  window.eliminarProducto = (index) => {
+    carrito.splice(index, 1);
     renderizarTabla();
-    limpiarFormulario();
-    input.focus();
-    return;
-  }
+  };
 
-  carrito.push({
-    producto_id: parseInt(producto_id),
-    nombre,
-    tipo,
-    cantidad,
-    precio
-  });
+  window.agregarDesdeFormulario = async () => {
+    const nombre = inputNombre.value.trim();
+    const producto_id = hiddenId.value;
+    const tipo = tipoVentaEl.value;
+    const cantidad = parseInt(cantidadEl.value, 10);
 
-  renderizarTabla();
-  limpiarFormulario();
-  input.focus();
-}
-
-function eliminarProducto(index) {
-  carrito.splice(index, 1);
-  renderizarTabla();
-}
-
-function renderizarTabla() {
-  const tbody = document.querySelector("#tabla_detalle tbody");
-  tbody.innerHTML = "";
-  total = 0;
-
-  carrito.forEach((item, index) => {
-    const subtotal = item.precio * item.cantidad;
-    total += subtotal;
-
-    tbody.innerHTML += `
-      <tr class="hover:bg-chebs-soft/40">
-        <td class="px-4 py-3">${item.nombre}</td>
-        <td class="px-4 py-3">${item.tipo}</td>
-        <td class="px-4 py-3">${item.cantidad}</td>
-        <td class="px-4 py-3">${item.precio.toFixed(2)}</td>
-        <td class="px-4 py-3">${subtotal.toFixed(2)}</td>
-        <td class="px-4 py-3">
-          <button type="button"
-                  class="px-3 py-2 rounded-xl border border-chebs-line hover:bg-red-50 hover:border-red-200"
-                  onclick="eliminarProducto(${index})">✕</button>
-        </td>
-      </tr>
-    `;
-  });
-
-  document.getElementById("total").innerText = total.toFixed(2);
-}
-
-// ✅ Confirmar venta (guardar en BD)
-const btnConfirmar = document.getElementById("btn_confirmar");
-if (btnConfirmar) {
-  btnConfirmar.addEventListener("click", async () => {
-    if (carrito.length === 0) {
-      mostrarMensaje?.("⚠️ Atención", "Carrito vacío.");
+    if (!producto_id || !nombre) {
+      if (typeof mostrarMensaje === "function") {
+        mostrarMensaje("⚠️ Atención", "Selecciona un producto válido de la lista.");
+      } else {
+        alert("⚠️ Selecciona un producto válido de la lista.");
+      }
+      inputNombre.focus();
       return;
     }
 
-    const data = await fetchJSON(`${BASE_URL}/controladores/venta_confirmar.php`, { carrito });
-
-    if (!data.ok) {
-      mostrarMensaje?.("❌ Error", (data.msg || data.error || "No se pudo registrar la venta"));
+    if (!cantidad || cantidad <= 0) {
+      if (typeof mostrarMensaje === "function") {
+        mostrarMensaje("⚠️ Atención", "Cantidad inválida.");
+      } else {
+        alert("⚠️ Cantidad inválida.");
+      }
+      cantidadEl.focus();
       return;
     }
 
-    // ✅ Limpia carrito antes
-    carrito = [];
+    // ✅ precio real desde BD
+    const data = await obtenerPrecioReal(producto_id, tipo);
+    if (data.error) {
+      if (typeof mostrarMensaje === "function") {
+        mostrarMensaje("❌ Error", data.error);
+      } else {
+        alert("❌ " + data.error);
+      }
+      return;
+    }
+
+    const precio = parseFloat(data.precio);
+
+    // ✅ ACUMULAR si ya existe el mismo producto con el mismo tipo
+    const idx = carrito.findIndex(x =>
+      x.producto_id === parseInt(producto_id, 10) && x.tipo === tipo
+    );
+
+    if (idx !== -1) {
+      carrito[idx].cantidad += cantidad;
+      carrito[idx].precio = precio;
+      renderizarTabla();
+      limpiarFormulario();
+      inputNombre.focus();
+      return;
+    }
+
+    carrito.push({
+      producto_id: parseInt(producto_id, 10),
+      nombre,
+      tipo,
+      cantidad,
+      precio
+    });
+
     renderizarTabla();
     limpiarFormulario();
+    inputNombre.focus();
+  };
 
-    // ✅ Marca que al dar Aceptar se recargue
-    recargarDespuesDeOk = true;
-
-    // ✅ Abre modal
-    if (typeof mostrarMensaje === "function") {
-      mostrarMensaje("✅ Venta registrada", "ID: " + data.venta_id);
-    } else {
-      // fallback por si no está el modal
-      alert("✅ Venta registrada. ID: " + data.venta_id);
-      location.reload();
-    }
-
-    // ✅ Hook: cuando el usuario presiona Aceptar, recargar
-    setTimeout(() => {
-      const btnOk = document.getElementById("confirm_btn_ok");
-      if (btnOk) {
-        btnOk.onclick = () => {
-          // cerrar modal si existe
-          if (typeof cerrarModal === "function") cerrarModal("modalConfirmacion");
-          if (recargarDespuesDeOk) location.reload();
-        };
+  // ✅ Confirmar venta (guardar en BD)
+  if (btnConfirmar) {
+    btnConfirmar.addEventListener("click", async () => {
+      if (carrito.length === 0) {
+        if (typeof mostrarMensaje === "function") {
+          mostrarMensaje("⚠️ Atención", "Carrito vacío.");
+        } else {
+          alert("⚠️ Carrito vacío.");
+        }
+        return;
       }
-    }, 0);
-  });
-}
 
-/* ===========================
-   ✅ MEJORAS DE VELOCIDAD POS
-   =========================== */
+      const data = await fetchJSON(`${BASE_URL}/controladores/venta_confirmar.php`, { carrito });
 
-// ✅ Enter = Agregar / Ctrl+Enter = Confirmar
-document.addEventListener("keydown", (e) => {
-  const activo = document.activeElement;
+      if (!data.ok) {
+        if (typeof mostrarMensaje === "function") {
+          mostrarMensaje("❌ Error", (data.msg || data.error || "No se pudo registrar la venta"));
+        } else {
+          alert("❌ " + (data.msg || data.error || "No se pudo registrar la venta"));
+        }
+        return;
+      }
 
-  // Enter en producto o cantidad → agregar
-  if (e.key === "Enter" && !e.ctrlKey) {
-    if (activo && (activo.id === "producto_nombre" || activo.id === "cantidad")) {
-      e.preventDefault();
-      agregarDesdeFormulario();
+      // ✅ Limpia carrito antes
+      carrito = [];
+      renderizarTabla();
+      limpiarFormulario();
+
+      // ✅ Marca que al dar Aceptar se recargue
+      recargarDespuesDeOk = true;
+
+      // ✅ Abre modal
+      if (typeof mostrarMensaje === "function") {
+        mostrarMensaje("✅ Venta registrada", "ID: " + data.venta_id);
+      } else {
+        alert("✅ Venta registrada. ID: " + data.venta_id);
+        location.reload();
+        return;
+      }
+
+      // ✅ Cuando el usuario presiona Aceptar, recién recargar
+      setTimeout(() => {
+        const btnOk = document.getElementById("confirm_btn_ok");
+        if (btnOk) {
+          btnOk.onclick = () => {
+            // cerrar modal (si existe la función)
+            if (typeof cerrarModal === "function") cerrarModal("modalConfirmacion");
+            if (recargarDespuesDeOk) location.reload();
+          };
+        }
+      }, 0);
+    });
+  }
+
+  /* ===========================
+     ✅ MEJORAS DE VELOCIDAD POS
+     =========================== */
+
+  // ✅ Enter = Agregar / Ctrl+Enter = Confirmar
+  document.addEventListener("keydown", (e) => {
+    const activo = document.activeElement;
+
+    // Enter en producto o cantidad → agregar
+    if (e.key === "Enter" && !e.ctrlKey) {
+      if (activo && (activo.id === "producto_nombre" || activo.id === "cantidad")) {
+        e.preventDefault();
+        window.agregarDesdeFormulario();
+      }
     }
-  }
 
-  // Ctrl + Enter → confirmar
-  if (e.key === "Enter" && e.ctrlKey) {
-    const btn = document.getElementById("btn_confirmar");
-    if (btn && !btn.disabled) btn.click();
-  }
-});
+    // Ctrl + Enter → confirmar
+    if (e.key === "Enter" && e.ctrlKey) {
+      if (btnConfirmar && !btnConfirmar.disabled) btnConfirmar.click();
+    }
+  });
 
-// ✅ Selecciona cantidad al enfocarla
-const cantidadInput = document.getElementById("cantidad");
-if (cantidadInput) {
-  cantidadInput.addEventListener("focus", () => cantidadInput.select());
-}
+  // ✅ Selecciona cantidad al enfocarla
+  cantidadEl.addEventListener("focus", () => cantidadEl.select());
+})();
