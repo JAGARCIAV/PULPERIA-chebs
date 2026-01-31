@@ -127,3 +127,11 @@ function obtenerVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo =
     return $stmt->get_result();
 }
 
+function obtenerVentaPorId($conexion, $id) {
+    $sql = "SELECT id, fecha, total FROM ventas WHERE id=?";
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc();
+}
+

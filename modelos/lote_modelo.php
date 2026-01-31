@@ -15,7 +15,8 @@ function guardarLote($conexion, $producto_id, $fecha_vencimiento, $cantidad) {
     $stmt->bind_param("isi", $producto_id, $fecha_vencimiento, $cantidad);
     $ok = $stmt->execute();
 
-    return $ok;
+    
+    return $ok ? $conexion->insert_id : false;
 }
 
 // ✅ Select para combos

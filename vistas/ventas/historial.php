@@ -10,6 +10,7 @@ $busqueda  = $_GET['busqueda'] ?? null;
 
 $ventas = obtenerVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda);
 ?>
+<link rel="stylesheet" href="../../public/CSS/modal.css">
 
 <h2>Historial de Ventas</h2>
 
@@ -62,9 +63,21 @@ $ventas = obtenerVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda);
         <td><?= htmlspecialchars($v['responsable']) ?></td>
         <td>Bs <?= number_format($v['total'],2) ?></td>
         <td>
-            <a href="venta_detalle.php?id=<?= $v['id'] ?>">Ver</a>
+        <button onclick="verDetalleVenta(<?= (int)$v['id'] ?>)">
+            Ver detalle
+        </button>
         </td>
     </tr>
     <?php } ?>
 </table>
+
+<div id="modalGeneral" class="modal-bg" style="display:none;">
+  <div class="modal-box">
+    <span class="cerrar" onclick="cerrarModalGeneral()">✖</span>
+    <div id="modalContenido"></div>
+  </div>
+</div>
+
+<script src="../../public/js/ventas_historial.js"></script>
+
 <?php include "../layout/footer.php"; ?>
