@@ -32,3 +32,19 @@ function obtenerStockTotal($conexion, $producto_id) {
     $result = $stmt->get_result()->fetch_assoc();
     return (int)($result['total_stock'] ?? 0);
 }
+
+function obtenerProductoPorIds($conexion, $id) {
+    $stmt = $conexion->prepare("SELECT * FROM productos WHERE id=?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc();
+}
+
+function actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paquete, $activo) {
+    $sql = "UPDATE productos
+            SET nombre=?, precio_unidad=?, precio_paquete=?, activo=?
+            WHERE id=?";
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("sddii", $nombre, $precio_unidad, $precio_paquete, $activo, $id);
+    return $stmt->execute();
+}
