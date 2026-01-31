@@ -8,6 +8,8 @@ $rol = $_SESSION['user']['rol'] ?? '';
     <a href="/PULPERIA-CHEBS/index.php">Inicio</a>
     <a href="/PULPERIA-CHEBS/vistas/productos/listar.php">Productos</a>
     <a href="/PULPERIA-CHEBS/vistas/lotes/listar.php">Lotes</a>
+    <a href="/PULPERIA-CHEBS/vistas/movimientos/historial.php">Historial de Inventario</a><br>
+    <a href="/PULPERIA-CHEBS/vistas/ventas/historial.php">Historial de Ventas</a>
   <?php endif; ?>
 
   <a href="/PULPERIA-CHEBS/vistas/ventas/venta.php">Ventas</a>

@@ -75,3 +75,55 @@ function obtenerTotalVentasHoy($conexion) {
     $row = $res->fetch_assoc();
     return (float)$row["total_hoy"];
 }
+
+function obtenerVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo = null, $busqueda = null) {
+
+    $sql = "SELECT v.id, v.fecha, v.total, v.turno,
+                   u.nombre AS responsable
+            FROM ventas v
+            JOIN turnos t ON t.id = v.turno_id
+            JOIN usuarios u ON u.id = t.usuario_id
+            WHERE 1=1";
+
+    $params = [];
+    $types  = "";
+
+    // FILTRO POR FECHA
+    if ($fecha) {
+        $sql .= " AND DATE(v.fecha) = ?";
+        $params[] = $fecha;
+        $types .= "s";
+    }
+
+    // FILTRO POR TURNO
+    if ($turno) {
+        $sql .= " AND v.turno = ?";
+        $params[] = $turno;
+        $types .= "s";
+    }
+
+    // FILTRO BUSCADOR (ID / Responsable)
+    if ($busqueda && $tipo) {
+        if ($tipo === "id") {
+            $sql .= " AND v.id = ?";
+            $params[] = $busqueda;
+            $types .= "i";
+        }
+        if ($tipo === "responsable") {
+            $sql .= " AND u.nombre LIKE ?";
+            $params[] = "%$busqueda%";
+            $types .= "s";
+        }
+    }
+
+    $sql .= " ORDER BY v.id DESC LIMIT 200";
+
+    $stmt = $conexion->prepare($sql);
+    if (!empty($params)) {
+        $stmt->bind_param($types, ...$params);
+    }
+
+    $stmt->execute();
+    return $stmt->get_result();
+}
+

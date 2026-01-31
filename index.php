@@ -16,6 +16,8 @@ require_role(['admin']);
 
 <a href="/PULPERIA-CHEBS/vistas/productos/listar.php">Gestionar Productos</a><br>
 <a href="/PULPERIA-CHEBS/vistas/lotes/listar.php">Control de Lotes</a><br>
+<a href="/PULPERIA-CHEBS/vistas/movimientos/historial.php">Historial de Inventario</a><br>
+<a href="/PULPERIA-CHEBS/vistas/ventas/historial.php">Historial de Ventas</a><br>
 
 <hr>
 <a href="/PULPERIA-CHEBS/controladores/logout.php">Cerrar sesión</a>

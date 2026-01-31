@@ -70,7 +70,7 @@ try {
         }
 
         // ✅ descontar FIFO SOLO lotes activos (tu modelo ya debe filtrar activo=1)
-        $ok = descontarStockFIFO($conexion, $producto_id, $unidades);
+        $ok = descontarStockFIFO($conexion, $producto_id, $unidades, $venta_id);
         if (!$ok) {
             throw new Exception("No se pudo descontar stock FIFO");
         }

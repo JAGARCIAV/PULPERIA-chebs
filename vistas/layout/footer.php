@@ -1,1 +1,1 @@
-<a href="/PULPERIA-CHEBS/index.html">pie de pagina</a>
+<a href="/PULPERIA-CHEBS/index.php">pie de pagina</a>

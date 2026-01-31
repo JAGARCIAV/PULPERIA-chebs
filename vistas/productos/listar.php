@@ -22,6 +22,7 @@ $productos = obtenerProductos($conexion);
     <th>Precio Unidad</th>
     <th>Precio Paquete</th>
     <th>Stock</th>
+    <th>Editar</th>
 </tr>
 
 <?php while($p = $productos->fetch_assoc()) { ?>
@@ -31,6 +32,7 @@ $productos = obtenerProductos($conexion);
     <td><?= $p['precio_unidad'] ?></td>
     <td><?= $p['precio_paquete'] ?></td>
     <td><?= $cantidad = obtenerStockTotal($conexion, $p['id']); ?></td>
+    <td><a href="editar.php?id=<?= $p['id'] ?>">Editar</a></td>
 </tr>
 <?php } ?>
 

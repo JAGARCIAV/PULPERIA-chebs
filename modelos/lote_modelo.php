@@ -15,14 +15,6 @@ function guardarLote($conexion, $producto_id, $fecha_vencimiento, $cantidad) {
     $stmt->bind_param("isi", $producto_id, $fecha_vencimiento, $cantidad);
     $ok = $stmt->execute();
 
-    if ($ok) {
-        // ✅ mantener productos.stock_actual coherente (solo un contador rápido)
-        $sql2 = "UPDATE productos SET stock_actual = stock_actual + ? WHERE id = ?";
-        $stmt2 = $conexion->prepare($sql2);
-        $stmt2->bind_param("ii", $cantidad, $producto_id);
-        $stmt2->execute();
-    }
-
     return $ok;
 }
 
@@ -60,7 +52,7 @@ function obtenerStockDisponible($conexion, $producto_id) {
 }
 
 // ✅ Descontar FIFO (solo lotes activos + NO vencidos)
-function descontarStockFIFO($conexion, $producto_id, $unidades_a_descontar) {
+function descontarStockFIFO($conexion, $producto_id, $unidades_a_descontar, $venta_id) {
     $producto_id = (int)$producto_id;
     $unidades_a_descontar = (int)$unidades_a_descontar;
 
@@ -93,6 +85,15 @@ function descontarStockFIFO($conexion, $producto_id, $unidades_a_descontar) {
         $up = $conexion->prepare("UPDATE lotes SET cantidad_unidades = cantidad_unidades - ? WHERE id = ?");
         $up->bind_param("ii", $restar, $lote_id);
         $up->execute();
+
+        registrarMovimiento(
+            $conexion,
+            $producto_id,
+            $lote_id,
+            'salida',
+            -$restar,
+            'Venta ID ' . $venta_id
+        );
 
         $unidades_a_descontar -= $restar;
         $descontado_total += $restar;
@@ -129,4 +130,64 @@ function activarLote($conexion, $lote_id) {
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("i", $lote_id);
     return $stmt->execute();
+}
+
+function obtenerLotePorId($conexion, $id) {
+    $sql = "SELECT * FROM lotes WHERE id = ?";
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc();
+}
+
+function actualizarFechaLote($conexion, $id, $fecha_vencimiento) {
+    $sql = "UPDATE lotes SET fecha_vencimiento = ? WHERE id = ?";
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("si", $fecha_vencimiento, $id);
+    $stmt->execute();
+}
+
+function actualizarCantidadLote($conexion, $id, $nueva_cantidad) {
+    $sql = "UPDATE lotes SET cantidad_unidades = ? WHERE id = ?";
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("ii", $nueva_cantidad, $id);
+    $stmt->execute();
+}
+
+function registrarMovimiento($conexion, $producto_id, $lote_id, $tipo, $cantidad, $motivo) {
+    $sql = "INSERT INTO movimientos_inventario 
+            (producto_id, lote_id, tipo, cantidad, motivo)
+            VALUES (?, ?, ?, ?, ?)";
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("iisis", $producto_id, $lote_id, $tipo, $cantidad, $motivo);
+    $stmt->execute();
+}
+
+function crearLote($conexion, $producto_id, $fecha_vencimiento, $cantidad) {
+    $sql = "INSERT INTO lotes (producto_id, fecha_vencimiento, cantidad_unidades)
+            VALUES (?, ?, ?)";
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("isi", $producto_id, $fecha_vencimiento, $cantidad);
+    $stmt->execute();
+    return $conexion->insert_id;
+}
+
+function desactivarLotes($conexion, $lote_id) {
+    $lote = obtenerLotePorId($conexion, $lote_id);
+
+    if ($lote['cantidad_unidades'] > 0) {
+        registrarMovimiento(
+            $conexion,
+            $lote['producto_id'],
+            $lote_id,
+            'ajuste',
+            -$lote['cantidad_unidades'],
+            'Desactivación de lote'
+        );
+    }
+
+    $sql = "UPDATE lotes SET cantidad_unidades = 0, activo = FALSE WHERE id = ?";
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("i", $lote_id);
+    $stmt->execute();
 }
