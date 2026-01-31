@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Pulpería Chebs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="public/img/logo.png">
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            chebs: {
+              green: '#2DB14B'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="min-h-screen bg-white">
+
+  <div class="min-h-screen flex flex-col items-center justify-center text-center px-1">
+
+    <!-- IMAGEN GRANDE -->
+    <img
+      src="public/img/Loading.jpeg"
+      alt="Pulpería Chebs"
+      class="
+        w-full
+        max-w-[420px]
+        md:max-w-[540px]
+        lg:max-w-[620px]
+        object-contain
+      "
+    >
+
+    <!-- TEXTO -->
+    <p class="text-gray-500 text-sm mb-6">
+      Sistema de ventas y control de caja
+    </p>
+
+    <!-- BOTÓN -->
+    <a href="index.php"
+       class="
+         inline-flex items-center justify-center
+         px-10 py-3
+         rounded-full
+         bg-chebs-green
+         text-white
+         font-semibold
+         text-sm
+         hover:scale-105
+         transition
+         shadow-md
+       ">
+      INICIAR
+    </a>
+
+  </div>
+
+</body>
+</html>

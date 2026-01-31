@@ -1,58 +1,360 @@
 <?php
+require_once __DIR__ . "/../../config/auth.php";
+require_role(['admin']);
+
 require_once "../../config/conexion.php";
 require_once "../../modelos/movimiento_modelo.php";
 include "../layout/header.php";
 
 $producto_id = $_GET['producto_id'] ?? null;
+$producto_id = ($producto_id !== null && $producto_id !== '') ? (int)$producto_id : null;
 
 $productos = $conexion->query("SELECT id, nombre FROM productos");
 $movimientos = obtenerMovimientos($conexion, $producto_id);
 ?>
 
-<h2>Historial General de Inventario</h2>
+<div class="max-w-7xl mx-auto px-4 py-8">
 
-<form method="GET">
-    Filtrar por producto:
-    <select name="producto_id">
-        <option value="">-- Todos --</option>
-        <?php while($p = $productos->fetch_assoc()) { ?>
-            <option value="<?= $p['id'] ?>" <?= ($producto_id == $p['id']) ? 'selected' : '' ?>>
-                <?= $p['nombre'] ?>
-            </option>
-        <?php } ?>
-    </select>
-    <button type="submit">Filtrar</button>
-</form>
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-3xl font-black text-chebs-black">Historial de inventario</h1>
+      <p class="text-sm text-gray-600">
+        Entradas, salidas y ajustes de stock (por producto o general).
+      </p>
+    </div>
 
-<br>
+    <a href="/PULPERIA-CHEBS/vistas/lotes/listar.php"
+       class="inline-flex items-center justify-center px-6 py-3 rounded-2xl border border-chebs-line bg-white font-black
+              hover:bg-chebs-soft transition">
+      📦 Ver lotes
+    </a>
+  </div>
 
-<table border="1" cellpadding="5">
-<tr>
-    <th>Fecha</th>
-    <th>Producto</th>
-    <th>Tipo</th>
-    <th>Cantidad</th>
-    <th>Lote (Vence)</th>
-    <th>Motivo</th>
-</tr>
+  <!-- Filtro -->
+  <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 mb-6">
+<form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4 md:items-center" onsubmit="return validarFiltro();">
 
-<?php while($m = $movimientos->fetch_assoc()) { ?>
-<tr style="
-    <?php 
-        if ($m['tipo'] == 'entrada') echo 'background:#d4edda;';
-        elseif ($m['tipo'] == 'salida') echo 'background:#f8d7da;';
-        else echo 'background:#fff3cd;';
-    ?>
-">
-    <td><?= $m['fecha'] ?></td>
-    <td><?= $m['producto'] ?></td>
-    <td><?= strtoupper($m['tipo']) ?></td>
-    <td><?= $m['cantidad'] ?></td>
-    <td><?= $m['fecha_vencimiento'] ?? '-' ?></td>
-    <td><?= $m['motivo'] ?></td>
-</tr>
-<?php } ?>
+      <!-- Autocomplete producto -->
+      <div class="md:col-span-2 relative">
+        <label class="block text-sm font-bold mb-2 text-chebs-black">Filtrar por producto</label>
 
-</table>
+        <input id="producto_buscar"
+               type="text"
+               placeholder="Escribe para buscar… (o deja vacío para todos)"
+               autocomplete="off"
+               class="w-full px-4 py-3 rounded-2xl border border-chebs-line
+                      focus:outline-none focus:ring-2 focus:ring-chebs-green/40 bg-white">
+
+        <!-- este es el que se envía -->
+        <input type="hidden" name="producto_id" id="producto_id_real" value="<?= $producto_id ? (int)$producto_id : '' ?>">
+
+        <!-- Fuente de datos -->
+        <div class="hidden">
+          <datalist id="lista_productos_mov">
+            <?php while($p = $productos->fetch_assoc()) { ?>
+              <option value="<?= htmlspecialchars($p['nombre']) ?>" data-id="<?= (int)$p['id'] ?>"></option>
+            <?php } ?>
+          </datalist>
+        </div>
+
+        <!-- Dropdown gris -->
+        <div id="auto_box"
+             class="hidden absolute left-0 right-0 mt-2 z-50 rounded-2xl border border-chebs-line bg-gray-100 shadow-soft overflow-hidden">
+          <div class="px-4 py-2 text-xs text-gray-500 bg-gray-200/60 border-b border-chebs-line flex items-center justify-between">
+            <span>Resultados</span>
+            <span class="hidden sm:inline">↑ ↓ · Enter</span>
+          </div>
+
+          <div id="auto_list" class="max-h-64 overflow-auto"></div>
+
+          <div id="auto_empty" class="hidden px-4 py-3 text-sm text-gray-500">
+            Sin resultados
+          </div>
+        </div>
+
+        <div class="mt-2 text-xs text-gray-500">
+          Tip: si quieres ver todo, deja vacío y presiona “Aplicar filtro”.
+        </div>
+
+        <div id="prod_error" class="hidden mt-2 text-sm font-semibold text-red-600"></div>
+      </div>
+
+      <!-- Botones -->
+<div class="md:col-span-1 flex flex-col sm:flex-row gap-3 md:justify-end">
+        <button type="submit"
+        class="px-6 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition shadow-soft
+               whitespace-nowrap min-w-[160px]">
+  🔎 Aplicar filtro
+</button>
+
+<a href="historial.php"
+   class="px-6 py-3 rounded-2xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition text-center
+          whitespace-nowrap min-w-[120px]">
+  Limpiar
+</a>
+
+      </div>
+
+    </form>
+  </div>
+
+  <!-- Tabla -->
+  <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-100">
+          <tr class="text-left text-chebs-black">
+            <th class="px-4 py-3 font-black">Fecha</th>
+            <th class="px-4 py-3 font-black">Producto</th>
+            <th class="px-4 py-3 font-black">Tipo</th>
+            <th class="px-4 py-3 font-black">Cantidad</th>
+            <th class="px-4 py-3 font-black">Lote (Vence)</th>
+            <th class="px-4 py-3 font-black">Motivo</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-chebs-line">
+          <?php while($m = $movimientos->fetch_assoc()) { 
+            $tipo = strtolower($m['tipo'] ?? '');
+            $badgeClass = "bg-gray-100 text-gray-700 border-gray-200";
+            $tipoLabel = strtoupper($tipo ?: '-');
+
+            if ($tipo === 'entrada') {
+              $badgeClass = "bg-green-100 text-green-700 border-green-200";
+              $tipoLabel = "ENTRADA";
+            } elseif ($tipo === 'salida') {
+              $badgeClass = "bg-red-100 text-red-700 border-red-200";
+              $tipoLabel = "SALIDA";
+            } else {
+              $badgeClass = "bg-yellow-100 text-yellow-800 border-yellow-200";
+              $tipoLabel = strtoupper($tipo ?: 'AJUSTE');
+            }
+
+            $fechaV = $m['fecha_vencimiento'] ?? '-';
+          ?>
+            <tr class="hover:bg-chebs-soft/40 transition">
+              <td class="px-4 py-3 whitespace-nowrap"><?= htmlspecialchars($m['fecha'] ?? '-') ?></td>
+
+              <td class="px-4 py-3 font-semibold text-chebs-black">
+                <?= htmlspecialchars($m['producto'] ?? '-') ?>
+              </td>
+
+              <td class="px-4 py-3">
+                <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black border <?= $badgeClass ?>">
+                  <?= htmlspecialchars($tipoLabel) ?>
+                </span>
+              </td>
+
+              <td class="px-4 py-3">
+                <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black bg-chebs-soft/70 border border-chebs-line text-chebs-black">
+                  <?= (int)($m['cantidad'] ?? 0) ?>
+                </span>
+              </td>
+
+              <td class="px-4 py-3 whitespace-nowrap">
+                <?php if (!$fechaV || $fechaV === '0000-00-00') { ?>
+                  <span class="text-xs font-bold text-gray-600 bg-gray-100 border border-gray-200 px-3 py-1 rounded-full">
+                    -
+                  </span>
+                <?php } else { ?>
+                  <?= htmlspecialchars($fechaV) ?>
+                <?php } ?>
+              </td>
+
+              <td class="px-4 py-3 text-gray-700">
+                <?= htmlspecialchars($m['motivo'] ?? '-') ?>
+              </td>
+            </tr>
+          <?php } ?>
+        </tbody>
+
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<style>
+  #auto_list::-webkit-scrollbar { width: 10px; }
+  #auto_list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+  #auto_list::-webkit-scrollbar-track { background: transparent; }
+</style>
+
+<script>
+/* =========================
+   ✅ AUTOCOMPLETE FILTRO
+   ========================= */
+
+const inputP = document.getElementById('producto_buscar');
+const hiddenP = document.getElementById('producto_id_real');
+
+const autoBox  = document.getElementById('auto_box');
+const autoList = document.getElementById('auto_list');
+const autoEmpty= document.getElementById('auto_empty');
+
+const dataOptions = Array.from(document.querySelectorAll('#lista_productos_mov option'))
+  .map(o => ({ label: o.value, id: o.dataset.id }));
+
+let autoIndex = -1;
+let autoItems = [];
+
+// ✅ si viene producto_id por GET, intentar mostrar nombre en el input
+(function preloadSelected(){
+  const selectedId = hiddenP.value;
+  if(!selectedId) return;
+  const found = dataOptions.find(x => String(x.id) === String(selectedId));
+  if(found) inputP.value = found.label;
+})();
+
+function abrirAuto(){ autoBox.classList.remove('hidden'); }
+function cerrarAuto(){ autoBox.classList.add('hidden'); autoIndex = -1; }
+
+function filtrar(q){
+  const t = q.trim().toLowerCase();
+  if(t.length === 0){ autoItems = []; return; }
+
+  autoItems = dataOptions
+    .filter(x => x.label.toLowerCase().includes(t))
+    .slice(0, 12);
+
+  autoIndex = autoItems.length ? 0 : -1;
+}
+
+function renderAuto(){
+  autoList.innerHTML = '';
+  autoEmpty.classList.add('hidden');
+
+  if(autoItems.length === 0){
+    autoEmpty.classList.remove('hidden');
+    return;
+  }
+
+  autoItems.forEach((it, idx) => {
+    const div = document.createElement('div');
+    div.className =
+      "px-4 py-3 text-sm cursor-pointer border-b border-chebs-line last:border-b-0 " +
+      (idx === autoIndex ? "bg-gray-200" : "hover:bg-gray-200");
+
+    const q = inputP.value.trim();
+    if(q.length > 0){
+      const safe = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(safe, 'ig');
+      div.innerHTML = it.label.replace(re, (m)=>`<span class="font-black text-chebs-green">${m}</span>`);
+    } else {
+      div.textContent = it.label;
+    }
+
+    div.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      seleccionarItem(idx);
+    });
+
+    autoList.appendChild(div);
+  });
+}
+
+function seleccionarItem(idx){
+  const it = autoItems[idx];
+  if(!it) return;
+
+  inputP.value = it.label;
+  hiddenP.value = it.id;
+  cerrarAuto();
+  setError('');
+}
+
+inputP.addEventListener('input', () => {
+  // si el usuario escribe, se considera “no seleccionado”
+  hiddenP.value = '';
+  setError('');
+
+  filtrar(inputP.value);
+  if(inputP.value.trim().length > 0){
+    abrirAuto();
+    renderAuto();
+  } else {
+    cerrarAuto();
+  }
+});
+
+inputP.addEventListener('focus', () => {
+  if(inputP.value.trim().length > 0 && autoItems.length > 0){
+    abrirAuto();
+    renderAuto();
+  }
+});
+
+inputP.addEventListener('keydown', (e) => {
+  if(autoBox.classList.contains('hidden')) return;
+
+  if(e.key === 'ArrowDown'){
+    e.preventDefault();
+    autoIndex = Math.min(autoIndex + 1, autoItems.length - 1);
+    renderAuto();
+    return;
+  }
+  if(e.key === 'ArrowUp'){
+    e.preventDefault();
+    autoIndex = Math.max(autoIndex - 1, 0);
+    renderAuto();
+    return;
+  }
+  if(e.key === 'Enter'){
+    if(autoIndex >= 0 && autoItems[autoIndex]){
+      e.preventDefault();
+      seleccionarItem(autoIndex);
+      return;
+    }
+  }
+  if(e.key === 'Escape'){
+    cerrarAuto();
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if(!autoBox.contains(e.target) && e.target !== inputP){
+    cerrarAuto();
+  }
+});
+
+/* =========================
+   ✅ VALIDACIÓN
+   ========================= */
+function setError(msg){
+  const el = document.getElementById('prod_error');
+  if(!msg){
+    el.classList.add('hidden');
+    el.textContent = '';
+    return;
+  }
+  el.classList.remove('hidden');
+  el.textContent = msg;
+}
+
+function validarFiltro(){
+  // permitir vacío (todos)
+  if(inputP.value.trim() === ''){
+    hiddenP.value = '';
+    setError('');
+    return true;
+  }
+
+  // si escribió algo, debe seleccionar uno válido
+  if(!hiddenP.value){
+    setError('Selecciona un producto válido de la lista o deja vacío para ver todos.');
+    inputP.focus();
+    return false;
+  }
+
+  setError('');
+  return true;
+}
+
+// ESC
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape') cerrarAuto();
+});
+</script>
 
 <?php include "../layout/footer.php"; ?>

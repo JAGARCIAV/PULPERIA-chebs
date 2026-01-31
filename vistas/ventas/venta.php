@@ -2,11 +2,11 @@
 require_once __DIR__ . "/../../config/auth.php";
 require_role(['admin','empleado']);
 
-require_once __DIR__ . "/../../config/conexion.php"; // ✅ TU CONEXION OFICIAL (mysqli)
+require_once __DIR__ . "/../../config/conexion.php";
 require_once __DIR__ . "/../../modelos/producto_modelo.php";
 require_once __DIR__ . "/../../modelos/venta_modelo.php";
 require_once __DIR__ . "/../../modelos/turno_modelo.php";
-require_once __DIR__ . "/../../modelos/lote_modelo.php"; // para stock FIFO si lo usas en ventas
+require_once __DIR__ . "/../../modelos/lote_modelo.php";
 
 include __DIR__ . "/../layout/header.php";
 
@@ -25,174 +25,288 @@ $totalHoy  = obtenerTotalVentasHoy($conexion);
 // ✅ Historial desde marca del turno
 $desde = 0;
 if ($turnoAbierto) {
-    $desde = (int)($turnoAbierto["historial_desde_venta_id"] ?? 0);
+  $desde = (int)($turnoAbierto["historial_desde_venta_id"] ?? 0);
 }
 $ultimasVentas = obtenerUltimasVentasDesde($conexion, $desde, 10);
 
 // ✅ Total vendido en turno
 $totalTurno = 0;
 if ($turnoAbierto) {
-    $totalTurno = totalVentasTurno($conexion, (int)$turnoAbierto["id"]);
+  $totalTurno = totalVentasTurno($conexion, (int)$turnoAbierto["id"]);
 }
 
-// ✅ Retiros en turno (si tienes la función / tabla)
+// ✅ Retiros en turno
 $totalRetiros = 0;
 if ($turnoAbierto && function_exists('totalRetirosTurno')) {
-    $totalRetiros = (float) totalRetirosTurno($conexion, (int)$turnoAbierto['id']);
+  $totalRetiros = (float) totalRetirosTurno($conexion, (int)$turnoAbierto['id']);
 }
 
-// ✅ Efectivo inicial contado (si no existe columna, usa monto_inicial)
+// ✅ Efectivo inicial contado
 $montoInicialUI = 0;
 if ($turnoAbierto) {
-    $montoInicialUI = (float)($turnoAbierto['efectivo_inicial_contado'] ?? $turnoAbierto['monto_inicial'] ?? 0);
+  $montoInicialUI = (float)($turnoAbierto['efectivo_inicial_contado'] ?? $turnoAbierto['monto_inicial'] ?? 0);
 }
 
 // ✅ Efectivo esperado = inicial + ventas - retiros
 $efectivoEsperadoUI = 0;
 if ($turnoAbierto) {
-    $efectivoEsperadoUI = $montoInicialUI + $totalTurno - $totalRetiros;
+  $efectivoEsperadoUI = $montoInicialUI + $totalTurno - $totalRetiros;
 }
 
 // ✅ Últimos turnos: admin ve todos / empleado solo los suyos
 $limite = 5;
 if ($rol === 'admin') {
-    $stmtT = $conexion->prepare("SELECT * FROM turnos ORDER BY id DESC LIMIT ?");
-    $stmtT->bind_param("i", $limite);
+  $stmtT = $conexion->prepare("SELECT * FROM turnos ORDER BY id DESC LIMIT ?");
+  $stmtT->bind_param("i", $limite);
 } else {
-    $stmtT = $conexion->prepare("SELECT * FROM turnos WHERE usuario_id=? ORDER BY id DESC LIMIT ?");
-    $stmtT->bind_param("ii", $userId, $limite);
+  $stmtT = $conexion->prepare("SELECT * FROM turnos WHERE usuario_id=? ORDER BY id DESC LIMIT ?");
+  $stmtT->bind_param("ii", $userId, $limite);
 }
 $stmtT->execute();
 $ultTurnos = $stmtT->get_result();
 ?>
 
-<h2>Registrar Venta</h2>
-
-<div style="display:flex; gap:20px; align-items:flex-start;">
-
-  <!-- COLUMNA IZQUIERDA: VENTA -->
-  <div style="flex:2;">
-
-    <form id="form_producto" onsubmit="return false;">
-
-        <label>Producto</label><br>
-        <input id="producto_nombre" type="text" name="producto_nombre" list="lista_productos"
-               placeholder="Escriba el nombre de" required>
-
-        <datalist id="lista_productos">
-            <?php while($p = $productos->fetch_assoc()) { ?>
-                <option value="<?= htmlspecialchars($p['nombre']) ?>" data-id="<?= (int)$p['id'] ?>"></option>
-            <?php } ?>
-        </datalist>
-
-        <input type="hidden" id="producto_id">
-        <br><br>
-
-        <label>Tipo de venta</label><br>
-        <select id="tipo_venta">
-            <option value="unidad">Unidad</option>
-            <option value="paquete">Paquete</option>
-        </select>
-        <br><br>
-
-        <label>Cantidad</label><br>
-        <input type="number" id="cantidad" min="1" value="1">
-        <br><br>
-
-        <div id="stock_info" style="color:#555; font-size:13px; margin-bottom:10px;"></div>
-
-        <button type="button" onclick="agregarDesdeFormulario()">Agregar</button>
-    </form>
-
-    <hr>
-
-    <h3>Detalle de la venta</h3>
-
-    <table border="1" width="100%" id="tabla_detalle">
-        <thead>
-            <tr>
-                <th>Producto</th>
-                <th>Tipo</th>
-                <th>Cantidad</th>
-                <th>Precio</th>
-                <th>Subtotal</th>
-                <th>❌</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
-    <h3>Total: Bs <span id="total">0.00</span></h3>
-
-    <?php if(!$turnoAbierto){ ?>
-      <div style="color:red; margin:8px 0;">❌ Abra turno para poder vender.</div>
-    <?php } ?>
-
-    <button id="btn_confirmar" type="button" <?= (!$turnoAbierto ? "disabled" : "") ?>>
-      Confirmar venta
-    </button>
-
+<!-- Título -->
+<div class="flex items-start justify-between gap-4 mb-6">
+  <div>
+    <h1 class="text-2xl font-black text-chebs-black">Caja</h1>
+    <p class="text-sm text-gray-600">Registrar ventas y controlar turno / caja</p>
   </div>
 
-  <!-- COLUMNA DERECHA: TURNO + HISTORIAL -->
-  <div style="flex:1; border:1px solid #ccc; padding:10px; max-height:80vh; overflow:auto;">
+  <div class="hidden md:flex items-center gap-3">
+    <div class="bg-white border border-chebs-line rounded-2xl px-4 py-3 shadow-soft">
+      <div class="text-xs text-gray-500">Total vendido hoy</div>
+      <div class="text-xl font-black text-chebs-green">Bs <?= number_format($totalHoy, 2) ?></div>
+    </div>
+  </div>
+</div>
 
-    <!-- ✅ TURNO PRO (con modales) -->
-    <div style="border:2px solid #000; padding:10px; margin-bottom:15px;">
-      <h3 style="margin:0;">⏱ Turno / Caja</h3>
+<!-- Layout principal -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-      <?php if (isset($_GET["turno_ok"])) { ?>
-        <div style="color:green; margin-top:8px;">✅ Turno abierto.</div>
-      <?php } ?>
-      <?php if (isset($_GET["turno_cerrado"])) { ?>
-        <div style="color:green; margin-top:8px;">✅ Turno cerrado.</div>
-      <?php } ?>
-      <?php if (isset($_GET["turno_err"])) { ?>
-        <div style="color:red; margin-top:8px;">❌ <?= htmlspecialchars($_GET["turno_err"]) ?></div>
-      <?php } ?>
-      <?php if (isset($_GET["ret_ok"])) { ?>
-        <div style="color:green; margin-top:8px;">✅ Retiro registrado.</div>
-      <?php } ?>
-      <?php if (isset($_GET["ret_err"])) { ?>
-        <div style="color:red; margin-top:8px;">❌ <?= htmlspecialchars($_GET["ret_err"]) ?></div>
-      <?php } ?>
+  <!-- Columna izquierda (venta) -->
+  <section class="lg:col-span-2 space-y-6">
 
-      <?php if (!$turnoAbierto) { ?>
-
-        <div style="margin-top:10px; font-size:13px; color:#333;">
-          Para vender primero debes <b>abrir turno</b> contando el efectivo real que hay en caja.
+    <!-- Card: Registrar venta -->
+    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6">
+      <div class="flex items-center justify-between gap-4 mb-5">
+        <div>
+          <h2 class="text-lg font-black">Registrar venta</h2>
+          <p class="text-sm text-gray-500">Busca producto, elige tipo y cantidad</p>
         </div>
 
+        <?php if(!$turnoAbierto){ ?>
+          <span class="text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full">
+            Turno cerrado
+          </span>
+        <?php } else { ?>
+          <span class="text-xs font-bold text-chebs-green bg-chebs-soft/70 border border-chebs-line px-3 py-1 rounded-full">
+            Turno abierto
+          </span>
+        <?php } ?>
+      </div>
+
+      <form id="form_producto" onsubmit="return false;" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        <!-- Producto -->
+        <div class="md:col-span-2 relative">
+          <label class="text-sm font-semibold text-chebs-black">Producto</label>
+
+          <input id="producto_nombre" type="text" name="producto_nombre"
+                 placeholder="Escribe el nombre del producto…"
+                 autocomplete="off"
+                 required
+                 class="mt-2 w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none
+                        focus:ring-4 focus:ring-chebs-soft bg-white">
+
+          <!-- ✅ Fuente de datos (oculto). Antes era datalist -->
+          <div class="hidden">
+            <datalist id="lista_productos">
+              <?php while($p = $productos->fetch_assoc()) { ?>
+                <option value="<?= htmlspecialchars($p['nombre']) ?>" data-id="<?= (int)$p['id'] ?>"></option>
+              <?php } ?>
+            </datalist>
+          </div>
+
+          <input type="hidden" id="producto_id">
+
+          <!-- ✅ Autocomplete Chebs (Google style) -->
+          <div id="auto_box"
+               class="hidden absolute left-0 right-0 mt-2 z-50 rounded-2xl border border-chebs-line bg-gray-300 shadow-soft overflow-hidden">
+            <div class="px-4 py-2 text-xs text-gray-500 border-b border-chebs-line flex items-center justify-between">
+              <span>Resultados</span>
+              <span class="hidden sm:inline">↑ ↓ para moverte · Enter para elegir</span>
+            </div>
+
+            <div id="auto_list" class="max-h-64 overflow-auto"></div>
+
+            <div id="auto_empty" class="hidden px-4 py-3 text-sm text-gray-500">
+              Sin resultados
+            </div>
+          </div>
+
+          <div id="stock_info" class="mt-2 text-xs text-gray-500"></div>
+        </div>
+
+        <!-- Tipo -->
+        <div>
+          <label class="text-sm font-semibold text-chebs-black">Tipo de venta</label>
+          <select id="tipo_venta"
+                  class="mt-2 w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none
+                         focus:ring-4 focus:ring-chebs-soft bg-white">
+            <option value="unidad">Unidad</option>
+            <option value="paquete">Paquete</option>
+          </select>
+        </div>
+
+        <!-- Cantidad -->
+        <div>
+          <label class="text-sm font-semibold text-chebs-black">Cantidad</label>
+          <input type="number" id="cantidad" min="1" value="1"
+                 class="mt-2 w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none
+                        focus:ring-4 focus:ring-chebs-soft bg-white">
+        </div>
+
+        <!-- Botón agregar -->
+        <div class="md:col-span-2 flex items-end">
+          <button type="button" onclick="agregarDesdeFormulario()"
+                  class="w-full md:w-auto px-5 py-3 rounded-2xl bg-chebs-green text-white font-bold
+                         hover:bg-chebs-greenDark transition">
+            Agregar
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Card: Detalle de la venta -->
+    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6">
+      <div class="flex items-center justify-between gap-4 mb-4">
+        <div>
+          <h3 class="text-lg font-black">Detalle de la venta</h3>
+          <p class="text-sm text-gray-500">Revisa productos antes de confirmar</p>
+        </div>
+        <div class="text-right">
+          <div class="text-xs text-gray-500">Total</div>
+          <div class="text-2xl font-black text-chebs-green">Bs <span id="total">0.00</span></div>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto rounded-2xl border border-chebs-line">
+        <table class="w-full text-sm" id="tabla_detalle">
+          <thead class="bg-chebs-soft/60 text-chebs-black">
+            <tr>
+              <th class="text-left font-bold px-4 py-3">Producto</th>
+              <th class="text-left font-bold px-4 py-3">Tipo</th>
+              <th class="text-left font-bold px-4 py-3">Cantidad</th>
+              <th class="text-left font-bold px-4 py-3">Precio</th>
+              <th class="text-left font-bold px-4 py-3">Subtotal</th>
+              <th class="text-left font-bold px-4 py-3">❌</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-chebs-line"></tbody>
+        </table>
+      </div>
+
+      <?php if(!$turnoAbierto){ ?>
+        <div class="mt-4 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-2xl">
+          ❌ Abra turno para poder vender.
+        </div>
+      <?php } ?>
+
+      <div class="mt-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end">
+        <button id="btn_confirmar" type="button"
+                <?= (!$turnoAbierto ? "disabled" : "") ?>
+                class="px-6 py-3 rounded-2xl font-black transition
+                       <?= (!$turnoAbierto
+                            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                            : "bg-chebs-green text-white hover:bg-chebs-greenDark") ?>">
+          Confirmar venta
+        </button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Columna derecha -->
+  <aside class="space-y-6">
+
+    <!-- Card: Turno / Caja -->
+    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <h3 class="text-lg font-black">⏱ Turno / Caja</h3>
+        <?php if(!$turnoAbierto){ ?>
+          <span class="text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full">Cerrado</span>
+        <?php } else { ?>
+          <span class="text-xs font-bold text-chebs-green bg-chebs-soft/70 border border-chebs-line px-3 py-1 rounded-full">Abierto</span>
+        <?php } ?>
+      </div>
+
+      <div class="space-y-2">
+        <?php if (isset($_GET["turno_ok"])) { ?>
+          <div class="text-sm font-semibold text-chebs-green bg-chebs-soft/70 border border-chebs-line px-4 py-3 rounded-2xl">
+            ✅ Turno abierto.
+          </div>
+        <?php } ?>
+        <?php if (isset($_GET["turno_cerrado"])) { ?>
+          <div class="text-sm font-semibold text-chebs-green bg-chebs-soft/70 border border-chebs-line px-4 py-3 rounded-2xl">
+            ✅ Turno cerrado.
+          </div>
+        <?php } ?>
+        <?php if (isset($_GET["turno_err"])) { ?>
+          <div class="text-sm font-semibold text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-2xl">
+            ❌ <?= htmlspecialchars($_GET["turno_err"]) ?>
+          </div>
+        <?php } ?>
+        <?php if (isset($_GET["ret_ok"])) { ?>
+          <div class="text-sm font-semibold text-chebs-green bg-chebs-soft/70 border border-chebs-line px-4 py-3 rounded-2xl">
+            ✅ Retiro registrado.
+          </div>
+        <?php } ?>
+        <?php if (isset($_GET["ret_err"])) { ?>
+          <div class="text-sm font-semibold text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-2xl">
+            ❌ <?= htmlspecialchars($_GET["ret_err"]) ?>
+          </div>
+        <?php } ?>
+      </div>
+
+      <?php if (!$turnoAbierto) { ?>
+        <p class="mt-4 text-sm text-gray-600">
+          Para vender primero debes <b>abrir turno</b> contando el efectivo real que hay en caja.
+        </p>
+
         <button type="button"
-                style="width:100%; padding:10px; font-weight:bold; margin-top:10px;"
+                class="mt-4 w-full px-5 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition"
                 onclick="abrirModal('modalAbrirTurno')">
           Abrir turno
         </button>
 
       <?php } else { ?>
 
-        <div style="margin-top:10px; font-size:13px;">
-          <b>Turno ID:</b> <?= (int)$turnoAbierto["id"] ?><br>
-          <b>Responsable:</b> <?= htmlspecialchars($turnoAbierto["responsable"]) ?><br>
-          <b>Abierto:</b> <?= htmlspecialchars($turnoAbierto["abierto_en"]) ?><br>
+        <div class="mt-4 space-y-2 text-sm text-gray-700">
+          <div class="flex justify-between gap-3"><span class="font-semibold">Turno ID</span><span>#<?= (int)$turnoAbierto["id"] ?></span></div>
+          <div class="flex justify-between gap-3"><span class="font-semibold">Responsable</span><span><?= htmlspecialchars($turnoAbierto["responsable"]) ?></span></div>
+          <div class="flex justify-between gap-3"><span class="font-semibold">Abierto</span><span><?= htmlspecialchars($turnoAbierto["abierto_en"]) ?></span></div>
 
-          <hr style="margin:10px 0;">
-          <b>Efectivo inicial contado:</b> Bs <?= number_format($montoInicialUI,2) ?><br>
-          <b>Total vendido (turno):</b> Bs <?= number_format($totalTurno,2) ?><br>
-          <b>Retiros admin:</b> Bs <?= number_format($totalRetiros,2) ?><br>
-          <b>Efectivo esperado:</b> Bs <?= number_format($efectivoEsperadoUI,2) ?><br>
+          <div class="h-px bg-chebs-line my-2"></div>
+
+          <div class="flex justify-between gap-3"><span class="font-semibold">Inicial contado</span><span>Bs <?= number_format($montoInicialUI,2) ?></span></div>
+          <div class="flex justify-between gap-3"><span class="font-semibold">Total vendido</span><span>Bs <?= number_format($totalTurno,2) ?></span></div>
+          <div class="flex justify-between gap-3"><span class="font-semibold">Retiros</span><span>Bs <?= number_format($totalRetiros,2) ?></span></div>
+          <div class="flex justify-between gap-3 font-black text-chebs-black">
+            <span>Efectivo esperado</span><span class="text-chebs-green">Bs <?= number_format($efectivoEsperadoUI,2) ?></span>
+          </div>
         </div>
 
         <?php if ($rol === 'admin') { ?>
           <button type="button"
-                  style="width:100%; padding:10px; font-weight:bold; margin-top:10px;"
+                  class="mt-4 w-full px-5 py-3 rounded-2xl border border-chebs-line font-black hover:bg-chebs-soft transition"
                   onclick="abrirModal('modalRetiro')">
             Retiro de caja (Admin)
           </button>
         <?php } ?>
 
         <button type="button"
-                style="width:100%; padding:10px; font-weight:bold; margin-top:10px;"
+                class="mt-3 w-full px-5 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition"
                 onclick="abrirModal('modalCerrarTurno')">
           Cerrar turno
         </button>
@@ -200,194 +314,535 @@ $ultTurnos = $stmtT->get_result();
       <?php } ?>
 
       <?php if ($rol === 'admin') { ?>
+        <div class="h-px bg-chebs-line my-5"></div>
+        <h4 class="font-black mb-3">Últimos turnos</h4>
 
-        <hr>
-        <h4 style="margin:8px 0;">Últimos turnos</h4>
-
-        <?php while($t = $ultTurnos->fetch_assoc()) { ?>
-          <div style="font-size:13px; margin-bottom:8px; border-bottom:1px dashed #ccc; padding-bottom:6px;">
-            <b>#<?= (int)$t["id"] ?></b> — <?= htmlspecialchars($t["fecha"]) ?><br>
-
-            <b>Entrada:</b> <?= htmlspecialchars($t["abierto_en"]) ?><br>
-            <b>Salida:</b> <?= htmlspecialchars($t["cerrado_en"] ?? '-') ?><br>
-            <b>Estado:</b> <?= htmlspecialchars($t["estado"]) ?><br>
-            <b>Resp:</b> <?= htmlspecialchars($t["responsable"]) ?>
-          </div>
-        <?php } ?>
-
+        <div class="space-y-3">
+          <?php while($t = $ultTurnos->fetch_assoc()) { ?>
+            <div class="rounded-2xl border border-chebs-line p-4 bg-white">
+              <div class="flex items-center justify-between">
+                <div class="font-black">#<?= (int)$t["id"] ?></div>
+                <div class="text-xs text-gray-500"><?= htmlspecialchars($t["fecha"]) ?></div>
+              </div>
+              <div class="mt-2 text-xs text-gray-600 space-y-1">
+                <div><b>Entrada:</b> <?= htmlspecialchars($t["abierto_en"]) ?></div>
+                <div><b>Salida:</b> <?= htmlspecialchars($t["cerrado_en"] ?? '-') ?></div>
+                <div><b>Estado:</b> <?= htmlspecialchars($t["estado"]) ?></div>
+                <div><b>Resp:</b> <?= htmlspecialchars($t["responsable"]) ?></div>
+              </div>
+            </div>
+          <?php } ?>
+        </div>
       <?php } ?>
 
     </div>
 
-    <!-- ✅ HISTORIAL -->
-    <h3>Últimas ventas (hoy)</h3>
-
-    <form action="../../controladores/historial_limpiar.php" method="POST" style="margin-bottom:10px;">
-      <button type="submit" onclick="return confirm('¿Ocultar ventas anteriores en el historial?')">
-        Limpiar historial (ocultar)
-      </button>
-    </form>
-
-        <div style="margin-top:15px; padding-top:10px; border-top:2px solid #000;">
-      <h3 style="margin:0;">Total vendido hoy</h3>
-      <p style="font-size:18px; font-weight:bold; margin:6px 0; text-align:right;">
-        Bs <?= number_format($totalHoy, 2) ?>
-      </p>
-    </div>
-
-    <?php while($v = $ultimasVentas->fetch_assoc()) { ?>
-      <div style="border-bottom:1px solid #ddd; padding:10px 0;">
-        <b>Venta #<?= (int)$v['id'] ?></b><br>
-        <small><?= htmlspecialchars($v['fecha']) ?></small>
-
-        <div style="margin-top:6px; padding-left:8px;">
-          <?php
-            $det = obtenerDetalleVenta($conexion, (int)$v['id']);
-            while($d = $det->fetch_assoc()) {
-          ?>
-            <div style="display:flex; justify-content:space-between; gap:8px;">
-              <span style="flex:1;">
-                <?= htmlspecialchars($d['nombre']) ?>
-                (<?= htmlspecialchars($d['tipo_venta']) ?>) x<?= (int)$d['cantidad'] ?>
-              </span>
-              <span>Bs <?= number_format((float)$d['subtotal'], 2) ?></span>
-            </div>
-            <div style="color:#666; font-size:12px; margin-bottom:6px;">
-              Bs <?= number_format((float)$d['precio_unitario'], 2) ?> c/u
-            </div>
-          <?php } ?>
+    <!-- Card: Historial -->
+    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-black">Historial (hoy)</h3>
+          <p class="text-sm text-gray-500">Últimas ventas del turno</p>
         </div>
 
-        <div style="margin-top:8px; font-weight:bold; text-align:right;">
-          Total: Bs <?= number_format((float)$v['total'], 2) ?>
+        <div class="md:hidden text-right">
+          <div class="text-xs text-gray-500">Total hoy</div>
+          <div class="text-lg font-black text-chebs-green">Bs <?= number_format($totalHoy, 2) ?></div>
         </div>
       </div>
-    <?php } ?>
 
-    <div style="margin-top:15px; padding-top:10px; border-top:2px solid #000;">
-      <h3 style="margin:0;">Total vendido hoy</h3>
-      <p style="font-size:18px; font-weight:bold; margin:6px 0; text-align:right;">
-        Bs <?= number_format($totalHoy, 2) ?>
-      </p>
+      <form id="form_limpiar_historial" action="../../controladores/historial_limpiar.php" method="POST" class="mt-4">
+        <button type="button"
+                class="w-full px-5 py-3 rounded-2xl border border-chebs-line font-black hover:bg-chebs-soft transition"
+                onclick="confirmarSubmit('#form_limpiar_historial','Ocultar historial','¿Ocultar ventas anteriores en el historial?')">
+          Limpiar historial (ocultar)
+        </button>
+      </form>
+
+      <div class="mt-4 h-px bg-chebs-line"></div>
+
+      <div class="mt-4 space-y-4 max-h-[50vh] overflow-auto pr-1">
+        <?php while($v = $ultimasVentas->fetch_assoc()) { ?>
+          <div class="rounded-2xl border border-chebs-line p-4">
+            <div class="flex items-center justify-between gap-3">
+              <div class="font-black">Venta #<?= (int)$v['id'] ?></div>
+              <div class="text-xs text-gray-500"><?= htmlspecialchars($v['fecha']) ?></div>
+            </div>
+
+            <div class="mt-3 space-y-2">
+              <?php
+                $det = obtenerDetalleVenta($conexion, (int)$v['id']);
+                while($d = $det->fetch_assoc()) {
+              ?>
+                <div class="flex items-start justify-between gap-3 text-sm">
+                  <div class="flex-1">
+                    <div class="font-semibold text-chebs-black">
+                      <?= htmlspecialchars($d['nombre']) ?>
+                      <span class="text-xs text-gray-500">(<?= htmlspecialchars($d['tipo_venta']) ?>)</span>
+                    </div>
+                    <div class="text-xs text-gray-500">
+                      x<?= (int)$d['cantidad'] ?> · Bs <?= number_format((float)$d['precio_unitario'], 2) ?> c/u
+                    </div>
+                  </div>
+                  <div class="font-bold">Bs <?= number_format((float)$d['subtotal'], 2) ?></div>
+                </div>
+              <?php } ?>
+            </div>
+
+            <div class="mt-3 text-right font-black text-chebs-green">
+              Total: Bs <?= number_format((float)$v['total'], 2) ?>
+            </div>
+          </div>
+        <?php } ?>
+      </div>
+
+      <div class="mt-5 rounded-2xl bg-chebs-soft/70 border border-chebs-line p-4 flex items-center justify-between">
+        <div class="text-sm font-semibold text-gray-700">Total vendido hoy</div>
+        <div class="text-xl font-black text-chebs-green">Bs <?= number_format($totalHoy, 2) ?></div>
+      </div>
     </div>
 
-  </div>
+  </aside>
 </div>
 
 <!-- ========================= -->
+<!-- ✅ MODALES CHEBS -->
+<!-- ========================= -->
+<style>
+  .chebs-hidden { display:none; }
+  /* ✅ scrollbar suave */
+  #auto_list::-webkit-scrollbar { width: 10px; }
+  #auto_list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+  #auto_list::-webkit-scrollbar-track { background: transparent; }
+</style>
+
 <!-- ✅ MODAL: ABRIR TURNO -->
-<!-- ========================= -->
-<div id="modalAbrirTurno" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:9999;">
-  <div style="background:#fff; width:360px; max-width:90vw; margin:12vh auto; padding:15px; border-radius:8px;">
-    <h3 style="margin:0 0 10px;">Abrir turno</h3>
-
-    <form action="../../controladores/turno_abrir.php" method="POST" onsubmit="return confirmarAbrirTurno();">
-      <label><b>¿Cuánto efectivo hay en caja ahora?</b></label>
-      <div style="font-size:12px; color:#666; margin:6px 0;">
-        (Cuenta el dinero físico antes de empezar)
+<div id="modalAbrirTurno" class="chebs-hidden fixed inset-0 z-[9999]">
+  <div class="absolute inset-0 bg-black/40" onclick="cerrarModal('modalAbrirTurno')"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="w-full max-w-lg rounded-3xl bg-white shadow-soft border border-chebs-line overflow-hidden">
+      <div class="px-6 py-5 border-b border-chebs-line">
+        <h3 class="text-lg font-black text-chebs-black">Abrir turno</h3>
+        <p class="text-sm text-gray-500">¿Cuánto efectivo hay en caja ahora?</p>
       </div>
 
-      <input type="number" step="0.01" name="monto_inicial" id="abrir_monto"
-             value="0" required
-             style="width:100%; padding:8px; box-sizing:border-box;">
+      <form action="../../controladores/turno_abrir.php" method="POST" onsubmit="return validarAbrirTurno();">
+        <div class="px-6 py-5 space-y-2">
+          <div class="text-xs text-gray-500">(Cuenta el dinero físico antes de empezar)</div>
 
-      <div style="display:flex; gap:10px; margin-top:12px;">
-        <button type="button" style="flex:1; padding:10px;" onclick="cerrarModal('modalAbrirTurno')">Cancelar</button>
-        <button type="submit" style="flex:1; padding:10px; font-weight:bold;">Abrir</button>
-      </div>
-    </form>
+          <label class="text-sm font-semibold text-chebs-black">Efectivo inicial</label>
+          <input type="number" step="0.01" name="monto_inicial" id="abrir_monto"
+                 value="0" required
+                 class="w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none focus:ring-4 focus:ring-chebs-soft bg-white">
+
+          <div id="abrir_error" class="hidden text-sm font-semibold text-red-600"></div>
+        </div>
+
+        <div class="px-6 py-5 border-t border-chebs-line flex justify-end gap-2">
+          <button type="button"
+                  class="px-5 py-3 rounded-2xl border border-chebs-line font-semibold hover:bg-gray-50"
+                  onclick="cerrarModal('modalAbrirTurno')">
+            Cancelar
+          </button>
+          <button type="submit"
+                  class="px-5 py-3 rounded-2xl bg-chebs-green text-white font-bold hover:bg-chebs-greenDark">
+            Abrir
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
-<!-- ========================= -->
 <!-- ✅ MODAL: CERRAR TURNO -->
-<!-- ========================= -->
-<div id="modalCerrarTurno" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:9999;">
-  <div style="background:#fff; width:380px; max-width:90vw; margin:12vh auto; padding:15px; border-radius:8px;">
-    <h3 style="margin:0 0 10px;">Cerrar turno</h3>
+<div id="modalCerrarTurno" class="chebs-hidden fixed inset-0 z-[9999]">
+  <div class="absolute inset-0 bg-black/40" onclick="cerrarModal('modalCerrarTurno')"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="w-full max-w-lg rounded-3xl bg-white shadow-soft border border-chebs-line overflow-hidden">
+      <div class="px-6 py-5 border-b border-chebs-line">
+        <h3 class="text-lg font-black text-chebs-black">Cerrar turno</h3>
+        <p class="text-sm text-gray-500">Confirma el efectivo final antes de cerrar.</p>
+      </div>
 
-    <div style="font-size:13px; color:#333; margin-bottom:10px;">
-      <b>Esperado:</b> Bs <?= number_format($efectivoEsperadoUI,2) ?><br>
-      <span style="color:#666;">(Inicial + Ventas - Retiros)</span>
+      <form action="../../controladores/turno_cerrar.php" method="POST" onsubmit="return abrirConfirmacion('confirmCerrarTurno');">
+        <div class="px-6 py-5 space-y-3">
+          <input type="hidden" name="turno_id" value="<?= $turnoAbierto ? (int)$turnoAbierto["id"] : 0 ?>">
+
+          <div class="rounded-2xl bg-chebs-soft/60 border border-chebs-line p-4">
+            <div class="text-sm text-gray-600">Efectivo esperado</div>
+            <div class="text-2xl font-black text-chebs-green">
+              Bs <?= number_format($efectivoEsperadoUI,2) ?>
+            </div>
+            <div class="text-xs text-gray-500">(Inicial + Ventas - Retiros)</div>
+          </div>
+
+          <label class="text-sm font-semibold text-chebs-black">¿Cuánto efectivo estás dejando?</label>
+          <input type="number" step="0.01" name="efectivo_cierre" id="cerrar_efectivo"
+                 value="<?= number_format($efectivoEsperadoUI,2,'.','') ?>"
+                 required
+                 class="w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none focus:ring-4 focus:ring-chebs-soft bg-white">
+          <div class="text-xs text-gray-500">(Cuenta el dinero físico en caja y escribe el total)</div>
+
+          <div id="cerrar_error" class="hidden text-sm font-semibold text-red-600"></div>
+        </div>
+
+        <div class="px-6 py-5 border-t border-chebs-line flex justify-end gap-2">
+          <button type="button"
+                  class="px-5 py-3 rounded-2xl border border-chebs-line font-semibold hover:bg-gray-50"
+                  onclick="cerrarModal('modalCerrarTurno')">
+            Cancelar
+          </button>
+          <button type="submit"
+                  class="px-5 py-3 rounded-2xl bg-chebs-green text-white font-bold hover:bg-chebs-greenDark">
+            Cerrar turno
+          </button>
+        </div>
+      </form>
     </div>
-
-    <form action="../../controladores/turno_cerrar.php" method="POST" onsubmit="return confirmarCerrarTurno();">
-      <input type="hidden" name="turno_id" value="<?= $turnoAbierto ? (int)$turnoAbierto["id"] : 0 ?>">
-
-      <label><b>¿Cuánto efectivo estás dejando?</b></label>
-      <div style="font-size:12px; color:#666; margin:6px 0;">
-        (Cuenta el dinero físico en caja y escribe el total)
-      </div>
-
-      <input type="number" step="0.01" name="efectivo_cierre" id="cerrar_efectivo"
-             value="<?= number_format($efectivoEsperadoUI,2,'.','') ?>"
-             required style="width:100%; padding:8px; box-sizing:border-box;">
-
-      <div style="display:flex; gap:10px; margin-top:12px;">
-        <button type="button" style="flex:1; padding:10px;" onclick="cerrarModal('modalCerrarTurno')">Cancelar</button>
-        <button type="submit" style="flex:1; padding:10px; font-weight:bold;">Cerrar</button>
-      </div>
-    </form>
   </div>
 </div>
 
-<!-- ========================= -->
 <!-- ✅ MODAL: RETIRO ADMIN -->
-<!-- ========================= -->
 <?php if ($rol === 'admin') { ?>
-<div id="modalRetiro" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:9999;">
-  <div style="background:#fff; width:380px; max-width:90vw; margin:12vh auto; padding:15px; border-radius:8px;">
-    <h3 style="margin:0 0 10px;">Retiro de caja (Admin)</h3>
-
-    <div style="font-size:13px; color:#333; margin-bottom:10px;">
-      <b>Turno actual:</b> #<?= $turnoAbierto ? (int)$turnoAbierto["id"] : 0 ?><br>
-      <b>Efectivo esperado ahora:</b> Bs <?= number_format($efectivoEsperadoUI,2) ?>
-    </div>
-
-    <form action="../../controladores/retiro_guardar.php" method="POST" onsubmit="return confirmarRetiro();">
-      <input type="hidden" name="turno_id" value="<?= $turnoAbierto ? (int)$turnoAbierto["id"] : 0 ?>">
-
-      <label><b>Monto a retirar</b></label>
-      <input type="number" step="0.01" name="monto" id="retiro_monto"
-             value="0" required
-             style="width:100%; padding:8px; box-sizing:border-box;">
-
-      <label style="margin-top:10px; display:block;"><b>Motivo</b> (opcional)</label>
-      <input type="text" name="motivo" maxlength="255"
-             placeholder="Ej: deposito, guardar dinero..."
-             style="width:100%; padding:8px; box-sizing:border-box;">
-
-      <div style="display:flex; gap:10px; margin-top:12px;">
-        <button type="button" style="flex:1; padding:10px;" onclick="cerrarModal('modalRetiro')">Cancelar</button>
-        <button type="submit" style="flex:1; padding:10px; font-weight:bold;">Guardar</button>
+<div id="modalRetiro" class="chebs-hidden fixed inset-0 z-[9999]">
+  <div class="absolute inset-0 bg-black/40" onclick="cerrarModal('modalRetiro')"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="w-full max-w-lg rounded-3xl bg-white shadow-soft border border-chebs-line overflow-hidden">
+      <div class="px-6 py-5 border-b border-chebs-line">
+        <h3 class="text-lg font-black text-chebs-black">Retiro de caja</h3>
+        <p class="text-sm text-gray-500">Solo Admin. Registra un retiro del turno actual.</p>
       </div>
-    </form>
+
+      <form action="../../controladores/retiro_guardar.php" method="POST" onsubmit="return abrirConfirmacion('confirmRetiro');">
+        <div class="px-6 py-5 space-y-3">
+          <input type="hidden" name="turno_id" value="<?= $turnoAbierto ? (int)$turnoAbierto["id"] : 0 ?>">
+
+          <div class="rounded-2xl bg-chebs-soft/60 border border-chebs-line p-4">
+            <div class="text-sm text-gray-600">Efectivo esperado ahora</div>
+            <div class="text-2xl font-black text-chebs-green">
+              Bs <?= number_format($efectivoEsperadoUI,2) ?>
+            </div>
+            <div class="text-xs text-gray-500">Turno #<?= $turnoAbierto ? (int)$turnoAbierto["id"] : 0 ?></div>
+          </div>
+
+          <label class="text-sm font-semibold text-chebs-black">Monto a retirar</label>
+          <input type="number" step="0.01" name="monto" id="retiro_monto"
+                 value="0" required
+                 class="w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none focus:ring-4 focus:ring-chebs-soft bg-white">
+
+          <label class="text-sm font-semibold text-chebs-black">Motivo (opcional)</label>
+          <input type="text" name="motivo" maxlength="255"
+                 placeholder="Ej: deposito, guardar dinero…"
+                 class="w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none focus:ring-4 focus:ring-chebs-soft bg-white">
+
+          <div id="retiro_error" class="hidden text-sm font-semibold text-red-600"></div>
+        </div>
+
+        <div class="px-6 py-5 border-t border-chebs-line flex justify-end gap-2">
+          <button type="button"
+                  class="px-5 py-3 rounded-2xl border border-chebs-line font-semibold hover:bg-gray-50"
+                  onclick="cerrarModal('modalRetiro')">
+            Cancelar
+          </button>
+          <button type="submit"
+                  class="px-5 py-3 rounded-2xl bg-chebs-green text-white font-bold hover:bg-chebs-greenDark">
+            Guardar retiro
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 <?php } ?>
 
+<!-- ✅ MODAL: CONFIRMACIÓN / MENSAJE (reutilizable) -->
+<div id="modalConfirmacion" class="chebs-hidden fixed inset-0 z-[9999]">
+  <div class="absolute inset-0 bg-black/40" onclick="cerrarModal('modalConfirmacion')"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="w-full max-w-md rounded-3xl bg-white shadow-soft border border-chebs-line overflow-hidden">
+      <div class="px-6 py-5 border-b border-chebs-line">
+        <h3 class="text-lg font-black text-chebs-black" id="confirm_titulo">Confirmar</h3>
+        <p class="text-sm text-gray-500" id="confirm_texto">¿Estás seguro?</p>
+      </div>
+
+      <div class="px-6 py-5 border-t border-chebs-line flex justify-end gap-2">
+        <button type="button"
+                id="confirm_btn_cancel"
+                class="px-5 py-3 rounded-2xl border border-chebs-line font-semibold hover:bg-gray-50"
+                onclick="cerrarModal('modalConfirmacion')">
+          Cancelar
+        </button>
+
+        <button type="button"
+                class="px-5 py-3 rounded-2xl bg-chebs-green text-white font-bold hover:bg-chebs-greenDark"
+                id="confirm_btn_ok">
+          Sí, confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 function abrirModal(id){
-  document.getElementById(id).style.display = 'block';
+  document.getElementById(id).classList.remove('chebs-hidden');
 }
 function cerrarModal(id){
-  document.getElementById(id).style.display = 'none';
+  document.getElementById(id).classList.add('chebs-hidden');
 }
-function confirmarAbrirTurno(){
+
+// ESC para cerrar
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    ['modalAbrirTurno','modalCerrarTurno','modalRetiro','modalConfirmacion'].forEach(id=>{
+      const el = document.getElementById(id);
+      if (el && !el.classList.contains('chebs-hidden')) el.classList.add('chebs-hidden');
+    });
+    cerrarAuto();
+  }
+});
+
+function setError(id, msg){
+  const el = document.getElementById(id);
+  if(!el) return;
+  if(!msg){
+    el.classList.add('hidden');
+    el.textContent = '';
+    return;
+  }
+  el.classList.remove('hidden');
+  el.textContent = msg;
+}
+
+function validarAbrirTurno(){
   const v = parseFloat(document.getElementById('abrir_monto').value || '0');
-  if (isNaN(v) || v < 0) { alert('Monto inválido'); return false; }
+  if (isNaN(v) || v < 0) {
+    setError('abrir_error', 'Monto inválido (debe ser 0 o mayor).');
+    document.getElementById('abrir_monto').focus();
+    return false;
+  }
+  setError('abrir_error', '');
   return true;
 }
-function confirmarCerrarTurno(){
-  const v = parseFloat(document.getElementById('cerrar_efectivo').value || '0');
-  if (isNaN(v) || v < 0) { alert('Efectivo inválido'); return false; }
-  return confirm('¿Seguro que deseas cerrar el turno?');
+
+// ✅ Modal tipo MENSAJE (solo Aceptar)
+function mostrarMensaje(titulo, texto){
+  document.getElementById('confirm_titulo').textContent = titulo || 'Mensaje';
+  document.getElementById('confirm_texto').textContent = texto || '';
+
+  const btnCancel = document.getElementById('confirm_btn_cancel');
+  btnCancel.classList.add('hidden');
+
+  const btnOk = document.getElementById('confirm_btn_ok');
+  btnOk.textContent = 'Aceptar';
+  btnOk.onclick = () => cerrarModal('modalConfirmacion');
+
+  abrirModal('modalConfirmacion');
 }
-function confirmarRetiro(){
-  const v = parseFloat(document.getElementById('retiro_monto').value || '0');
-  if (isNaN(v) || v <= 0) { alert('El retiro debe ser mayor a 0'); return false; }
-  return confirm('¿Registrar retiro de caja?');
+
+// ✅ Modal confirm normal (restaura Cancelar)
+function confirmarSubmit(formSelector, titulo, texto){
+  document.getElementById('confirm_titulo').textContent = titulo || 'Confirmar';
+  document.getElementById('confirm_texto').textContent = texto || '¿Estás seguro?';
+
+  const btnCancel = document.getElementById('confirm_btn_cancel');
+  btnCancel.classList.remove('hidden');
+
+  const btnOk = document.getElementById('confirm_btn_ok');
+  btnOk.textContent = 'Sí, confirmar';
+  btnOk.onclick = () => {
+    cerrarModal('modalConfirmacion');
+    const form = document.querySelector(formSelector);
+    if(form) form.submit();
+  };
+
+  abrirModal('modalConfirmacion');
 }
+
+function abrirConfirmacion(tipo){
+  if(tipo === 'confirmCerrarTurno'){
+    const v = parseFloat(document.getElementById('cerrar_efectivo').value || '0');
+    if (isNaN(v) || v < 0) {
+      setError('cerrar_error', 'Efectivo inválido (debe ser 0 o mayor).');
+      document.getElementById('cerrar_efectivo').focus();
+      return false;
+    }
+    setError('cerrar_error', '');
+    confirmarSubmit('#modalCerrarTurno form', 'Cerrar turno', '¿Seguro que deseas cerrar el turno?');
+    return false;
+  }
+
+  if(tipo === 'confirmRetiro'){
+    const v = parseFloat(document.getElementById('retiro_monto').value || '0');
+    if (isNaN(v) || v <= 0) {
+      setError('retiro_error', 'El retiro debe ser mayor a 0.');
+      document.getElementById('retiro_monto').focus();
+      return false;
+    }
+    setError('retiro_error', '');
+    confirmarSubmit('#modalRetiro form', 'Registrar retiro', '¿Deseas registrar este retiro de caja?');
+    return false;
+  }
+
+  return true;
+}
+
+/* =========================
+   ✅ AUTOCOMPLETE CHEBS
+   ========================= */
+
+const inputProducto = document.getElementById('producto_nombre');
+const hiddenId = document.getElementById('producto_id');
+const stockInfo = document.getElementById('stock_info');
+
+const autoBox  = document.getElementById('auto_box');
+const autoList = document.getElementById('auto_list');
+const autoEmpty= document.getElementById('auto_empty');
+
+const dataOptions = Array.from(document.querySelectorAll('#lista_productos option'))
+  .map(o => ({ label: o.value, id: o.dataset.id }));
+
+let autoIndex = -1;
+let autoItems = [];
+
+function abrirAuto(){
+  autoBox.classList.remove('hidden');
+}
+function cerrarAuto(){
+  autoBox.classList.add('hidden');
+  autoIndex = -1;
+}
+function renderAuto(){
+  autoList.innerHTML = '';
+  autoEmpty.classList.add('hidden');
+
+  if (autoItems.length === 0) {
+    autoEmpty.classList.remove('hidden');
+    return;
+  }
+
+  autoItems.forEach((it, idx) => {
+    const div = document.createElement('div');
+    div.className =
+      "px-4 py-3 text-sm cursor-pointer border-b border-chebs-line last:border-b-0 " +
+      (idx === autoIndex ? "bg-chebs-soft/70" : "hover:bg-chebs-soft/60");
+
+    // resaltar coincidencia
+    const q = inputProducto.value.trim();
+    if (q.length > 0) {
+      const safe = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(safe, 'ig');
+      div.innerHTML = it.label.replace(re, (m)=>`<span class="font-black text-chebs-green">${m}</span>`);
+    } else {
+      div.textContent = it.label;
+    }
+
+    div.addEventListener('mousedown', (e) => {
+      // mousedown para que no pierda foco antes del click
+      e.preventDefault();
+      seleccionarItem(idx);
+    });
+
+    autoList.appendChild(div);
+  });
+}
+
+async function seleccionarItem(idx){
+  const it = autoItems[idx];
+  if(!it) return;
+
+  inputProducto.value = it.label;
+  hiddenId.value = it.id;
+  cerrarAuto();
+
+  // cargar stock al seleccionar
+  try{
+    const s = await fetch(`${"/PULPERIA-CHEBS"}/controladores/stock_fetch.php`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ producto_id: parseInt(it.id) })
+    });
+    const txt = await s.text();
+    const js = JSON.parse(txt);
+    if(js.error){
+      stockInfo.textContent = "Stock: error";
+    } else {
+      stockInfo.textContent = `Stock disponible: ${parseInt(js.stock)}`;
+    }
+  } catch {
+    stockInfo.textContent = "Stock: error";
+  }
+}
+
+function filtrar(q){
+  const t = q.trim().toLowerCase();
+
+  if(t.length === 0){
+    autoItems = [];
+    return;
+  }
+
+  autoItems = dataOptions
+    .filter(x => x.label.toLowerCase().includes(t))
+    .slice(0, 12); // máximo 12 resultados
+
+  autoIndex = autoItems.length ? 0 : -1;
+}
+
+inputProducto.addEventListener('input', () => {
+  hiddenId.value = '';
+  stockInfo.textContent = '';
+  filtrar(inputProducto.value);
+
+  if (inputProducto.value.trim().length > 0) {
+    abrirAuto();
+    renderAuto();
+  } else {
+    cerrarAuto();
+  }
+});
+
+inputProducto.addEventListener('focus', () => {
+  if (inputProducto.value.trim().length > 0 && autoItems.length > 0) {
+    abrirAuto();
+    renderAuto();
+  }
+});
+
+inputProducto.addEventListener('keydown', (e) => {
+  if (autoBox.classList.contains('hidden')) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    autoIndex = Math.min(autoIndex + 1, autoItems.length - 1);
+    renderAuto();
+    return;
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    autoIndex = Math.max(autoIndex - 1, 0);
+    renderAuto();
+    return;
+  }
+  if (e.key === 'Enter') {
+    // si está el autocomplete abierto y hay item seleccionado, Enter selecciona
+    if (autoIndex >= 0 && autoItems[autoIndex]) {
+      e.preventDefault();
+      seleccionarItem(autoIndex);
+      return;
+    }
+  }
+  if (e.key === 'Escape') {
+    cerrarAuto();
+  }
+});
+
+// cerrar al click fuera
+document.addEventListener('click', (e) => {
+  if (!autoBox.contains(e.target) && e.target !== inputProducto) {
+    cerrarAuto();
+  }
+});
 </script>
 
 <script src="../../public/js/venta.js"></script>

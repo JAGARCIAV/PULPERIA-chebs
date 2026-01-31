@@ -27,12 +27,24 @@ function obtenerProductosSelect($conexion) {
 
 // ✅ Listar lotes
 function obtenerLotes($conexion) {
-    $sql = "SELECT l.*, p.nombre 
-            FROM lotes l
-            JOIN productos p ON l.producto_id = p.id
-            ORDER BY l.activo DESC, l.fecha_vencimiento ASC, l.fecha_ingreso ASC";
+    $sql = "
+        SELECT l.*, p.nombre
+        FROM lotes l
+        JOIN productos p ON p.id = l.producto_id
+
+        ORDER BY
+          (l.fecha_vencimiento IS NOT NULL 
+           AND l.fecha_vencimiento <> '0000-00-00' 
+           AND l.fecha_vencimiento < CURDATE()) DESC,
+
+          l.cantidad_unidades ASC,
+          l.fecha_vencimiento ASC,
+          l.id ASC
+    ";
+
     return $conexion->query($sql);
 }
+
 
 // ✅ Stock total disponible (solo lotes activos + NO vencidos + con unidades)
 function obtenerStockDisponible($conexion, $producto_id) {
