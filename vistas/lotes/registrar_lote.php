@@ -7,6 +7,16 @@ require_once "../../modelos/producto_modelo.php";
 require_once "../../modelos/lote_modelo.php";
 include "../layout/header.php";
 
+$producto_preseleccionado = null;
+
+if (isset($_GET['producto_id'])) {
+    $id_pre = (int)$_GET['producto_id'];
+    if ($id_pre > 0) {
+        $producto_preseleccionado = obtenerProductoPorId($conexion, $id_pre);
+    }
+}
+
+
 $productos = obtenerProductos($conexion);
 ?>
 
@@ -32,6 +42,15 @@ $productos = obtenerProductos($conexion);
                autocomplete="off"
                class="w-full px-4 py-3 rounded-2xl border border-chebs-line
                       focus:outline-none focus:ring-2 focus:ring-chebs-green/40 bg-white">
+                      <?php if($producto_preseleccionado): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    document.getElementById('producto_buscar').value = <?= json_encode($producto_preseleccionado['nombre']) ?>;
+    document.getElementById('producto_id_real').value = <?= (int)$producto_preseleccionado['id'] ?>;
+});
+</script>
+<?php endif; ?>
+
 
         <!-- input real que se envía -->
         <input type="hidden" name="producto_id" id="producto_id_real" required>

@@ -8,7 +8,13 @@ $precio_unidad = $_POST['precio_unidad'];
 $precio_paquete = $_POST['precio_paquete'];
 $unidades_paquete = $_POST['unidades_paquete'];
 
-guardarProducto($conexion, $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete);
+$id_nuevo = guardarProducto($conexion, $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete);
 
-header("Location: ../vistas/productos/listar.php");
+if($id_nuevo > 0){
+    header("Location: ../vistas/productos/crear.php?creado=1&id=".$id_nuevo);
+    exit;
+}else{
+    echo "Error al guardar producto";
+}
+
 ?>

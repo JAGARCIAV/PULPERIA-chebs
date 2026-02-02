@@ -1,12 +1,19 @@
 <?php
 
 function guardarProducto($conexion, $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete) {
+
     $sql = "INSERT INTO productos (nombre, descripcion, precio_unidad, precio_paquete, unidades_por_paquete)
             VALUES (?, ?, ?, ?, ?)";
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("ssddi", $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete);
-    $stmt->execute();
+
+    if(!$stmt->execute()){
+        return 0; // error
+    }
+
+    return $conexion->insert_id; // ⭐ CLAVE
 }
+
 
 function obtenerProductos($conexion) {
     $sql = "SELECT * FROM productos";

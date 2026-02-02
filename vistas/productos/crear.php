@@ -5,6 +5,32 @@ require_role(['admin']);
 include "../layout/header.php";
 ?>
 
+<?php if(isset($_GET['creado']) && isset($_GET['id'])): ?>
+<div id="modalLote" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-soft">
+
+    <h2 class="text-xl font-black mb-3">Producto guardado 🎉</h2>
+    <p class="text-gray-600 mb-6">
+      ¿Quieres crear el lote inicial para este producto?
+    </p>
+
+    <div class="flex gap-4">
+      <a href="../lotes/registrar_lote.php?producto_id=<?= (int)$_GET['id'] ?>"
+         class="flex-1 text-center px-4 py-3 rounded-2xl bg-chebs-green text-white font-black">
+        ➕ Crear lote
+      </a>
+
+      <a href="listar.php"
+         class="flex-1 text-center px-4 py-3 rounded-2xl border border-chebs-line font-black">
+        Solo guardar
+      </a>
+    </div>
+
+  </div>
+</div>
+<?php endif; ?>
+
+
 <div class="max-w-3xl mx-auto px-4 py-10">
 
   <!-- Card -->
