@@ -36,7 +36,7 @@ include __DIR__ . "/vistas/layout/header.php";
       <a href="/PULPERIA-CHEBS/vistas/ventas/venta.php"
          class="inline-flex items-center justify-center px-6 py-3 rounded-2xl bg-chebs-green text-white font-black
                 hover:bg-chebs-greenDark transition shadow-soft">
-        Ir a Ventas / Caja
+        Ir Caja
       </a>
 
       <a href="/PULPERIA-CHEBS/controladores/logout.php"
@@ -55,7 +55,7 @@ include __DIR__ . "/vistas/layout/header.php";
        class="group bg-white border border-chebs-line rounded-3xl shadow-soft p-6 hover:bg-chebs-soft/40 transition">
       <div class="flex items-start justify-between gap-3">
         <div>
-          <h3 class="text-lg font-black text-chebs-black group-hover:text-chebs-green transition">Ventas / Caja</h3>
+          <h3 class="text-lg font-black text-chebs-black group-hover:text-chebs-green transition">Caja</h3>
           <p class="text-sm text-gray-600 mt-1">Registrar ventas, abrir/cerrar turno y retiros.</p>
         </div>
         <div class="w-10 h-10 rounded-2xl bg-chebs-soft border border-chebs-line flex items-center justify-center font-black text-chebs-green">

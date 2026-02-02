@@ -66,20 +66,14 @@ $stmtT->execute();
 $ultTurnos = $stmtT->get_result();
 ?>
 
-<!-- Título -->
-<div class="flex items-start justify-between gap-4 mb-6">
-  <div>
-    <h1 class="text-2xl font-black text-chebs-black">Caja</h1>
-    <p class="text-sm text-gray-600">Registrar ventas y controlar turno / caja</p>
-  </div>
-
-  <div class="hidden md:flex items-center gap-3">
-    <div class="bg-white border border-chebs-line rounded-2xl px-4 py-3 shadow-soft">
-      <div class="text-xs text-gray-500">Total vendido hoy</div>
-      <div class="text-xl font-black text-chebs-green">Bs <?= number_format($totalHoy, 2) ?></div>
-    </div>
+<!-- ✅ QUITADO (según pedido): Total vendido hoy arriba (se usará el del final del historial)
+<div class="hidden md:flex items-center gap-3">
+  <div class="bg-white border border-chebs-line rounded-2xl px-4 py-3 shadow-soft">
+    <div class="text-xs text-gray-500">Total vendido hoy</div>
+    <div class="text-xl font-black text-chebs-green">Bs <?= number_format($totalHoy, 2) ?></div>
   </div>
 </div>
+-->
 
 <!-- Layout principal -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -88,11 +82,10 @@ $ultTurnos = $stmtT->get_result();
   <section class="lg:col-span-2 space-y-6">
 
     <!-- Card: Registrar venta -->
-    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6">
-      <div class="flex items-center justify-between gap-4 mb-5">
+    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-5">
+      <div class="flex items-center justify-between gap-4 mb-4">
         <div>
-          <h2 class="text-lg font-black">Registrar venta</h2>
-          <p class="text-sm text-gray-500">Busca producto, elige tipo y cantidad</p>
+          <h1 class="text-lg font-black text-red-600 tracking-wide">CAJA</h1>
         </div>
 
         <?php if(!$turnoAbierto){ ?>
@@ -110,14 +103,22 @@ $ultTurnos = $stmtT->get_result();
 
         <!-- Producto -->
         <div class="md:col-span-2 relative">
-          <label class="text-sm font-semibold text-chebs-black">Producto</label>
+          <label class="block text-2xl font-bold text-pink-600 mb-1">
+            Buscar producto
+          </label>
 
           <input id="producto_nombre" type="text" name="producto_nombre"
-                 placeholder="Escribe el nombre del producto…"
-                 autocomplete="off"
-                 required
-                 class="mt-2 w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none
-                        focus:ring-4 focus:ring-chebs-soft bg-white">
+                placeholder="Escribe el nombre del producto…"
+                autocomplete="off"
+                required
+                class="mt-2 w-full rounded-2xl
+                        bg-pink-50
+                        border-2 border-pink-300
+                        px-4 py-3
+                        text-gray-800 placeholder-pink-400
+                        outline-none
+                        focus:ring-4 focus:ring-pink-200
+                        focus:border-pink-500">
 
           <!-- ✅ Fuente de datos (oculto). Antes era datalist -->
           <div class="hidden">
@@ -132,7 +133,7 @@ $ultTurnos = $stmtT->get_result();
 
           <!-- ✅ Autocomplete Chebs (Google style) -->
           <div id="auto_box"
-               class="hidden absolute left-0 right-0 mt-2 z-50 rounded-2xl border border-chebs-line bg-gray-300 shadow-soft overflow-hidden">
+              class="hidden absolute left-0 right-0 mt-2 z-50 rounded-2xl border border-chebs-line bg-gray-300 shadow-soft overflow-hidden">
             <div class="px-4 py-2 text-xs text-gray-500 border-b border-chebs-line flex items-center justify-between">
               <span>Resultados</span>
               <span class="hidden sm:inline">↑ ↓ para moverte · Enter para elegir</span>
@@ -148,29 +149,43 @@ $ultTurnos = $stmtT->get_result();
           <div id="stock_info" class="mt-2 text-xs text-gray-500"></div>
         </div>
 
-        <!-- Tipo -->
-        <div>
+        <!-- ✅ Tipo de venta (OCULTO VISUALMENTE)
+             NOTA: Se comenta/oculta para luego arreglar. Internamente sigue existiendo
+             para que el JS/Backend sigan trabajando como antes (por defecto unidad). -->
+        <div class="hidden">
           <label class="text-sm font-semibold text-chebs-black">Tipo de venta</label>
           <select id="tipo_venta"
                   class="mt-2 w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none
                          focus:ring-4 focus:ring-chebs-soft bg-white">
             <option value="unidad">Unidad</option>
+            <!-- ACOMODAR
             <option value="paquete">Paquete</option>
+            -->
           </select>
         </div>
 
         <!-- Cantidad -->
-        <div>
-          <label class="text-sm font-semibold text-chebs-black">Cantidad</label>
-          <input type="number" id="cantidad" min="1" value="1"
-                 class="mt-2 w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none
-                        focus:ring-4 focus:ring-chebs-soft bg-white">
-        </div>
+<div>
+  <label class="block text-2xl font-bold text-pink-600 mb-1">
+    Cantidad
+  </label>
+
+  <input type="number" id="cantidad" min="1" value="1"
+        class="mt-2 w-full rounded-2xl
+               bg-pink-50
+               border-2 border-pink-300
+               px-4 py-3
+               text-gray-800 placeholder-pink-400
+               outline-none
+               focus:ring-4 focus:ring-pink-200
+               focus:border-pink-500">
+</div>
+
 
         <!-- Botón agregar -->
         <div class="md:col-span-2 flex items-end">
           <button type="button" onclick="agregarDesdeFormulario()"
-                  class="w-full md:w-auto px-5 py-3 rounded-2xl bg-chebs-green text-white font-bold
+                  class="w-full md:w-auto px-6 py-3 rounded-2xl bg-chebs-green text-white font-black
                          hover:bg-chebs-greenDark transition">
             Agregar
           </button>
@@ -179,28 +194,30 @@ $ultTurnos = $stmtT->get_result();
     </div>
 
     <!-- Card: Detalle de la venta -->
-    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6">
-      <div class="flex items-center justify-between gap-4 mb-4">
+    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-5">
+      <div class="flex items-center justify-between gap-4 mb-3">
         <div>
-          <h3 class="text-lg font-black">Detalle de la venta</h3>
+          <h3 class="text-xl font-black">Detalle de la venta</h3>
           <p class="text-sm text-gray-500">Revisa productos antes de confirmar</p>
         </div>
         <div class="text-right">
           <div class="text-xs text-gray-500">Total</div>
-          <div class="text-2xl font-black text-chebs-green">Bs <span id="total">0.00</span></div>
+          <div class="text-3xl font-black text-chebs-green">Bs <span id="total">0.00</span></div>
         </div>
       </div>
 
       <div class="overflow-x-auto rounded-2xl border border-chebs-line">
-        <table class="w-full text-sm" id="tabla_detalle">
+        <table class="w-full text-[15px]" id="tabla_detalle">
           <thead class="bg-chebs-soft/60 text-chebs-black">
             <tr>
-              <th class="text-left font-bold px-4 py-3">Producto</th>
-              <th class="text-left font-bold px-4 py-3">Tipo</th>
-              <th class="text-left font-bold px-4 py-3">Cantidad</th>
-              <th class="text-left font-bold px-4 py-3">Precio</th>
-              <th class="text-left font-bold px-4 py-3">Subtotal</th>
-              <th class="text-left font-bold px-4 py-3">❌</th>
+              <th class="text-left font-black px-4 py-3">Producto</th>
+              <!-- ✅ Quitado visualmente: Tipo -->
+              <th class="text-left font-black px-4 py-3">Cantidad</th>
+              <th class="text-left font-black px-4 py-3">Precio</th>
+              <th class="text-left font-black px-4 py-3">Subtotal</th>
+              <th class="text-left font-black px-4 py-3 text-center">
+                <span class="text-black font-black text-lg leading-none">×</span>
+              </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-chebs-line"></tbody>
@@ -216,7 +233,7 @@ $ultTurnos = $stmtT->get_result();
       <div class="mt-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end">
         <button id="btn_confirmar" type="button"
                 <?= (!$turnoAbierto ? "disabled" : "") ?>
-                class="px-6 py-3 rounded-2xl font-black transition
+                class="px-7 py-3 rounded-2xl font-black transition
                        <?= (!$turnoAbierto
                             ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                             : "bg-chebs-green text-white hover:bg-chebs-greenDark") ?>">
@@ -231,126 +248,134 @@ $ultTurnos = $stmtT->get_result();
   <aside class="space-y-6">
 
     <!-- Card: Turno / Caja -->
-    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6">
-      <div class="flex items-center justify-between gap-3 mb-4">
-        <h3 class="text-lg font-black">⏱ Turno / Caja</h3>
-        <?php if(!$turnoAbierto){ ?>
-          <span class="text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full">Cerrado</span>
-        <?php } else { ?>
-          <span class="text-xs font-bold text-chebs-green bg-chebs-soft/70 border border-chebs-line px-3 py-1 rounded-full">Abierto</span>
-        <?php } ?>
-      </div>
-
-      <div class="space-y-2">
-        <?php if (isset($_GET["turno_ok"])) { ?>
-          <div class="text-sm font-semibold text-chebs-green bg-chebs-soft/70 border border-chebs-line px-4 py-3 rounded-2xl">
-            ✅ Turno abierto.
-          </div>
-        <?php } ?>
-        <?php if (isset($_GET["turno_cerrado"])) { ?>
-          <div class="text-sm font-semibold text-chebs-green bg-chebs-soft/70 border border-chebs-line px-4 py-3 rounded-2xl">
-            ✅ Turno cerrado.
-          </div>
-        <?php } ?>
-        <?php if (isset($_GET["turno_err"])) { ?>
-          <div class="text-sm font-semibold text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-2xl">
-            ❌ <?= htmlspecialchars($_GET["turno_err"]) ?>
-          </div>
-        <?php } ?>
-        <?php if (isset($_GET["ret_ok"])) { ?>
-          <div class="text-sm font-semibold text-chebs-green bg-chebs-soft/70 border border-chebs-line px-4 py-3 rounded-2xl">
-            ✅ Retiro registrado.
-          </div>
-        <?php } ?>
-        <?php if (isset($_GET["ret_err"])) { ?>
-          <div class="text-sm font-semibold text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-2xl">
-            ❌ <?= htmlspecialchars($_GET["ret_err"]) ?>
-          </div>
-        <?php } ?>
-      </div>
-
-      <?php if (!$turnoAbierto) { ?>
-        <p class="mt-4 text-sm text-gray-600">
-          Para vender primero debes <b>abrir turno</b> contando el efectivo real que hay en caja.
-        </p>
-
-        <button type="button"
-                class="mt-4 w-full px-5 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition"
-                onclick="abrirModal('modalAbrirTurno')">
-          Abrir turno
-        </button>
-
-      <?php } else { ?>
-
-        <div class="mt-4 space-y-2 text-sm text-gray-700">
-          <div class="flex justify-between gap-3"><span class="font-semibold">Turno ID</span><span>#<?= (int)$turnoAbierto["id"] ?></span></div>
-          <div class="flex justify-between gap-3"><span class="font-semibold">Responsable</span><span><?= htmlspecialchars($turnoAbierto["responsable"]) ?></span></div>
-          <div class="flex justify-between gap-3"><span class="font-semibold">Abierto</span><span><?= htmlspecialchars($turnoAbierto["abierto_en"]) ?></span></div>
-
-          <div class="h-px bg-chebs-line my-2"></div>
-
-          <div class="flex justify-between gap-3"><span class="font-semibold">Inicial contado</span><span>Bs <?= number_format($montoInicialUI,2) ?></span></div>
-          <div class="flex justify-between gap-3"><span class="font-semibold">Total vendido</span><span>Bs <?= number_format($totalTurno,2) ?></span></div>
-          <div class="flex justify-between gap-3"><span class="font-semibold">Retiros</span><span>Bs <?= number_format($totalRetiros,2) ?></span></div>
-          <div class="flex justify-between gap-3 font-black text-chebs-black">
-            <span>Efectivo esperado</span><span class="text-chebs-green">Bs <?= number_format($efectivoEsperadoUI,2) ?></span>
-          </div>
+    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-5">
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <div class="flex items-center gap-2">
+          <h3 class="text-lg font-black">⏱ Turno / Caja</h3>
+          <?php if(!$turnoAbierto){ ?>
+            <span class="text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full">Cerrado</span>
+          <?php } else { ?>
+            <span class="text-xs font-bold text-chebs-green bg-chebs-soft/70 border border-chebs-line px-3 py-1 rounded-full">Abierto</span>
+          <?php } ?>
         </div>
 
-        <?php if ($rol === 'admin') { ?>
-          <button type="button"
-                  class="mt-4 w-full px-5 py-3 rounded-2xl border border-chebs-line font-black hover:bg-chebs-soft transition"
-                  onclick="abrirModal('modalRetiro')">
-            Retiro de caja (Admin)
-          </button>
-        <?php } ?>
-
+        <!-- ✅ Botón minimizar -->
         <button type="button"
-                class="mt-3 w-full px-5 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition"
-                onclick="abrirModal('modalCerrarTurno')">
-          Cerrar turno
+                id="btn_toggle_turno"
+                class="px-3 py-2 rounded-xl border border-chebs-line font-black hover:bg-chebs-soft transition"
+                aria-expanded="true">
+          Minimizar
         </button>
+      </div>
 
-      <?php } ?>
-
-      <?php if ($rol === 'admin') { ?>
-        <div class="h-px bg-chebs-line my-5"></div>
-        <h4 class="font-black mb-3">Últimos turnos</h4>
-
-        <div class="space-y-3">
-          <?php while($t = $ultTurnos->fetch_assoc()) { ?>
-            <div class="rounded-2xl border border-chebs-line p-4 bg-white">
-              <div class="flex items-center justify-between">
-                <div class="font-black">#<?= (int)$t["id"] ?></div>
-                <div class="text-xs text-gray-500"><?= htmlspecialchars($t["fecha"]) ?></div>
-              </div>
-              <div class="mt-2 text-xs text-gray-600 space-y-1">
-                <div><b>Entrada:</b> <?= htmlspecialchars($t["abierto_en"]) ?></div>
-                <div><b>Salida:</b> <?= htmlspecialchars($t["cerrado_en"] ?? '-') ?></div>
-                <div><b>Estado:</b> <?= htmlspecialchars($t["estado"]) ?></div>
-                <div><b>Resp:</b> <?= htmlspecialchars($t["responsable"]) ?></div>
-              </div>
+      <div id="turno_contenido">
+        <div class="space-y-2">
+          <?php if (isset($_GET["turno_ok"])) { ?>
+            <div class="text-sm font-semibold text-chebs-green bg-chebs-soft/70 border border-chebs-line px-4 py-3 rounded-2xl">
+              ✅ Turno abierto.
+            </div>
+          <?php } ?>
+          <?php if (isset($_GET["turno_cerrado"])) { ?>
+            <div class="text-sm font-semibold text-chebs-green bg-chebs-soft/70 border border-chebs-line px-4 py-3 rounded-2xl">
+              ✅ Turno cerrado.
+            </div>
+          <?php } ?>
+          <?php if (isset($_GET["turno_err"])) { ?>
+            <div class="text-sm font-semibold text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-2xl">
+              ❌ <?= htmlspecialchars($_GET["turno_err"]) ?>
+            </div>
+          <?php } ?>
+          <?php if (isset($_GET["ret_ok"])) { ?>
+            <div class="text-sm font-semibold text-chebs-green bg-chebs-soft/70 border border-chebs-line px-4 py-3 rounded-2xl">
+              ✅ Retiro registrado.
+            </div>
+          <?php } ?>
+          <?php if (isset($_GET["ret_err"])) { ?>
+            <div class="text-sm font-semibold text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-2xl">
+              ❌ <?= htmlspecialchars($_GET["ret_err"]) ?>
             </div>
           <?php } ?>
         </div>
-      <?php } ?>
 
+        <?php if (!$turnoAbierto) { ?>
+          <p class="mt-4 text-sm text-gray-600">
+            Para vender primero debes <b>abrir turno</b> contando el efectivo real que hay en caja.
+          </p>
+
+          <button type="button"
+                  class="mt-4 w-full px-5 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition"
+                  onclick="abrirModal('modalAbrirTurno')">
+            Abrir turno
+          </button>
+
+        <?php } else { ?>
+
+          <div class="mt-4 space-y-2 text-sm text-gray-700">
+            <div class="flex justify-between gap-3"><span class="font-semibold">Turno ID</span><span>#<?= (int)$turnoAbierto["id"] ?></span></div>
+            <div class="flex justify-between gap-3"><span class="font-semibold">Responsable</span><span><?= htmlspecialchars($turnoAbierto["responsable"]) ?></span></div>
+            <div class="flex justify-between gap-3"><span class="font-semibold">Abierto</span><span><?= htmlspecialchars($turnoAbierto["abierto_en"]) ?></span></div>
+
+            <div class="h-px bg-chebs-line my-2"></div>
+
+            <div class="flex justify-between gap-3"><span class="font-semibold">Inicial contado</span><span>Bs <?= number_format($montoInicialUI,2) ?></span></div>
+            <div class="flex justify-between gap-3"><span class="font-semibold">Total vendido</span><span>Bs <?= number_format($totalTurno,2) ?></span></div>
+            <div class="flex justify-between gap-3"><span class="font-semibold">Retiros</span><span>Bs <?= number_format($totalRetiros,2) ?></span></div>
+            <div class="flex justify-between gap-3 font-black text-chebs-black">
+              <span>Efectivo esperado</span><span class="text-chebs-green">Bs <?= number_format($efectivoEsperadoUI,2) ?></span>
+            </div>
+          </div>
+
+          <?php if ($rol === 'admin') { ?>
+            <button type="button"
+                    class="mt-4 w-full px-5 py-3 rounded-2xl border border-chebs-line font-black hover:bg-chebs-soft transition"
+                    onclick="abrirModal('modalRetiro')">
+              Retiro de caja (Admin)
+            </button>
+          <?php } ?>
+
+          <button type="button"
+                  class="mt-3 w-full px-5 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition"
+                  onclick="abrirModal('modalCerrarTurno')">
+            Cerrar turno
+          </button>
+
+        <?php } ?>
+
+        <?php if ($rol === 'admin') { ?>
+          <div class="h-px bg-chebs-line my-5"></div>
+          <h4 class="font-black mb-3">Últimos turnos</h4>
+
+          <div class="space-y-3">
+            <?php while($t = $ultTurnos->fetch_assoc()) { ?>
+              <div class="rounded-2xl border border-chebs-line p-4 bg-white">
+                <div class="flex items-center justify-between">
+                  <div class="font-black">#<?= (int)$t["id"] ?></div>
+                  <div class="text-xs text-gray-500"><?= htmlspecialchars($t["fecha"]) ?></div>
+                </div>
+                <div class="mt-2 text-xs text-gray-600 space-y-1">
+                  <div><b>Entrada:</b> <?= htmlspecialchars($t["abierto_en"]) ?></div>
+                  <div><b>Salida:</b> <?= htmlspecialchars($t["cerrado_en"] ?? '-') ?></div>
+                  <div><b>Estado:</b> <?= htmlspecialchars($t["estado"]) ?></div>
+                  <div><b>Resp:</b> <?= htmlspecialchars($t["responsable"]) ?></div>
+                </div>
+              </div>
+            <?php } ?>
+          </div>
+        <?php } ?>
+      </div>
     </div>
 
     <!-- Card: Historial -->
-    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6">
+    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-5">
       <div class="flex items-center justify-between gap-3">
         <div>
           <h3 class="text-lg font-black">Historial (hoy)</h3>
           <p class="text-sm text-gray-500">Últimas ventas del turno</p>
-        </div>
-
-        <div class="md:hidden text-right">
-          <div class="text-xs text-gray-500">Total hoy</div>
-          <div class="text-lg font-black text-chebs-green">Bs <?= number_format($totalHoy, 2) ?></div>
+          <!-- ✅ NOTA pedida -->
         </div>
       </div>
 
+      <!-- ✅ BOTÓN QUITADO/COMENTADO (según pedido)
       <form id="form_limpiar_historial" action="../../controladores/historial_limpiar.php" method="POST" class="mt-4">
         <button type="button"
                 class="w-full px-5 py-3 rounded-2xl border border-chebs-line font-black hover:bg-chebs-soft transition"
@@ -358,6 +383,7 @@ $ultTurnos = $stmtT->get_result();
           Limpiar historial (ocultar)
         </button>
       </form>
+      -->
 
       <div class="mt-4 h-px bg-chebs-line"></div>
 
@@ -378,6 +404,7 @@ $ultTurnos = $stmtT->get_result();
                   <div class="flex-1">
                     <div class="font-semibold text-chebs-black">
                       <?= htmlspecialchars($d['nombre']) ?>
+                      <!-- ✅ Puedes ocultar esto después si no querés mostrar tipo -->
                       <span class="text-xs text-gray-500">(<?= htmlspecialchars($d['tipo_venta']) ?>)</span>
                     </div>
                     <div class="text-xs text-gray-500">
@@ -705,13 +732,9 @@ const dataOptions = Array.from(document.querySelectorAll('#lista_productos optio
 let autoIndex = -1;
 let autoItems = [];
 
-function abrirAuto(){
-  autoBox.classList.remove('hidden');
-}
-function cerrarAuto(){
-  autoBox.classList.add('hidden');
-  autoIndex = -1;
-}
+function abrirAuto(){ autoBox.classList.remove('hidden'); }
+function cerrarAuto(){ autoBox.classList.add('hidden'); autoIndex = -1; }
+
 function renderAuto(){
   autoList.innerHTML = '';
   autoEmpty.classList.add('hidden');
@@ -727,7 +750,6 @@ function renderAuto(){
       "px-4 py-3 text-sm cursor-pointer border-b border-chebs-line last:border-b-0 " +
       (idx === autoIndex ? "bg-chebs-soft/70" : "hover:bg-chebs-soft/60");
 
-    // resaltar coincidencia
     const q = inputProducto.value.trim();
     if (q.length > 0) {
       const safe = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -738,7 +760,6 @@ function renderAuto(){
     }
 
     div.addEventListener('mousedown', (e) => {
-      // mousedown para que no pierda foco antes del click
       e.preventDefault();
       seleccionarItem(idx);
     });
@@ -755,7 +776,6 @@ async function seleccionarItem(idx){
   hiddenId.value = it.id;
   cerrarAuto();
 
-  // cargar stock al seleccionar
   try{
     const s = await fetch(`${"/PULPERIA-CHEBS"}/controladores/stock_fetch.php`, {
       method: "POST",
@@ -776,15 +796,11 @@ async function seleccionarItem(idx){
 
 function filtrar(q){
   const t = q.trim().toLowerCase();
-
-  if(t.length === 0){
-    autoItems = [];
-    return;
-  }
+  if(t.length === 0){ autoItems = []; return; }
 
   autoItems = dataOptions
     .filter(x => x.label.toLowerCase().includes(t))
-    .slice(0, 12); // máximo 12 resultados
+    .slice(0, 12);
 
   autoIndex = autoItems.length ? 0 : -1;
 }
@@ -825,7 +841,6 @@ inputProducto.addEventListener('keydown', (e) => {
     return;
   }
   if (e.key === 'Enter') {
-    // si está el autocomplete abierto y hay item seleccionado, Enter selecciona
     if (autoIndex >= 0 && autoItems[autoIndex]) {
       e.preventDefault();
       seleccionarItem(autoIndex);
@@ -837,12 +852,52 @@ inputProducto.addEventListener('keydown', (e) => {
   }
 });
 
-// cerrar al click fuera
 document.addEventListener('click', (e) => {
   if (!autoBox.contains(e.target) && e.target !== inputProducto) {
     cerrarAuto();
   }
 });
+
+/* =========================
+   ✅ MINIMIZAR TURNO/CAJA
+   ========================= */
+(function(){
+  const btn  = document.getElementById('btn_toggle_turno');
+  const cont = document.getElementById('turno_contenido');
+  if(!btn || !cont) return;
+
+  const KEY = "chebs_turno_min"; // 1 = minimizado, 0 = abierto
+
+  function pintar(minimizado){
+    if(minimizado){
+      cont.classList.add('hidden');
+      btn.textContent = 'Mostrar';
+      btn.setAttribute('aria-expanded', 'false');
+    } else {
+      cont.classList.remove('hidden');
+      btn.textContent = 'Minimizar';
+      btn.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  // ✅ Restaurar estado guardado
+  const guardado = localStorage.getItem(KEY);
+const minimizadoInicial = (guardado === null) ? true : (guardado === "1");
+  pintar(minimizadoInicial);
+
+  // ✅ Toggle manual (solo cuando haces click)
+  btn.addEventListener('click', () => {
+    const estaMin = cont.classList.contains('hidden');
+    const nuevoMin = !estaMin;
+
+    // si estaba oculto y ahora quieres mostrar -> nuevoMin = false
+    // si estaba mostrado y ahora quieres ocultar -> nuevoMin = true
+    pintar(nuevoMin);
+
+    localStorage.setItem(KEY, nuevoMin ? "1" : "0");
+  });
+})();
+</script>
 </script>
 
 <script src="../../public/js/venta.js"></script>

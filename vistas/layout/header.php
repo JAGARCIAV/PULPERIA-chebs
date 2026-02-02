@@ -103,6 +103,8 @@ $rol = $_SESSION['user']['rol'] ?? '';
           Salir
         </a>
 
+        
+
       </nav>
     </div>
   </div>

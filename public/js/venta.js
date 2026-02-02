@@ -2,17 +2,16 @@
   // ✅ BASE FIJA
   const BASE_URL = "/PULPERIA-CHEBS";
 
-  // ✅ Elementos (ahora por ID, no por datalist list="")
+  // ✅ Elementos
   const inputNombre = document.getElementById("producto_nombre");
   const hiddenId = document.getElementById("producto_id");
-  const tipoVentaEl = document.getElementById("tipo_venta");
+  const tipoVentaEl = document.getElementById("tipo_venta"); // existe pero está oculto
   const cantidadEl = document.getElementById("cantidad");
   const totalEl = document.getElementById("total");
   const tablaBody = document.querySelector("#tabla_detalle tbody");
   const btnConfirmar = document.getElementById("btn_confirmar");
 
-  // Si por algo falta algo, no rompas todo
-  if (!inputNombre || !hiddenId || !tipoVentaEl || !cantidadEl || !totalEl || !tablaBody) {
+  if (!inputNombre || !hiddenId || !cantidadEl || !totalEl || !tablaBody) {
     console.error("❌ Faltan elementos en la página (IDs). Revisa venta.php.");
     return;
   }
@@ -28,8 +27,9 @@
     inputNombre.value = "";
     hiddenId.value = "";
     cantidadEl.value = 1;
-    tipoVentaEl.value = "unidad";
-    // el stockInfo lo maneja tu script inline (autocomplete) si existe
+
+    // ✅ Forzar siempre unidad (aunque el select esté oculto)
+    if (tipoVentaEl) tipoVentaEl.value = "unidad";
   }
 
   // ✅ Helper: fetch JSON con manejo de errores
@@ -62,7 +62,7 @@
     });
   }
 
-  // ✅ Render tabla
+  // ✅ Render tabla (SIN columna tipo, productos en negrita, X rojas)
   function renderizarTabla() {
     tablaBody.innerHTML = "";
     total = 0;
@@ -73,15 +73,18 @@
 
       tablaBody.innerHTML += `
         <tr class="hover:bg-chebs-soft/40">
-          <td class="px-4 py-3">${item.nombre}</td>
-          <td class="px-4 py-3">${item.tipo}</td>
-          <td class="px-4 py-3">${item.cantidad}</td>
-          <td class="px-4 py-3">${item.precio.toFixed(2)}</td>
-          <td class="px-4 py-3">${subtotal.toFixed(2)}</td>
-          <td class="px-4 py-3">
+          <td class="px-4 py-3 font-bold text-[15px]">${item.nombre}</td>
+          <td class="px-4 py-3 text-[15px]">${item.cantidad}</td>
+          <td class="px-4 py-3 text-[15px]">Bs ${item.precio.toFixed(2)}</td>
+          <td class="px-4 py-3 font-bold text-[15px]">Bs ${subtotal.toFixed(2)}</td>
+          <td class="px-4 py-3 text-center">
             <button type="button"
-                    class="px-3 py-2 rounded-xl border border-chebs-line hover:bg-red-50 hover:border-red-200"
-                    onclick="eliminarProducto(${index})">✕</button>
+                    class="px-3 py-2 rounded-xl border border-red-200 bg-red-50 text-red-600 font-black
+                           hover:bg-red-100 hover:border-red-300 transition"
+                    onclick="eliminarProducto(${index})"
+                    title="Quitar">
+              ✕
+            </button>
           </td>
         </tr>
       `;
@@ -90,7 +93,7 @@
     totalEl.innerText = total.toFixed(2);
   }
 
-  // ✅ Exponer funciones globales (porque tu HTML las llama)
+  // ✅ Exponer funciones globales
   window.eliminarProducto = (index) => {
     carrito.splice(index, 1);
     renderizarTabla();
@@ -99,7 +102,11 @@
   window.agregarDesdeFormulario = async () => {
     const nombre = inputNombre.value.trim();
     const producto_id = hiddenId.value;
-    const tipo = tipoVentaEl.value;
+
+    // ✅ Forzar venta por unidad (no mostrar tipo de venta)
+    const tipo = "unidad";
+    if (tipoVentaEl) tipoVentaEl.value = "unidad";
+
     const cantidad = parseInt(cantidadEl.value, 10);
 
     if (!producto_id || !nombre) {
@@ -185,15 +192,12 @@
         return;
       }
 
-      // ✅ Limpia carrito antes
       carrito = [];
       renderizarTabla();
       limpiarFormulario();
 
-      // ✅ Marca que al dar Aceptar se recargue
       recargarDespuesDeOk = true;
 
-      // ✅ Abre modal
       if (typeof mostrarMensaje === "function") {
         mostrarMensaje("✅ Venta registrada", "ID: " + data.venta_id);
       } else {
@@ -202,12 +206,10 @@
         return;
       }
 
-      // ✅ Cuando el usuario presiona Aceptar, recién recargar
       setTimeout(() => {
         const btnOk = document.getElementById("confirm_btn_ok");
         if (btnOk) {
           btnOk.onclick = () => {
-            // cerrar modal (si existe la función)
             if (typeof cerrarModal === "function") cerrarModal("modalConfirmacion");
             if (recargarDespuesDeOk) location.reload();
           };
@@ -224,7 +226,6 @@
   document.addEventListener("keydown", (e) => {
     const activo = document.activeElement;
 
-    // Enter en producto o cantidad → agregar
     if (e.key === "Enter" && !e.ctrlKey) {
       if (activo && (activo.id === "producto_nombre" || activo.id === "cantidad")) {
         e.preventDefault();
@@ -232,7 +233,6 @@
       }
     }
 
-    // Ctrl + Enter → confirmar
     if (e.key === "Enter" && e.ctrlKey) {
       if (btnConfirmar && !btnConfirmar.disabled) btnConfirmar.click();
     }
@@ -240,4 +240,7 @@
 
   // ✅ Selecciona cantidad al enfocarla
   cantidadEl.addEventListener("focus", () => cantidadEl.select());
+
+  // ✅ Asegurar unidad desde inicio
+  if (tipoVentaEl) tipoVentaEl.value = "unidad";
 })();
