@@ -66,15 +66,6 @@ $stmtT->execute();
 $ultTurnos = $stmtT->get_result();
 ?>
 
-<!-- ✅ QUITADO (según pedido): Total vendido hoy arriba (se usará el del final del historial)
-<div class="hidden md:flex items-center gap-3">
-  <div class="bg-white border border-chebs-line rounded-2xl px-4 py-3 shadow-soft">
-    <div class="text-xs text-gray-500">Total vendido hoy</div>
-    <div class="text-xl font-black text-chebs-green">Bs <?= number_format($totalHoy, 2) ?></div>
-  </div>
-</div>
--->
-
 <!-- Layout principal -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -131,9 +122,9 @@ $ultTurnos = $stmtT->get_result();
 
           <input type="hidden" id="producto_id">
 
-          <!-- ✅ Autocomplete Chebs (Google style) -->
+          <!-- ✅ Autocomplete Chebs -->
           <div id="auto_box"
-              class="hidden absolute left-0 right-0 mt-2 z-50 rounded-2xl border border-chebs-line bg-gray-300 shadow-soft overflow-hidden">
+              class="hidden absolute left-0 right-0 mt-2 z-50 rounded-2xl border border-chebs-line bg-white shadow-soft overflow-hidden">
             <div class="px-4 py-2 text-xs text-gray-500 border-b border-chebs-line flex items-center justify-between">
               <span>Resultados</span>
               <span class="hidden sm:inline">↑ ↓ para moverte · Enter para elegir</span>
@@ -149,38 +140,32 @@ $ultTurnos = $stmtT->get_result();
           <div id="stock_info" class="mt-2 text-xs text-gray-500"></div>
         </div>
 
-        <!-- ✅ Tipo de venta (OCULTO VISUALMENTE)
-             NOTA: Se comenta/oculta para luego arreglar. Internamente sigue existiendo
-             para que el JS/Backend sigan trabajando como antes (por defecto unidad). -->
+        <!-- ✅ Tipo de venta (OCULTO VISUALMENTE) -->
         <div class="hidden">
           <label class="text-sm font-semibold text-chebs-black">Tipo de venta</label>
           <select id="tipo_venta"
                   class="mt-2 w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none
                          focus:ring-4 focus:ring-chebs-soft bg-white">
             <option value="unidad">Unidad</option>
-            <!-- ACOMODAR
-            <option value="paquete">Paquete</option>
-            -->
           </select>
         </div>
 
         <!-- Cantidad -->
-<div>
-  <label class="block text-2xl font-bold text-pink-600 mb-1">
-    Cantidad
-  </label>
+        <div>
+          <label class="block text-2xl font-bold text-pink-600 mb-1">
+            Cantidad
+          </label>
 
-  <input type="number" id="cantidad" min="1" value="1"
-        class="mt-2 w-full rounded-2xl
-               bg-pink-50
-               border-2 border-pink-300
-               px-4 py-3
-               text-gray-800 placeholder-pink-400
-               outline-none
-               focus:ring-4 focus:ring-pink-200
-               focus:border-pink-500">
-</div>
-
+          <input type="number" id="cantidad" min="1" value="1"
+                class="mt-2 w-full rounded-2xl
+                      bg-pink-50
+                      border-2 border-pink-300
+                      px-4 py-3
+                      text-gray-800 placeholder-pink-400
+                      outline-none
+                      focus:ring-4 focus:ring-pink-200
+                      focus:border-pink-500">
+        </div>
 
         <!-- Botón agregar -->
         <div class="md:col-span-2 flex items-end">
@@ -211,7 +196,6 @@ $ultTurnos = $stmtT->get_result();
           <thead class="bg-chebs-soft/60 text-chebs-black">
             <tr>
               <th class="text-left font-black px-4 py-3">Producto</th>
-              <!-- ✅ Quitado visualmente: Tipo -->
               <th class="text-left font-black px-4 py-3">Cantidad</th>
               <th class="text-left font-black px-4 py-3">Precio</th>
               <th class="text-left font-black px-4 py-3">Subtotal</th>
@@ -371,19 +355,8 @@ $ultTurnos = $stmtT->get_result();
         <div>
           <h3 class="text-lg font-black">Historial (hoy)</h3>
           <p class="text-sm text-gray-500">Últimas ventas del turno</p>
-          <!-- ✅ NOTA pedida -->
         </div>
       </div>
-
-      <!-- ✅ BOTÓN QUITADO/COMENTADO (según pedido)
-      <form id="form_limpiar_historial" action="../../controladores/historial_limpiar.php" method="POST" class="mt-4">
-        <button type="button"
-                class="w-full px-5 py-3 rounded-2xl border border-chebs-line font-black hover:bg-chebs-soft transition"
-                onclick="confirmarSubmit('#form_limpiar_historial','Ocultar historial','¿Ocultar ventas anteriores en el historial?')">
-          Limpiar historial (ocultar)
-        </button>
-      </form>
-      -->
 
       <div class="mt-4 h-px bg-chebs-line"></div>
 
@@ -404,7 +377,6 @@ $ultTurnos = $stmtT->get_result();
                   <div class="flex-1">
                     <div class="font-semibold text-chebs-black">
                       <?= htmlspecialchars($d['nombre']) ?>
-                      <!-- ✅ Puedes ocultar esto después si no querés mostrar tipo -->
                       <span class="text-xs text-gray-500">(<?= htmlspecialchars($d['tipo_venta']) ?>)</span>
                     </div>
                     <div class="text-xs text-gray-500">
@@ -437,7 +409,6 @@ $ultTurnos = $stmtT->get_result();
 <!-- ========================= -->
 <style>
   .chebs-hidden { display:none; }
-  /* ✅ scrollbar suave */
   #auto_list::-webkit-scrollbar { width: 10px; }
   #auto_list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
   #auto_list::-webkit-scrollbar-track { background: transparent; }
@@ -585,19 +556,56 @@ $ultTurnos = $stmtT->get_result();
 <!-- ✅ MODAL: CONFIRMACIÓN / MENSAJE (reutilizable) -->
 <div id="modalConfirmacion" class="chebs-hidden fixed inset-0 z-[9999]">
   <div class="absolute inset-0 bg-black/40" onclick="cerrarModal('modalConfirmacion')"></div>
+
   <div class="absolute inset-0 flex items-center justify-center p-4">
-    <div class="w-full max-w-md rounded-3xl bg-white shadow-soft border border-chebs-line overflow-hidden">
-      <div class="px-6 py-5 border-b border-chebs-line">
+    <div id="confirm_card"
+         class="w-full max-w-md rounded-3xl bg-white shadow-soft border border-chebs-line overflow-hidden">
+
+      <!-- Header -->
+      <div id="confirm_header" class="px-6 py-5 border-b border-chebs-line">
         <h3 class="text-lg font-black text-chebs-black" id="confirm_titulo">Confirmar</h3>
         <p class="text-sm text-gray-500" id="confirm_texto">¿Estás seguro?</p>
       </div>
 
-      <div class="px-6 py-5 border-t border-chebs-line flex justify-end gap-2">
+      <!-- ✅ BODY EXTRA (para pago/cambio) -->
+      <div id="confirm_body" class="hidden px-6 py-5 space-y-4">
+        <div class="rounded-2xl border border-chebs-line bg-chebs-soft/50 p-4">
+          <div class="text-xs text-gray-500">TOTAL A COBRAR</div>
+          <div class="text-4xl font-black text-chebs-green">
+            Bs <span id="confirm_total_big">0.00</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-sm font-black text-chebs-black">Cliente paga</label>
+          <input id="confirm_pago"
+                 type="number"
+                 step="0.01"
+                 inputmode="decimal"
+                 placeholder="Ej: 200"
+                 class="mt-2 w-full rounded-2xl border-2 border-chebs-line px-4 py-3 outline-none
+                        focus:ring-4 focus:ring-chebs-soft bg-white text-lg font-bold">
+          <div class="text-xs text-gray-500 mt-1">Escribe cuánto te dio el cliente.</div>
+        </div>
+
+        <div class="rounded-2xl border border-chebs-line bg-white p-4">
+          <div class="text-xs text-gray-500">CAMBIO</div>
+          <div id="confirm_cambio_big" class="text-4xl font-black text-chebs-black">
+            Bs 0.00
+          </div>
+          <div id="confirm_falta" class="hidden mt-2 text-sm font-black text-red-600">
+            Falta: Bs 0.00
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer botones -->
+      <div id="confirm_footer" class="px-6 py-5 border-t border-chebs-line flex justify-end gap-2">
         <button type="button"
                 id="confirm_btn_cancel"
-                class="px-5 py-3 rounded-2xl border border-chebs-line font-semibold hover:bg-gray-50"
+                class="px-5 py-3 rounded-2xl bg-red-600 text-white font-black hover:bg-red-700 transition"
                 onclick="cerrarModal('modalConfirmacion')">
-          Cancelar
+          ✕ Cancelar
         </button>
 
         <button type="button"
@@ -609,6 +617,7 @@ $ultTurnos = $stmtT->get_result();
     </div>
   </div>
 </div>
+
 
 <script>
 function abrirModal(id){
@@ -654,18 +663,83 @@ function validarAbrirTurno(){
 
 // ✅ Modal tipo MENSAJE (solo Aceptar)
 function mostrarMensaje(titulo, texto){
-  document.getElementById('confirm_titulo').textContent = titulo || 'Mensaje';
-  document.getElementById('confirm_texto').textContent = texto || '';
+  const card   = document.getElementById('confirm_card');
+  const header = document.getElementById('confirm_header');
+  const body   = document.getElementById('confirm_body');
+  const footer = document.getElementById('confirm_footer');
 
+  document.getElementById('confirm_titulo').textContent = titulo || 'Mensaje';
+  document.getElementById('confirm_texto').textContent  = texto || '';
+
+  // ✅ Restaurar estilo normal
+  card.className = "w-full max-w-md rounded-3xl bg-white shadow-soft border border-chebs-line overflow-hidden";
+  header.className = "px-6 py-5 border-b border-chebs-line";
+  footer.className = "px-6 py-5 border-t border-chebs-line flex justify-end gap-2";
+
+  // ✅ Ocultar body extra (pago/cambio)
+  if (body) body.classList.add('hidden');
+
+  // ✅ Botones: solo Aceptar
   const btnCancel = document.getElementById('confirm_btn_cancel');
-  btnCancel.classList.add('hidden');
+  if (btnCancel) btnCancel.classList.add('hidden');
 
   const btnOk = document.getElementById('confirm_btn_ok');
-  btnOk.textContent = 'Aceptar';
-  btnOk.onclick = () => cerrarModal('modalConfirmacion');
+  if (btnOk) {
+    btnOk.textContent = 'Aceptar';
+    btnOk.onclick = () => cerrarModal('modalConfirmacion');
+  }
 
   abrirModal('modalConfirmacion');
 }
+
+// ✅ ✅ ÉXITO VERDE auto-cierre 1.5s (VENTA EXITOSA)
+function mostrarExitoAuto(){
+  const card   = document.getElementById('confirm_card');
+  const header = document.getElementById('confirm_header');
+  const body   = document.getElementById('confirm_body');
+  const footer = document.getElementById('confirm_footer');
+
+  // ✅ Todo verde
+  card.className = "w-full max-w-md rounded-3xl bg-green-600 shadow-soft border-4 border-green-700 overflow-hidden";
+  header.className = "px-6 py-6 border-b border-green-700";
+
+  const titulo = document.getElementById('confirm_titulo');
+  const texto  = document.getElementById('confirm_texto');
+
+  if (titulo) {
+    titulo.textContent = "VENTA EXITOSA";
+    titulo.className = "text-2xl font-black text-white text-center";
+  }
+  if (texto) {
+    texto.textContent = "";
+    texto.className = "hidden";
+  }
+
+  // ✅ Ícono grande al centro
+  if (body) {
+    body.classList.remove('hidden');
+    body.innerHTML = `
+      <div class="flex items-center justify-center py-6">
+        <div class="w-24 h-24 rounded-full bg-white/15 flex items-center justify-center border-4 border-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-14 h-14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6 9 17l-5-5"></path>
+          </svg>
+        </div>
+      </div>
+    `;
+  }
+
+  // ✅ Sin botones
+  if (footer) footer.classList.add('hidden');
+
+  abrirModal('modalConfirmacion');
+
+  setTimeout(() => {
+    cerrarModal('modalConfirmacion');
+    location.reload();
+  }, 1500);
+}
+
 
 // ✅ Modal confirm normal (restaura Cancelar)
 function confirmarSubmit(formSelector, titulo, texto){
@@ -746,9 +820,12 @@ function renderAuto(){
 
   autoItems.forEach((it, idx) => {
     const div = document.createElement('div');
+
     div.className =
-      "px-4 py-3 text-sm cursor-pointer border-b border-chebs-line last:border-b-0 " +
-      (idx === autoIndex ? "bg-chebs-soft/70" : "hover:bg-chebs-soft/60");
+      "px-4 py-3 text-sm cursor-pointer border-b border-chebs-line last:border-b-0 transition " +
+      (idx === autoIndex
+        ? "bg-pink-200 border-l-4 border-pink-500 font-black text-gray-900"
+        : "hover:bg-pink-100");
 
     const q = inputProducto.value.trim();
     if (q.length > 0) {
@@ -866,7 +943,7 @@ document.addEventListener('click', (e) => {
   const cont = document.getElementById('turno_contenido');
   if(!btn || !cont) return;
 
-  const KEY = "chebs_turno_min"; // 1 = minimizado, 0 = abierto
+  const KEY = "chebs_turno_min";
 
   function pintar(minimizado){
     if(minimizado){
@@ -880,24 +957,17 @@ document.addEventListener('click', (e) => {
     }
   }
 
-  // ✅ Restaurar estado guardado
   const guardado = localStorage.getItem(KEY);
-const minimizadoInicial = (guardado === null) ? true : (guardado === "1");
+  const minimizadoInicial = (guardado === null) ? true : (guardado === "1");
   pintar(minimizadoInicial);
 
-  // ✅ Toggle manual (solo cuando haces click)
   btn.addEventListener('click', () => {
     const estaMin = cont.classList.contains('hidden');
     const nuevoMin = !estaMin;
-
-    // si estaba oculto y ahora quieres mostrar -> nuevoMin = false
-    // si estaba mostrado y ahora quieres ocultar -> nuevoMin = true
     pintar(nuevoMin);
-
     localStorage.setItem(KEY, nuevoMin ? "1" : "0");
   });
 })();
-</script>
 </script>
 
 <script src="../../public/js/venta.js"></script>

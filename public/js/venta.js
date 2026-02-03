@@ -1,38 +1,31 @@
 (() => {
-  // ✅ BASE FIJA
   const BASE_URL = "/PULPERIA-CHEBS";
 
-  // ✅ Elementos
   const inputNombre = document.getElementById("producto_nombre");
   const hiddenId = document.getElementById("producto_id");
-  const tipoVentaEl = document.getElementById("tipo_venta"); // existe pero está oculto
+  const tipoVentaEl = document.getElementById("tipo_venta");
   const cantidadEl = document.getElementById("cantidad");
   const totalEl = document.getElementById("total");
   const tablaBody = document.querySelector("#tabla_detalle tbody");
   const btnConfirmar = document.getElementById("btn_confirmar");
 
-  if (!inputNombre || !hiddenId || !cantidadEl || !totalEl || !tablaBody) {
+  if (!inputNombre || !hiddenId || !tipoVentaEl || !cantidadEl || !totalEl || !tablaBody) {
     console.error("❌ Faltan elementos en la página (IDs). Revisa venta.php.");
     return;
   }
 
-  // 🔹 Carrito
   let carrito = [];
   let total = 0;
 
-  // ✅ flag para recargar cuando el usuario cierre el modal
-  let recargarDespuesDeOk = false;
+  let enProcesoConfirmacion = false;
 
   function limpiarFormulario() {
     inputNombre.value = "";
     hiddenId.value = "";
     cantidadEl.value = 1;
-
-    // ✅ Forzar siempre unidad (aunque el select esté oculto)
-    if (tipoVentaEl) tipoVentaEl.value = "unidad";
+    tipoVentaEl.value = "unidad";
   }
 
-  // ✅ Helper: fetch JSON con manejo de errores
   async function fetchJSON(url, payload) {
     const res = await fetch(url, {
       method: "POST",
@@ -54,7 +47,6 @@
     }
   }
 
-  // ✅ obtener precio real desde BD
   async function obtenerPrecioReal(producto_id, tipo) {
     return await fetchJSON(`${BASE_URL}/controladores/producto_fetch.php`, {
       id: parseInt(producto_id, 10),
@@ -62,7 +54,6 @@
     });
   }
 
-  // ✅ Render tabla (SIN columna tipo, productos en negrita, X rojas)
   function renderizarTabla() {
     tablaBody.innerHTML = "";
     total = 0;
@@ -73,18 +64,14 @@
 
       tablaBody.innerHTML += `
         <tr class="hover:bg-chebs-soft/40">
-          <td class="px-4 py-3 font-bold text-[15px]">${item.nombre}</td>
-          <td class="px-4 py-3 text-[15px]">${item.cantidad}</td>
-          <td class="px-4 py-3 text-[15px]">Bs ${item.precio.toFixed(2)}</td>
-          <td class="px-4 py-3 font-bold text-[15px]">Bs ${subtotal.toFixed(2)}</td>
+          <td class="px-4 py-3">${item.nombre}</td>
+          <td class="px-4 py-3">${item.cantidad}</td>
+          <td class="px-4 py-3">${item.precio.toFixed(2)}</td>
+          <td class="px-4 py-3">${subtotal.toFixed(2)}</td>
           <td class="px-4 py-3 text-center">
             <button type="button"
-                    class="px-3 py-2 rounded-xl border border-red-200 bg-red-50 text-red-600 font-black
-                           hover:bg-red-100 hover:border-red-300 transition"
-                    onclick="eliminarProducto(${index})"
-                    title="Quitar">
-              ✕
-            </button>
+                    class="px-3 py-2 rounded-xl border border-chebs-line hover:bg-red-50 hover:border-red-200"
+                    onclick="eliminarProducto(${index})">✕</button>
           </td>
         </tr>
       `;
@@ -93,7 +80,6 @@
     totalEl.innerText = total.toFixed(2);
   }
 
-  // ✅ Exponer funciones globales
   window.eliminarProducto = (index) => {
     carrito.splice(index, 1);
     renderizarTabla();
@@ -102,11 +88,7 @@
   window.agregarDesdeFormulario = async () => {
     const nombre = inputNombre.value.trim();
     const producto_id = hiddenId.value;
-
-    // ✅ Forzar venta por unidad (no mostrar tipo de venta)
-    const tipo = "unidad";
-    if (tipoVentaEl) tipoVentaEl.value = "unidad";
-
+    const tipo = tipoVentaEl.value;
     const cantidad = parseInt(cantidadEl.value, 10);
 
     if (!producto_id || !nombre) {
@@ -129,7 +111,6 @@
       return;
     }
 
-    // ✅ precio real desde BD
     const data = await obtenerPrecioReal(producto_id, tipo);
     if (data.error) {
       if (typeof mostrarMensaje === "function") {
@@ -142,7 +123,6 @@
 
     const precio = parseFloat(data.precio);
 
-    // ✅ ACUMULAR si ya existe el mismo producto con el mismo tipo
     const idx = carrito.findIndex(x =>
       x.producto_id === parseInt(producto_id, 10) && x.tipo === tipo
     );
@@ -169,60 +149,145 @@
     inputNombre.focus();
   };
 
-  // ✅ Confirmar venta (guardar en BD)
-  if (btnConfirmar) {
-    btnConfirmar.addEventListener("click", async () => {
-      if (carrito.length === 0) {
-        if (typeof mostrarMensaje === "function") {
-          mostrarMensaje("⚠️ Atención", "Carrito vacío.");
-        } else {
-          alert("⚠️ Carrito vacío.");
-        }
-        return;
-      }
+  // ✅ Calcula cambio dinámico
+  function recalcularCambio() {
+    const pagoEl   = document.getElementById("confirm_pago");
+    const cambioEl = document.getElementById("confirm_cambio_big");
+    const faltaEl  = document.getElementById("confirm_falta");
 
-      const data = await fetchJSON(`${BASE_URL}/controladores/venta_confirmar.php`, { carrito });
+    if (!pagoEl || !cambioEl || !faltaEl) return;
 
-      if (!data.ok) {
-        if (typeof mostrarMensaje === "function") {
-          mostrarMensaje("❌ Error", (data.msg || data.error || "No se pudo registrar la venta"));
-        } else {
-          alert("❌ " + (data.msg || data.error || "No se pudo registrar la venta"));
-        }
-        return;
-      }
+    const pago = parseFloat((pagoEl.value || "0").toString().replace(",", "."));
+    const cambio = (isNaN(pago) ? 0 : pago) - total;
 
-      carrito = [];
-      renderizarTabla();
-      limpiarFormulario();
+    if (cambio >= 0) {
+      cambioEl.textContent = `Bs ${cambio.toFixed(2)}`;
+      faltaEl.classList.add("hidden");
+      faltaEl.textContent = "";
+    } else {
+      cambioEl.textContent = `Bs 0.00`;
+      faltaEl.classList.remove("hidden");
+      faltaEl.textContent = `Falta: Bs ${Math.abs(cambio).toFixed(2)}`;
+    }
+  }
 
-      recargarDespuesDeOk = true;
-
+  function abrirConfirmacionVenta() {
+    if (carrito.length === 0) {
       if (typeof mostrarMensaje === "function") {
-        mostrarMensaje("✅ Venta registrada", "ID: " + data.venta_id);
+        mostrarMensaje("⚠️ Atención", "Carrito vacío.");
       } else {
-        alert("✅ Venta registrada. ID: " + data.venta_id);
-        location.reload();
-        return;
+        alert("⚠️ Carrito vacío.");
       }
+      return;
+    }
 
-      setTimeout(() => {
-        const btnOk = document.getElementById("confirm_btn_ok");
-        if (btnOk) {
-          btnOk.onclick = () => {
-            if (typeof cerrarModal === "function") cerrarModal("modalConfirmacion");
-            if (recargarDespuesDeOk) location.reload();
-          };
+    if (typeof abrirModal !== "function") {
+      const ok = confirm(`¿Confirmar venta?\nTotal: Bs ${total.toFixed(2)}`);
+      if (ok) ejecutarConfirmacionVenta();
+      return;
+    }
+
+    // Título
+    const t = document.getElementById("confirm_titulo");
+    const p = document.getElementById("confirm_texto");
+    if (t) t.textContent = "Confirmar venta";
+    if (p) p.textContent = "Vas a registrar esta venta. ¿Deseas confirmar?";
+
+    // Mostrar body extra (pago/cambio)
+    const body = document.getElementById("confirm_body");
+    const footer = document.getElementById("confirm_footer");
+    if (body) body.classList.remove("hidden");
+    if (footer) footer.classList.remove("hidden");
+
+    // Total grande
+    const totalBig = document.getElementById("confirm_total_big");
+    if (totalBig) totalBig.textContent = total.toFixed(2);
+
+    // Input pago
+    const pagoEl = document.getElementById("confirm_pago");
+    if (pagoEl) {
+      pagoEl.value = "";
+      pagoEl.oninput = recalcularCambio;
+      setTimeout(() => pagoEl.focus(), 0);
+    }
+
+    // Inicializa cambio
+    setTimeout(recalcularCambio, 0);
+
+    // Botón Cancelar
+    const btnCancel = document.getElementById("confirm_btn_cancel");
+    if (btnCancel) {
+      btnCancel.classList.remove("hidden");
+      btnCancel.onclick = () => {
+        if (typeof cerrarModal === "function") cerrarModal("modalConfirmacion");
+        setTimeout(() => inputNombre.focus(), 0);
+      };
+    }
+
+    // Botón Confirmar
+    const btnOk = document.getElementById("confirm_btn_ok");
+    if (btnOk) {
+      btnOk.textContent = "Sí, confirmar";
+      btnOk.onclick = () => {
+        // Evitar confirmar si falta dinero
+        const pago = parseFloat((pagoEl?.value || "0").toString().replace(",", "."));
+        if (isNaN(pago) || pago < total) {
+          if (typeof mostrarMensaje === "function") {
+            mostrarMensaje("⚠️ Pago insuficiente", `Falta: Bs ${(total - (isNaN(pago) ? 0 : pago)).toFixed(2)}`);
+          } else {
+            alert("Pago insuficiente.");
+          }
+          return;
         }
-      }, 0);
+        ejecutarConfirmacionVenta();
+      };
+    }
+
+    abrirModal("modalConfirmacion");
+  }
+
+  async function ejecutarConfirmacionVenta() {
+    if (enProcesoConfirmacion) return;
+    enProcesoConfirmacion = true;
+
+    if (typeof cerrarModal === "function") cerrarModal("modalConfirmacion");
+
+    const data = await fetchJSON(`${BASE_URL}/controladores/venta_confirmar.php`, { carrito });
+
+    if (!data.ok) {
+      enProcesoConfirmacion = false;
+      if (typeof mostrarMensaje === "function") {
+        mostrarMensaje("❌ Error", (data.msg || data.error || "No se pudo registrar la venta"));
+      } else {
+        alert("❌ " + (data.msg || data.error || "No se pudo registrar la venta"));
+      }
+      return;
+    }
+
+    // Limpia carrito
+    carrito = [];
+    renderizarTabla();
+    limpiarFormulario();
+
+    // ✅ Modal verde auto 1.5s
+    if (typeof mostrarExitoAuto === "function") {
+      mostrarExitoAuto();
+    } else {
+      alert("✅ VENTA EXITOSA");
+      location.reload();
+    }
+
+    enProcesoConfirmacion = false;
+  }
+
+  if (btnConfirmar) {
+    btnConfirmar.addEventListener("click", () => {
+      if (btnConfirmar.disabled) return;
+      abrirConfirmacionVenta();
     });
   }
 
-  /* ===========================
-     ✅ MEJORAS DE VELOCIDAD POS
-     =========================== */
-
-  // ✅ Enter = Agregar / Ctrl+Enter = Confirmar
+  // Enter agrega / Ctrl+Enter abre confirmación
   document.addEventListener("keydown", (e) => {
     const activo = document.activeElement;
 
@@ -238,9 +303,5 @@
     }
   });
 
-  // ✅ Selecciona cantidad al enfocarla
   cantidadEl.addEventListener("focus", () => cantidadEl.select());
-
-  // ✅ Asegurar unidad desde inicio
-  if (tipoVentaEl) tipoVentaEl.value = "unidad";
 })();
