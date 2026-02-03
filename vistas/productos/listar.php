@@ -27,76 +27,67 @@ $productos = obtenerProductos($conexion);
   </div>
 
   <!-- Buscador -->
-  <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-4 mb-6">
+  <div class="bg-pink-50 border-2 border-pink-50 
+       rounded-3xl shadow-soft p-4 mb-6 
+       focus:outline-none focus:ring-4 focus:ring-pink-200 
+       focus:border-pink-500">
     <input id="buscador"
            type="text"
            placeholder="Buscar producto por nombre..."
-           class="w-full px-4 py-3 rounded-2xl border border-chebs-line focus:outline-none focus:ring-2 focus:ring-chebs-green/40">
+           class="w-full px-4 py-3 rounded-2xl 
+       bg-pink-50 border-2 border-pink-300 
+       outline-none focus:ring-4 focus:ring-pink-200 
+       focus:border-pink-500">
   </div>
 
-  <!-- Tabla -->
-  <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden">
 
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-gray-100">
-          <tr class="text-left text-chebs-black">
-            <th class="px-4 py-3 font-black">ID</th>
-            <th class="px-4 py-3 font-black">Nombre</th>
-            <th class="px-4 py-3 font-black">Precio Unidad</th>
-            <th class="px-4 py-3 font-black">Precio Paquete</th>
-            <th class="px-4 py-3 font-black">Stock</th>
-            <th class="px-4 py-3 font-black text-right">Acciones</th>
-          </tr>
-        </thead>
+<!-- Tabla -->
+<div class="bg-white border border-teal-100 rounded-3xl shadow-soft overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-teal-50">
+        <tr class="text-left text-gray-800">
+          <th class="px-4 py-3 font-black text-teal-700">ID</th>
+          <th class="px-4 py-3 font-black text-teal-700">Nombre</th>
+          <th class="px-4 py-3 font-black text-teal-700">Precio Unidad</th>
+          <th class="px-4 py-3 font-black text-teal-700">Precio Paquete</th>
+          <th class="px-4 py-3 font-black text-teal-700">Stock</th>
+          <th class="px-4 py-3 font-black text-right text-teal-700">Acciones</th>
+        </tr>
+      </thead>
 
-        <tbody id="tabla_body">
-
-        <?php while($p = $productos->fetch_assoc()) { 
-          $stock = obtenerStockTotal($conexion, $p['id']);
-        ?>
-          <tr class="border-t border-chebs-line hover:bg-chebs-soft/40 transition">
-            <td class="px-4 py-3"><?= (int)$p['id'] ?></td>
-
-            <td class="px-4 py-3 font-semibold">
-              <?= htmlspecialchars($p['nombre']) ?>
-            </td>
-
-            <td class="px-4 py-3">
-              Bs <?= number_format((float)$p['precio_unidad'], 2) ?>
-            </td>
-
-            <td class="px-4 py-3">
-              Bs <?= number_format((float)$p['precio_paquete'], 2) ?>
-            </td>
-
-            <td class="px-4 py-3">
-              <?php if ($stock > 0): ?>
-                <span class="inline-flex px-3 py-1 rounded-xl text-xs font-bold bg-green-100 text-green-700 border border-green-200">
-                  <?= (int)$stock ?> en stock
-                </span>
-              <?php else: ?>
-                <span class="inline-flex px-3 py-1 rounded-xl text-xs font-bold bg-red-100 text-red-700 border border-red-200">
-                  Sin stock
-                </span>
-              <?php endif; ?>
-            </td>
-
-            <td class="px-4 py-3 text-right">
-              <a href="editar.php?id=<?= (int)$p['id'] ?>"
-                 class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-chebs-line bg-white
-                        hover:bg-chebs-soft font-bold text-sm transition">
-                ✏️ Editar
-              </a>
-            </td>
-          </tr>
-        <?php } ?>
-
-        </tbody>
-      </table>
-    </div>
-
+      <tbody id="tabla_body">
+      <?php while($p = $productos->fetch_assoc()) {
+        $stock = obtenerStockTotal($conexion, $p['id']);
+      ?>
+        <tr class="border-t border-teal-100 hover:bg-teal-50 transition">
+          <td class="px-4 py-3"><?= (int)$p['id'] ?></td>
+          <td class="px-4 py-3 font-semibold"><?= htmlspecialchars($p['nombre']) ?></td>
+          <td class="px-4 py-3">Bs <?= number_format((float)$p['precio_unidad'], 2) ?></td>
+          <td class="px-4 py-3">Bs <?= number_format((float)$p['precio_paquete'], 2) ?></td>
+          <td class="px-4 py-3">
+            <?php if ($stock > 0): ?>
+              <span class="inline-flex px-3 py-1 rounded-xl text-xs font-bold bg-green-100 text-green-700 border border-green-200">
+                <?= (int)$stock ?> en stock
+              </span>
+            <?php else: ?>
+              <span class="inline-flex px-3 py-1 rounded-xl text-xs font-bold bg-red-100 text-red-700 border border-red-200">
+                Sin stock
+              </span>
+            <?php endif; ?>
+          </td>
+          <td class="px-4 py-3 text-right">
+            <a href="editar.php?id=<?= (int)$p['id'] ?>"
+               class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-teal-100 bg-white hover:bg-teal-50 font-bold text-sm transition">
+              ✏️ Editar
+            </a>
+          </td>
+        </tr>
+      <?php } ?>
+      </tbody>
+    </table>
   </div>
+</div>
 
 </div>
 

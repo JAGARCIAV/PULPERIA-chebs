@@ -46,98 +46,93 @@ include "../layout/header.php";
 
     <!-- Form -->
     <form action="../../controladores/producto_controlador.php"
-          method="POST"
-          class="space-y-6">
+      method="POST"
+      class="space-y-4">
 
-      <!-- Nombre -->
-      <div>
-        <label class="block text-sm font-bold mb-2">Nombre</label>
-        <input type="text"
-               name="nombre"
-               required
-               class="w-full px-4 py-3 rounded-2xl border border-chebs-line
-                      focus:outline-none focus:ring-2 focus:ring-chebs-green/40"
-               placeholder="Ej: Arroz 1kg">
-      </div>
+  <!-- Nombre (DESTACADO) -->
+  <div>
+    <label class="block text-sm font-bold  mb-1">Nombre del producto</label>
+    <input type="text"
+           name="nombre"
+           required
+           class="w-full rounded-xl bg-pink-50 border-2 border-pink-300
+                  px-3 py-2 text-gray-800 
+                  outline-none focus:ring-4 focus:ring-pink-200
+                  focus:border-pink-500"
+           placeholder="Ej: Arroz 1kg">
+  </div>
 
-      <!-- Descripción -->
-      <div>
-        <label class="block text-sm font-bold mb-2">Descripción</label>
-        <textarea name="descripcion"
-                  rows="3"
-                  class="w-full px-4 py-3 rounded-2xl border border-chebs-line
-                         focus:outline-none focus:ring-2 focus:ring-chebs-green/40"
-                  placeholder="Opcional"></textarea>
-      </div>
+  <!-- PRECIOS -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      <!-- Precios grid -->
-      <div class="grid md:grid-cols-2 gap-6">
-
-        <!-- Precio unidad -->
-        <div>
-          <label class="block text-sm font-bold mb-2">Precio por unidad</label>
-          <div class="relative">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">Bs</span>
-            <input type="number"
-                   step="0.01"
-                   name="precio_unidad"
-                   required
-                   class="w-full pl-10 pr-4 py-3 rounded-2xl border border-chebs-line
-                          focus:outline-none focus:ring-2 focus:ring-chebs-green/40"
-                   placeholder="0.00">
-          </div>
-        </div>
-
-        <!-- Precio paquete -->
-        <div>
-          <label class="block text-sm font-bold mb-2">Precio por paquete</label>
-          <div class="relative">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">Bs</span>
-            <input type="number"
-                   step="0.01"
-                   name="precio_paquete"
-                   class="w-full pl-10 pr-4 py-3 rounded-2xl border border-chebs-line
-                          focus:outline-none focus:ring-2 focus:ring-chebs-green/40"
-                   placeholder="Opcional">
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Unidades por paquete -->
-      <div>
-        <label class="block text-sm font-bold mb-2">Unidades por paquete</label>
+    <!-- Precio unidad (DESTACADO) -->
+    <div>
+      <label class="block text-sm font-bold  mb-1">Precio unidad</label>
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 font-bold">Bs</span>
         <input type="number"
-               name="unidades_paquete"
-               value="1"
-               min="1"
-               class="w-full px-4 py-3 rounded-2xl border border-chebs-line
-                      focus:outline-none focus:ring-2 focus:ring-chebs-green/40">
-        <p class="text-xs text-gray-500 mt-1">
-          Cuántas unidades trae un paquete completo.
-        </p>
+               step="0.01"
+               name="precio_unidad"
+               required
+               class="w-full pl-9 pr-3 py-2 rounded-xl
+                      bg-pink-50 border-2 border-pink-300
+                      outline-none focus:ring-4 focus:ring-pink-200
+                      focus:border-pink-500"
+               placeholder="0.00">
       </div>
+    </div>
 
-      <!-- Botones -->
-      <div class="flex flex-col sm:flex-row gap-4 pt-4">
+    <!-- Precio paquete -->
+    <div>
+      <label class="block text-sm font-bold mb-1">Precio del paquete</label>
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">Bs</span>
+        <input type="number"
+               step="0.01"
+               name="precio_paquete"
+               class="w-full pl-9 pr-3 py-2 rounded-xl 
+        bg-orange-50 border-2 border-orange-300 
+        outline-none focus:ring-4 focus:ring-orange-200 
+        focus:border-orange-500"
 
-        <button type="submit"
-                class="flex-1 inline-flex items-center justify-center px-6 py-3 rounded-2xl
-                       bg-chebs-green text-white font-black
-                       hover:bg-chebs-greenDark transition shadow-soft">
-          💾 Guardar producto
-        </button>
-
-        <a href="listar.php"
-           class="flex-1 inline-flex items-center justify-center px-6 py-3 rounded-2xl
-                  border border-chebs-line bg-white font-black
-                  hover:bg-chebs-soft transition">
-          ← Volver a lista
-        </a>
-
+               placeholder="Opcional">
       </div>
+    </div>
 
-    </form>
+  </div>
+
+  <!-- Unidades por paquete -->
+  <div>
+    <label class="block text-sm font-bold mb-1">Unidades por paquete</label>
+    <input type="number"
+           name="unidades_paquete"
+           class="w-full px-3 py-2 rounded-xl 
+       bg-orange-50 border-2 border-orange-300 
+       outline-none focus:ring-4 focus:ring-orange-200 
+       focus:border-orange-500"placeholder="Opcional">
+  </div>
+
+  <!-- BOTONES -->
+  <div class="flex flex-col sm:flex-row gap-3 pt-2">
+
+    <button type="submit"
+            class="flex-1 inline-flex items-center justify-center px-5 py-2 rounded-xl
+                   bg-chebs-green text-white font-black
+                   hover:bg-chebs-greenDark transition shadow-soft">
+      💾 Guardar
+    </button>
+
+    <a href="listar.php"
+       class="flex-1 inline-flex items-center justify-center px-5 py-2 rounded-xl
+              border border-chebs-line bg-white font-black
+              hover:bg-chebs-soft transition">
+      ← Volver
+    </a>
+
+  </div>
+
+</form>
+
 
   </div>
 
