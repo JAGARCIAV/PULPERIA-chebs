@@ -26,126 +26,131 @@ $lotes = obtenerLotes($conexion);
   </div>
 
   <!-- Buscador -->
-  <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-4 mb-6">
+  <div class="bg-pink-50 border-2 border-pink-50 
+       rounded-3xl shadow-soft p-4 mb-6 
+       focus:outline-none focus:ring-4 focus:ring-pink-200 
+       focus:border-pink-500">
     <input id="buscador"
            type="text"
            placeholder="Buscar por nombre de producto..."
-           class="w-full px-4 py-3 rounded-2xl border border-chebs-line focus:outline-none focus:ring-2 focus:ring-chebs-green/40">
+           class="w-full px-4 py-3 rounded-2xl 
+       bg-pink-50 border-2 border-pink-300 
+       outline-none focus:ring-4 focus:ring-pink-200 
+       focus:border-pink-500">
   </div>
 
   <!-- Tabla -->
-  <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-gray-100">
-          <tr class="text-left text-chebs-black">
-            <th class="px-4 py-3 font-black">Producto</th>
-            <th class="px-4 py-3 font-black">Vencimiento</th>
-            <th class="px-4 py-3 font-black">Cantidad</th>
-            <th class="px-4 py-3 font-black">Estado</th>
-            <th class="px-4 py-3 font-black text-right">Acciones</th>
-          </tr>
-        </thead>
+<div class="bg-white border border-green-100 rounded-3xl shadow-soft overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-green-50">
+        <tr class="text-left text-gray-800">
+          <th class="px-4 py-3 font-black text-green-700">Producto</th>
+          <th class="px-4 py-3 font-black text-green-700">Vencimiento</th>
+          <th class="px-4 py-3 font-black text-green-700">Cantidad</th>
+          <th class="px-4 py-3 font-black text-green-700">Estado</th>
+          <th class="px-4 py-3 font-black text-right text-green-700">Acciones</th>
+        </tr>
+      </thead>
 
-        <tbody id="tabla_body" class="divide-y divide-chebs-line">
+      <tbody id="tabla_body" class="divide-y divide-green-100">
+      <?php while($l = $lotes->fetch_assoc()) {
+        $fechaV = $l['fecha_vencimiento'] ?? '';
+        $vencido = false;
 
-        <?php while($l = $lotes->fetch_assoc()) {
-          $fechaV = $l['fecha_vencimiento'] ?? '';
-          $vencido = false;
+        if (!empty($fechaV) && $fechaV !== '0000-00-00') {
+          $vencido = (strtotime($fechaV) < strtotime(date('Y-m-d')));
+        }
+      ?>
+        <tr class="border-t border-green-100 hover:bg-green-50 transition <?= $vencido ? 'bg-red-50' : '' ?>">
 
-          if (!empty($fechaV) && $fechaV !== '0000-00-00') {
-            $vencido = (strtotime($fechaV) < strtotime(date('Y-m-d')));
-          }
-        ?>
-          <tr class="hover:bg-chebs-soft/40 transition <?= $vencido ? 'bg-red-50' : '' ?>">
+          <!-- Producto -->
+          <td class="px-4 py-3">
+            <div class="font-semibold text-chebs-black">
+              <?= htmlspecialchars($l['nombre']) ?>
+            </div>
+            <div class="text-xs text-gray-500">Lote #<?= (int)$l['id'] ?></div>
+          </td>
 
-            <!-- Producto -->
-            <td class="px-4 py-3">
-              <div class="font-semibold text-chebs-black">
-                <?= htmlspecialchars($l['nombre']) ?>
-              </div>
-              <div class="text-xs text-gray-500">Lote #<?= (int)$l['id'] ?></div>
-            </td>
-
-            <!-- Vencimiento -->
-            <td class="px-4 py-3">
-              <?php if (!$fechaV || $fechaV === '0000-00-00'): ?>
-                <span class="text-xs font-bold text-gray-600 bg-gray-100 border border-gray-200 px-3 py-1 rounded-full">
-                  Sin fecha
-                </span>
-              <?php else: ?>
-                <div class="flex items-center gap-2">
-                  <span class="font-semibold"><?= htmlspecialchars($fechaV) ?></span>
-
-                  <?php if ($vencido): ?>
-                    <span class="text-xs font-black text-red-700 bg-red-100 border border-red-200 px-3 py-1 rounded-full">
-                      Vencido
-                    </span>
-                  <?php endif; ?>
-                </div>
-              <?php endif; ?>
-            </td>
-
-            <!-- Cantidad -->
-            <td class="px-4 py-3">
-              <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black bg-chebs-soft/70 border border-chebs-line text-chebs-black">
-                <?= (int)$l['cantidad_unidades'] ?>
+          <!-- Vencimiento -->
+          <td class="px-4 py-3">
+            <?php if (!$fechaV || $fechaV === '0000-00-00'): ?>
+              <span class="text-xs font-bold text-gray-600 bg-gray-100 border border-gray-200 px-3 py-1 rounded-full">
+                Sin fecha
               </span>
-            </td>
+            <?php else: ?>
+              <div class="flex items-center gap-2">
+                <span class="font-semibold"><?= htmlspecialchars($fechaV) ?></span>
 
-            <!-- Estado -->
-            <td class="px-4 py-3">
-              <?php if (!empty($l['activo'])): ?>
-                <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black bg-green-100 text-green-700 border border-green-200">
-                  Activo
-                </span>
-              <?php else: ?>
-                <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black bg-gray-200 text-gray-700 border border-gray-300">
-                  Inactivo
-                </span>
-              <?php endif; ?>
-            </td>
-
-            <!-- Acciones -->
-            <td class="px-4 py-3">
-              <div class="flex flex-wrap gap-2 justify-end">
-
-                <a href="editar.php?id=<?= (int)$l['id'] ?>"
-                   class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-chebs-line bg-white
-                          hover:bg-chebs-soft font-bold text-sm transition">
-                  ✏️ Editar
-                </a>
-
-                <a href="corregir_producto.php?id=<?= (int)$l['id'] ?>"
-                   class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-chebs-line bg-white
-                          hover:bg-chebs-soft font-bold text-sm transition">
-                  🔁 Corregir
-                </a>
-
-                <?php if (!empty($l['activo'])): ?>
-                  <button type="button"
-                          class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-red-200 bg-red-50
-                                 hover:bg-red-100 font-black text-sm text-red-700 transition"
-                          onclick="confirmarLink('<?= '../../controladores/desactivar_lote.php?id='.(int)$l['id'] ?>','Desactivar lote','¿Desactivar este lote?')">
-                    ⛔ Desactivar
-                  </button>
-                <?php else: ?>
-                  <span class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-gray-200 bg-gray-50
-                               font-bold text-sm text-gray-600">
-                    —
+                <?php if ($vencido): ?>
+                  <span class="text-xs font-black text-red-800 bg-red-200 border border-red-300 px-3 py-1 rounded-full">
+                    Vencido
                   </span>
                 <?php endif; ?>
-
               </div>
-            </td>
+            <?php endif; ?>
+          </td>
 
-          </tr>
-        <?php } ?>
+          <!-- Cantidad -->
+          <td class="px-4 py-3">
+            <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black bg-green-50 border border-green-100 text-green-800">
+              <?= (int)$l['cantidad_unidades'] ?>
+            </span>
+          </td>
 
-        </tbody>
-      </table>
-    </div>
+          <!-- Estado -->
+          <td class="px-4 py-3">
+            <?php if (!empty($l['activo'])): ?>
+              <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black bg-green-100 text-green-700 border border-green-200">
+                Activo
+              </span>
+            <?php else: ?>
+              <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black bg-gray-200 text-gray-700 border border-gray-300">
+                Inactivo
+              </span>
+            <?php endif; ?>
+          </td>
+
+          <!-- Acciones -->
+          <td class="px-4 py-3">
+            <div class="flex flex-wrap gap-2 justify-end">
+
+              <a href="editar.php?id=<?= (int)$l['id'] ?>"
+                 class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-green-100 bg-white
+                        hover:bg-green-50 font-bold text-sm transition">
+                ✏️ Editar
+              </a>
+
+              <a href="corregir_producto.php?id=<?= (int)$l['id'] ?>"
+                 class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-green-100 bg-white
+                        hover:bg-green-50 font-bold text-sm transition">
+                🔁 Corregir
+              </a>
+
+              <?php if (!empty($l['activo'])): ?>
+                <button type="button"
+                        class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-red-200 bg-red-50
+                               hover:bg-red-100 font-black text-sm text-red-700 transition"
+                        onclick="confirmarLink('<?= '../../controladores/desactivar_lote.php?id='.(int)$l['id'] ?>','Desactivar lote','¿Desactivar este lote?')">
+                  ⛔ Desactivar
+                </button>
+              <?php else: ?>
+                <span class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-gray-200 bg-gray-50
+                             font-bold text-sm text-gray-600">
+                  —
+                </span>
+              <?php endif; ?>
+
+            </div>
+          </td>
+
+        </tr>
+      <?php } ?>
+
+      </tbody>
+    </table>
   </div>
+</div>
 
 </div>
 

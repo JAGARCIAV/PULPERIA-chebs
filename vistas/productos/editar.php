@@ -65,8 +65,10 @@ if (!$producto) { ?>
                name="nombre"
                value="<?= htmlspecialchars($producto['nombre']) ?>"
                required
-               class="w-full px-4 py-3 rounded-2xl border border-chebs-line
-                      focus:outline-none focus:ring-2 focus:ring-chebs-green/40">
+               class="w-full px-4 py-3 rounded-2xl 
+       bg-pink-50 border-2 border-pink-300 
+       outline-none focus:ring-4 focus:ring-pink-200 
+       focus:border-pink-500">
       </div>
 
       <!-- Precios -->
@@ -78,8 +80,10 @@ if (!$producto) { ?>
                  name="precio_unidad"
                  value="<?= htmlspecialchars($producto['precio_unidad']) ?>"
                  required
-                 class="w-full px-4 py-3 rounded-2xl border border-chebs-line
-                        focus:outline-none focus:ring-2 focus:ring-chebs-green/40">
+                    class="w-full px-4 py-3 rounded-2xl 
+       bg-pink-50 border-2 border-pink-300 
+       outline-none focus:ring-4 focus:ring-pink-200 
+       focus:border-pink-500">
         </div>
 
         <div>
@@ -88,8 +92,10 @@ if (!$producto) { ?>
                  step="0.01"
                  name="precio_paquete"
                  value="<?= htmlspecialchars($producto['precio_paquete']) ?>"
-                 class="w-full px-4 py-3 rounded-2xl border border-chebs-line
-                        focus:outline-none focus:ring-2 focus:ring-chebs-green/40">
+                 class="w-full px-4 py-3 rounded-2xl 
+       bg-pink-50 border-2 border-pink-300 
+       outline-none focus:ring-4 focus:ring-pink-200 
+       focus:border-pink-500">
           <p class="mt-2 text-xs text-gray-500">
             Si no vendes por paquete, puedes dejarlo en 0 o vacío.
           </p>
@@ -100,8 +106,10 @@ if (!$producto) { ?>
       <div>
         <label class="block text-sm font-bold mb-2 text-chebs-black">Estado</label>
         <select name="activo"
-                class="w-full px-4 py-3 rounded-2xl border border-chebs-line bg-white
-                       focus:outline-none focus:ring-2 focus:ring-chebs-green/40">
+                class="w-full px-4 py-3 rounded-2xl 
+       bg-pink-50 border-2 border-pink-300 
+       outline-none focus:ring-4 focus:ring-pink-200 
+       focus:border-pink-500">
           <option value="1" <?= !empty($producto['activo']) ? 'selected' : '' ?>>Activo</option>
           <option value="0" <?= empty($producto['activo']) ? 'selected' : '' ?>>Desactivado</option>
         </select>

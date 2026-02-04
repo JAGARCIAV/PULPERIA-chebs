@@ -136,6 +136,11 @@ $ventas = obtenerVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda);
             <td class="px-4 py-3 text-right">
               <button type="button"
                       class="px-4 py-2 rounded-xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition"
+                      onclick="location.href='corregir_venta.php?id=<?= (int)$v['id'] ?>'">
+                Editar
+              </button>
+              <button type="button"
+                      class="px-4 py-2 rounded-xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition"
                       onclick="verDetalleVenta(<?= (int)$v['id'] ?>)">
                 Ver detalle
               </button>

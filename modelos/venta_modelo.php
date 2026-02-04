@@ -135,3 +135,15 @@ function obtenerVentaPorId($conexion, $id) {
     return $stmt->get_result()->fetch_assoc();
 }
 
+function corregirVenta($conexion, $venta_id) {
+    // Agregamos d.id y d.producto_id al SELECT
+    $sql = "SELECT d.id, d.producto_id, d.tipo_venta, d.cantidad, d.precio_unitario, d.subtotal, p.nombre 
+            FROM detalle_venta d 
+            JOIN productos p ON p.id = d.producto_id 
+            WHERE d.venta_id = ? 
+            ORDER BY d.id ASC";
+    $stmt = $conexion->prepare($sql);
+    $stmt->bind_param("i", $venta_id);
+    $stmt->execute();
+    return $stmt->get_result();
+}

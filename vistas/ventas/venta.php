@@ -388,10 +388,18 @@ $ultTurnos = $stmtT->get_result();
               <?php } ?>
             </div>
 
-            <div class="mt-3 text-right font-black text-chebs-green">
-              Total: Bs <?= number_format((float)$v['total'], 2) ?>
+            <div class="mt-3 flex items-center justify-between">
+    
+    <a href="/PULPERIA-chebs/vistas/ventas/corregir_venta.php?id=<?= (int)$v['id'] ?>" 
+       class="text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded hover:bg-red-100 transition-colors border border-red-100">
+        Corregir venta
+    </a>
+
+    <div class="font-black text-chebs-green">
+        Total: Bs <?= number_format((float)$v['total'], 2) ?>
+    </div>
+</div>
             </div>
-          </div>
         <?php } ?>
       </div>
 
