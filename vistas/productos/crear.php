@@ -52,23 +52,38 @@ include "../layout/header.php";
           placeholder="Ej: Cigarro, Coca 2L retornable">
       </div>
 
-      <div>
-        <!--<label class="block text-sm font-bold mb-1">Descripción (opcional)</label>
-        <textarea name="descripcion" rows="2"
-          class="w-full rounded-xl bg-pink-50 border-2 border-pink-300 px-3 py-2 text-gray-800
-                 outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500"
-          placeholder="Ej: Marca, retornable, etc."></textarea>
-      </div>-->
+      <!-- ✅ PRECIOS: venta + costo -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      <div>
-        <label class="block text-sm font-bold mb-1">Precio unidad</label>
-        <div class="relative">
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 font-bold">Bs</span>
-          <input type="number" step="0.01" name="precio_unidad" required
-            class="w-full pl-9 pr-3 py-2 rounded-xl bg-pink-50 border-2 border-pink-300
-                   outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500"
-            placeholder="0.00">
+        <!-- Precio unidad (venta) -->
+        <div>
+          <label class="block text-sm font-bold mb-1">Precio unidad (venta)</label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 font-bold">Bs</span>
+            <input type="number" step="0.01" name="precio_unidad" required
+              class="w-full pl-9 pr-3 py-2 rounded-xl bg-pink-50 border-2 border-pink-300
+                     outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500"
+              placeholder="0.00">
+          </div>
         </div>
+
+        <!-- ✅ Precio mayorista (costo) unidad -->
+        <div>
+          <label class="block text-sm font-bold mb-1">
+            Precio mayorista (costo) unidad <span class="text-gray-500 font-semibold">(opcional)</span>
+          </label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-700">Bs</span>
+            <input type="number" step="0.01" min="0" name="costo_unidad"
+              class="w-full pl-9 pr-3 py-2 rounded-xl bg-white border-2 border-chebs-line
+                     outline-none focus:ring-4 focus:ring-chebs-soft focus:border-chebs-green"
+              placeholder="Ej: 0.80">
+          </div>
+          <div class="text-xs text-gray-500 mt-1">
+            Se usa para calcular ganancia en reportes.
+          </div>
+        </div>
+
       </div>
 
       <!-- ✅ Presentaciones -->

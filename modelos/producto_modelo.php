@@ -4,23 +4,48 @@
    PRODUCTOS (base)
    ========================= */
 
-function guardarProducto($conexion, $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete) {
+function guardarProducto($conexion, $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete, $costo_unidad = null) {
 
-    // Como ahora usaremos presentaciones, estos 2 campos quedan "legacy".
-    // Para no romper tu INSERT/UPDATE y evitar NULL en bind_param, los normalizamos:
+    // legacy: normalizar
     $precio_paquete = (is_numeric($precio_paquete) ? (float)$precio_paquete : 0.00);
     $unidades_paquete = (is_numeric($unidades_paquete) && (int)$unidades_paquete > 0) ? (int)$unidades_paquete : 1;
 
-    $sql = "INSERT INTO productos (nombre, descripcion, precio_unidad, precio_paquete, unidades_por_paquete)
-            VALUES (?, ?, ?, ?, ?)";
+    // costo_unidad opcional
+    if ($costo_unidad === '' || $costo_unidad === null) {
+        $costo_unidad = null;
+    } else {
+        $costo_unidad = (float)$costo_unidad;
+        if ($costo_unidad <= 0) $costo_unidad = null;
+    }
+
+    // ✅ incluimos costo_unidad
+    $sql = "INSERT INTO productos (nombre, descripcion, precio_unidad, precio_paquete, unidades_por_paquete, costo_unidad)
+            VALUES (?, ?, ?, ?, ?, ?)";
     $stmt = $conexion->prepare($sql);
-    $stmt->bind_param("ssddi", $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete);
+
+    // bind: s s d d i d  -> pero costo puede ser NULL: usamos "d" igual, y enviamos null como 0 + set_null?
+    // Truco: si es null, lo mandamos como NULL usando bind_param con variable y luego ->send_long_data? (mysqli no)
+    // Solución simple: usar NULLIF en SQL para que '' sea NULL. Pero aquí es float.
+    // Mejor: si es null, insertamos NULL directamente con query preparada dinámica:
+    if ($costo_unidad === null) {
+        $sql2 = "INSERT INTO productos (nombre, descripcion, precio_unidad, precio_paquete, unidades_por_paquete, costo_unidad)
+                 VALUES (?, ?, ?, ?, ?, NULL)";
+        $stmt2 = $conexion->prepare($sql2);
+        $stmt2->bind_param("ssddi", $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete);
+
+        if(!$stmt2->execute()){
+            return 0;
+        }
+        return $conexion->insert_id;
+    }
+
+    $stmt->bind_param("ssddid", $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete, $costo_unidad);
 
     if(!$stmt->execute()){
         return 0; // error
     }
 
-    return $conexion->insert_id; // ⭐ CLAVE
+    return $conexion->insert_id;
 }
 
 function obtenerProductos($conexion) {
@@ -36,7 +61,6 @@ function obtenerProductoPorId($conexion, $id) {
     return $stmt->get_result()->fetch_assoc();
 }
 
-// (tu función, la dejo)
 function obtenerProductoPorIds($conexion, $id) {
     $stmt = $conexion->prepare("SELECT * FROM productos WHERE id=?");
     $stmt->bind_param("i", $id);
@@ -44,15 +68,30 @@ function obtenerProductoPorIds($conexion, $id) {
     return $stmt->get_result()->fetch_assoc();
 }
 
-function actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paquete, $activo) {
-    // legacy: normalizar
+function actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paquete, $activo, $costo_unidad = null) {
     $precio_paquete = (is_numeric($precio_paquete) ? (float)$precio_paquete : 0.00);
 
+    if ($costo_unidad === '' || $costo_unidad === null) {
+        $costo_unidad = null;
+    } else {
+        $costo_unidad = (float)$costo_unidad;
+        if ($costo_unidad <= 0) $costo_unidad = null;
+    }
+
+    if ($costo_unidad === null) {
+        $sql2 = "UPDATE productos
+                 SET nombre=?, precio_unidad=?, precio_paquete=?, activo=?, costo_unidad=NULL
+                 WHERE id=?";
+        $stmt2 = $conexion->prepare($sql2);
+        $stmt2->bind_param("sddii", $nombre, $precio_unidad, $precio_paquete, $activo, $id);
+        return $stmt2->execute();
+    }
+
     $sql = "UPDATE productos
-            SET nombre=?, precio_unidad=?, precio_paquete=?, activo=?
+            SET nombre=?, precio_unidad=?, precio_paquete=?, activo=?, costo_unidad=?
             WHERE id=?";
     $stmt = $conexion->prepare($sql);
-    $stmt->bind_param("sddii", $nombre, $precio_unidad, $precio_paquete, $activo, $id);
+    $stmt->bind_param("sddidi", $nombre, $precio_unidad, $precio_paquete, $activo, $costo_unidad, $id);
     return $stmt->execute();
 }
 
@@ -118,7 +157,6 @@ function guardarPresentacionesProducto($conexion, $producto_id, $nombres, $unida
 
     if (!is_array($nombres) || !is_array($unidades) || !is_array($precios)) return;
 
-    // ✅ Truco profesional: NULLIF para costo opcional sin pelear con bind_param null
     $stmt = $conexion->prepare("
         INSERT INTO producto_presentaciones (producto_id, nombre, unidades, precio_venta, costo, activa)
         VALUES (?, ?, ?, ?, NULLIF(?, ''), 1)
@@ -129,7 +167,7 @@ function guardarPresentacionesProducto($conexion, $producto_id, $nombres, $unida
         $nom = trim((string)($nombres[$i] ?? ''));
         $uni = (int)($unidades[$i] ?? 0);
         $pre = (float)($precios[$i] ?? 0);
-        $cos = trim((string)($costos[$i] ?? '')); // puede ser '' para NULL
+        $cos = trim((string)($costos[$i] ?? ''));
 
         if ($nom === '' || $uni <= 0 || $pre <= 0) continue;
 
