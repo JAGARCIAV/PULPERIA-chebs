@@ -53,12 +53,12 @@ include "../layout/header.php";
       </div>
 
       <div>
-        <label class="block text-sm font-bold mb-1">Descripción (opcional)</label>
+        <!--<label class="block text-sm font-bold mb-1">Descripción (opcional)</label>
         <textarea name="descripcion" rows="2"
           class="w-full rounded-xl bg-pink-50 border-2 border-pink-300 px-3 py-2 text-gray-800
                  outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500"
           placeholder="Ej: Marca, retornable, etc."></textarea>
-      </div>
+      </div>-->
 
       <div>
         <label class="block text-sm font-bold mb-1">Precio unidad</label>
