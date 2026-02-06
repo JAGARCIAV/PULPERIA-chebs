@@ -140,15 +140,27 @@ $ultTurnos = $stmtT->get_result();
           <div id="stock_info" class="mt-2 text-xs text-gray-500"></div>
         </div>
 
-        <!-- ✅ Tipo de venta (OCULTO VISUALMENTE) -->
-        <div class="hidden">
-          <label class="text-sm font-semibold text-chebs-black">Tipo de venta</label>
-          <select id="tipo_venta"
-                  class="mt-2 w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none
-                         focus:ring-4 focus:ring-chebs-soft bg-white">
-            <option value="unidad">Unidad</option>
-          </select>
-        </div>
+        <!-- ✅ Presentación (solo aparece si el producto tiene packs) -->
+<div id="presentacion_box" class="hidden mt-3">
+  <label class="block text-base font-black text-pink-600 mb-1">Presentación</label>
+
+  <select id="presentacion_select"
+          class="mt-1 w-full rounded-2xl
+                 bg-white
+                 border-2 border-pink-300
+                 px-4 py-3
+                 text-gray-800
+                 outline-none
+                 focus:ring-4 focus:ring-pink-200
+                 focus:border-pink-500">
+    <option value="">Unidad</option>
+  </select>
+
+  <!-- ✅ guardamos el id real para el JS -->
+  <input type="hidden" id="presentacion_id" value="">
+</div>
+
+
 
         <!-- Cantidad -->
         <div>
@@ -349,8 +361,15 @@ $ultTurnos = $stmtT->get_result();
       </div>
     </div>
 
+    
+
     <!-- Card: Historial -->
     <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-5">
+            <div class="mt-5 rounded-2xl bg-chebs-soft/70 border border-chebs-line p-4 flex items-center justify-between">
+        <div class="text-sm font-semibold text-gray-700">Total vendido hoy</div>
+        <div class="text-xl font-black text-chebs-green">Bs <?= number_format($totalHoy, 2) ?></div>
+      </div>
+      <br>
       <div class="flex items-center justify-between gap-3">
         <div>
           <h3 class="text-lg font-black">Historial (hoy)</h3>
@@ -403,10 +422,6 @@ $ultTurnos = $stmtT->get_result();
         <?php } ?>
       </div>
 
-      <div class="mt-5 rounded-2xl bg-chebs-soft/70 border border-chebs-line p-4 flex items-center justify-between">
-        <div class="text-sm font-semibold text-gray-700">Total vendido hoy</div>
-        <div class="text-xl font-black text-chebs-green">Bs <?= number_format($totalHoy, 2) ?></div>
-      </div>
     </div>
 
   </aside>

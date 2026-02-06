@@ -1,20 +1,36 @@
 <?php
+require_once __DIR__ . "/../config/auth.php";
+require_role(['admin']);
+
 require_once "../config/conexion.php";
 require_once "../modelos/producto_modelo.php";
 
-$nombre = $_POST['nombre'];
-$descripcion = $_POST['descripcion'];
-$precio_unidad = $_POST['precio_unidad'];
-$precio_paquete = $_POST['precio_paquete'];
-$unidades_paquete = $_POST['unidades_paquete'];
+$nombre = trim($_POST['nombre'] ?? '');
+$descripcion = trim($_POST['descripcion'] ?? '');
+$precio_unidad = (float)($_POST['precio_unidad'] ?? 0);
 
-$id_nuevo = guardarProducto($conexion, $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete);
+// legacy (ya no lo usaremos para caja)
+$precio_paquete = 0.00;
+$unidades_paquete = 1;
 
-if($id_nuevo > 0){
-    header("Location: ../vistas/productos/crear.php?creado=1&id=".$id_nuevo);
-    exit;
-}else{
-    echo "Error al guardar producto";
+if ($nombre === '' || $precio_unidad <= 0) {
+    die("Datos inválidos (nombre / precio unidad).");
 }
 
-?>
+// ✅ 1) guardar producto
+$id_nuevo = guardarProducto($conexion, $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete);
+
+if ($id_nuevo <= 0) {
+    die("Error al guardar producto");
+}
+
+// ✅ 2) guardar presentaciones si llegaron
+$pres_nombres  = $_POST['pres_nombre'] ?? [];
+$pres_unidades = $_POST['pres_unidades'] ?? [];
+$pres_precios  = $_POST['pres_precio'] ?? [];
+$pres_costos   = $_POST['pres_costo'] ?? [];
+
+guardarPresentacionesProducto($conexion, (int)$id_nuevo, $pres_nombres, $pres_unidades, $pres_precios, $pres_costos);
+
+header("Location: ../vistas/productos/crear.php?creado=1&id=" . (int)$id_nuevo);
+exit;
