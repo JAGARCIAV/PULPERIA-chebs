@@ -163,64 +163,50 @@ $ultTurnos = $stmtT->get_result();
   </div>
 
   <!-- FORM PRODUCTO -->
-  <div class="px-6 py-5">
-    <!-- ⬇️ CAMBIO: items-start para que TODO alinee por arriba (no por el alto extra del producto) -->
-    <form id="form_producto" onsubmit="return false;" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+  <!-- Producto -->
+<div class="md:col-span-8 relative flex flex-col">
+  <label class="block text-sm font-black text-pink-600 mb-2 leading-none">
+    Buscar producto
+  </label>
 
-      <!-- Producto -->
-      <div class="md:col-span-8 relative z-50 flex flex-col">
-        <label class="block text-sm font-black text-pink-600 mb-2 leading-none">
-          Buscar producto
-        </label>
+  <input id="producto_nombre" type="text" name="producto_nombre"
+        placeholder="Escribe el nombre del producto…"
+        autocomplete="off"
+        required
+        class="w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 text-gray-800 placeholder-pink-400
+              outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 text-[16px] font-semibold">
 
-        <!-- ⬇️ CAMBIO: misma altura que cantidad/botón -->
-        <input id="producto_nombre" type="text" name="producto_nombre"
-              placeholder="Escribe el nombre del producto…"
-              autocomplete="off"
-              required
-              class="w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 text-gray-800 placeholder-pink-400
-                    outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 text-[16px] font-semibold">
+  <input type="hidden" id="producto_id">
 
-        <!-- Fuente de datos -->
-        <div class="hidden">
-          <datalist id="lista_productos">
-            <?php while($p = $productos->fetch_assoc()) { ?>
-              <option value="<?= htmlspecialchars($p['nombre']) ?>" data-id="<?= (int)$p['id'] ?>"></option>
-            <?php } ?>
-          </datalist>
-        </div>
+  <!-- ✅ Autocomplete SIN absolute (ya no se sobrepone) -->
+  <div id="auto_box"
+      class="hidden mt-2 rounded-2xl bg-white overflow-hidden border-2 border-pink-300">
+    <div class="px-4 py-2 text-xs text-chebs-black bg-pink-50 border-b border-pink-200 flex items-center justify-between">
+      <span class="font-black">Resultados</span>
+      <span class="hidden sm:inline text-gray-600">↑ ↓ · Enter</span>
+    </div>
 
-        <input type="hidden" id="producto_id">
+    <div id="auto_list" class="max-h-64 overflow-auto chebs-scroll"></div>
 
-        <!-- Autocomplete (✅ borde rosado + z alto) -->
-        <div id="auto_box"
-            class="hidden absolute left-0 right-0 mt-2 z-[999] rounded-2xl bg-white overflow-hidden border-2 border-pink-300">
-          <div class="px-4 py-2 text-xs text-chebs-black bg-pink-50 border-b border-pink-200 flex items-center justify-between">
-            <span class="font-black">Resultados</span>
-            <span class="hidden sm:inline text-gray-600">↑ ↓ · Enter</span>
-          </div>
+    <div id="auto_empty" class="hidden px-4 py-3 text-sm text-gray-500">
+      Sin resultados
+    </div>
+  </div>
 
-          <div id="auto_list" class="max-h-64 overflow-auto chebs-scroll"></div>
+  <div id="stock_info" class="mt-2 text-xs text-gray-600"></div>
 
-          <div id="auto_empty" class="hidden px-4 py-3 text-sm text-gray-500">
-            Sin resultados
-          </div>
-        </div>
-
-        <div id="stock_info" class="mt-2 text-xs text-gray-600"></div>
-
-        <!-- Presentación (si hay packs) -->
-        <div id="presentacion_box" class="hidden mt-3">
-          <label class="block text-xs font-black text-pink-600 mb-2 leading-none">Presentación</label>
-          <select id="presentacion_select"
-                  class="w-full h-[52px] rounded-2xl bg-white border-2 border-pink-300 px-4 text-gray-800
-                         outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 font-semibold">
-            <option value="">Unidad</option>
-          </select>
-          <input type="hidden" id="presentacion_id" value="">
-        </div>
-      </div>
-
+  <!-- Presentación -->
+  <div id="presentacion_box" class="hidden mt-3">
+    <label class="block text-xs font-black text-pink-600 mb-2 leading-none">Presentación</label>
+    <select id="presentacion_select"
+            class="w-full h-[52px] rounded-2xl bg-white border-2 border-pink-300 px-4 text-gray-800
+                   outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 font-semibold">
+      <option value="">Unidad</option>
+    </select>
+    <input type="hidden" id="presentacion_id" value="">
+  </div>
+</div>
+  
       <!-- Cantidad -->
       <div class="md:col-span-2 flex flex-col">
         <label class="block text-sm font-black text-pink-600 mb-2 leading-none">
