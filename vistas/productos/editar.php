@@ -22,7 +22,7 @@ if ($id <= 0) { ?>
   exit;
 }
 
-$producto = obtenerProductoPorIds($conexion, $id);
+$producto = obtenerProductoPorId($conexion, $id);
 if (!$producto) { ?>
   <div class="max-w-3xl mx-auto px-4 py-10">
     <div class="bg-white border border-red-200 rounded-3xl shadow-soft p-6 text-red-700 font-semibold">
@@ -48,7 +48,7 @@ $presentaciones = obtenerPresentacionesPorProducto($conexion, $id);
     <div class="px-8 py-6 border-b border-chebs-line">
       <h1 class="text-2xl font-black text-chebs-black">Editar producto</h1>
       <p class="text-sm text-gray-600 mt-1">
-        Actualiza nombre, precios y estado.
+        Actualiza nombre, precios, costo y estado.
       </p>
 
       <?php if(isset($_GET['ok'])){ ?>
@@ -74,9 +74,11 @@ $presentaciones = obtenerPresentacionesPorProducto($conexion, $id);
                       outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500">
       </div>
 
+      <!-- ✅ PRECIOS: venta + costo -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
         <div>
-          <label class="block text-sm font-bold mb-2 text-chebs-black">Precio unidad</label>
+          <label class="block text-sm font-bold mb-2 text-chebs-black">Precio unidad (venta)</label>
           <input type="number"
                  step="0.01"
                  name="precio_unidad"
@@ -86,19 +88,26 @@ $presentaciones = obtenerPresentacionesPorProducto($conexion, $id);
                         outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500">
         </div>
 
+        <!-- ✅ NUEVO: costo unidad -->
         <div>
-          <label class="block text-sm font-bold mb-2 text-chebs-black">Precio paquete (LEGACY)</label>
+          <label class="block text-sm font-bold mb-2 text-chebs-black">
+            Precio mayorista (costo) unidad <span class="text-gray-500 font-semibold">(opcional)</span>
+          </label>
           <input type="number"
                  step="0.01"
-                 name="precio_paquete"
-                 value="<?= htmlspecialchars($producto['precio_paquete']) ?>"
-                 class="w-full px-4 py-3 rounded-2xl bg-pink-50 border-2 border-pink-300
-                        outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500">
+                 min="0"
+                 name="costo_unidad"
+                 value="<?= htmlspecialchars($producto['costo_unidad'] ?? '') ?>"
+                 class="w-full px-4 py-3 rounded-2xl bg-white border-2 border-chebs-line
+                        outline-none focus:ring-4 focus:ring-chebs-soft focus:border-chebs-green"
+                 placeholder="Ej: 8.30">
           <p class="mt-2 text-xs text-gray-500">
-            Ya no se usa para ventas. Usa Presentaciones abajo.
+            Se usa para calcular ganancia en reportes.
           </p>
         </div>
+
       </div>
+
 
       <!-- ✅ Presentaciones -->
       <div class="rounded-2xl border border-chebs-line p-4 bg-white">
@@ -126,6 +135,7 @@ $presentaciones = obtenerPresentacionesPorProducto($conexion, $id);
                 <th class="px-3 py-2 font-black text-center">×</th>
               </tr>
             </thead>
+
             <tbody id="pres_body" class="divide-y divide-chebs-line">
               <?php foreach($presentaciones as $pr){ ?>
                 <tr>
@@ -143,7 +153,8 @@ $presentaciones = obtenerPresentacionesPorProducto($conexion, $id);
                   </td>
                   <td class="px-3 py-2">
                     <input name="pres_costo[]" type="number" step="0.01" min="0" value="<?= htmlspecialchars($pr['costo'] ?? '') ?>"
-                      class="w-full rounded-xl border border-chebs-line px-3 py-2 outline-none focus:ring-2 focus:ring-chebs-soft">
+                      class="w-full rounded-xl border border-chebs-line px-3 py-2 outline-none focus:ring-2 focus:ring-chebs-soft"
+                      placeholder="Opcional">
                   </td>
                   <td class="px-3 py-2 text-center">
                     <button type="button"
@@ -203,23 +214,28 @@ $presentaciones = obtenerPresentacionesPorProducto($conexion, $id);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="px-3 py-2">
-        <input name="pres_nombre[]" required class="w-full rounded-xl border border-chebs-line px-3 py-2 outline-none focus:ring-2 focus:ring-chebs-soft"
+        <input name="pres_nombre[]" required
+          class="w-full rounded-xl border border-chebs-line px-3 py-2 outline-none focus:ring-2 focus:ring-chebs-soft"
           placeholder="Ej: Cajetilla 10">
       </td>
       <td class="px-3 py-2">
-        <input name="pres_unidades[]" type="number" min="1" required class="w-full rounded-xl border border-chebs-line px-3 py-2 outline-none focus:ring-2 focus:ring-chebs-soft"
+        <input name="pres_unidades[]" type="number" min="1" required
+          class="w-full rounded-xl border border-chebs-line px-3 py-2 outline-none focus:ring-2 focus:ring-chebs-soft"
           placeholder="10">
       </td>
       <td class="px-3 py-2">
-        <input name="pres_precio[]" type="number" step="0.01" min="0" required class="w-full rounded-xl border border-chebs-line px-3 py-2 outline-none focus:ring-2 focus:ring-chebs-soft"
+        <input name="pres_precio[]" type="number" step="0.01" min="0" required
+          class="w-full rounded-xl border border-chebs-line px-3 py-2 outline-none focus:ring-2 focus:ring-chebs-soft"
           placeholder="9.00">
       </td>
       <td class="px-3 py-2">
-        <input name="pres_costo[]" type="number" step="0.01" min="0" class="w-full rounded-xl border border-chebs-line px-3 py-2 outline-none focus:ring-2 focus:ring-chebs-soft"
+        <input name="pres_costo[]" type="number" step="0.01" min="0"
+          class="w-full rounded-xl border border-chebs-line px-3 py-2 outline-none focus:ring-2 focus:ring-chebs-soft"
           placeholder="Opcional">
       </td>
       <td class="px-3 py-2 text-center">
-        <button type="button" class="px-3 py-2 rounded-xl border border-chebs-line hover:bg-red-50 hover:border-red-200 font-black"
+        <button type="button"
+          class="px-3 py-2 rounded-xl border border-chebs-line hover:bg-red-50 hover:border-red-200 font-black"
           onclick="this.closest('tr').remove()">✕</button>
       </td>
     `;

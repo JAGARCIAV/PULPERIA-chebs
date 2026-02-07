@@ -7,7 +7,7 @@ include "../layout/header.php";
 
 <?php if(isset($_GET['creado']) && isset($_GET['id'])): ?>
 <div id="modalLote" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-  <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-soft">
+  <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-soft border border-chebs-line">
 
     <h2 class="text-xl font-black mb-3">Producto guardado 🎉</h2>
     <p class="text-gray-600 mb-6">
@@ -16,12 +16,12 @@ include "../layout/header.php";
 
     <div class="flex gap-4">
       <a href="../lotes/registrar_lote.php?producto_id=<?= (int)$_GET['id'] ?>"
-         class="flex-1 text-center px-4 py-3 rounded-2xl bg-chebs-green text-white font-black">
+         class="flex-1 text-center px-4 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition">
         ➕ Crear lote
       </a>
 
       <a href="listar.php"
-         class="flex-1 text-center px-4 py-3 rounded-2xl border border-chebs-line font-black">
+         class="flex-1 text-center px-4 py-3 rounded-2xl border border-chebs-line font-black hover:bg-chebs-soft transition">
         Solo guardar
       </a>
     </div>
@@ -29,7 +29,6 @@ include "../layout/header.php";
   </div>
 </div>
 <?php endif; ?>
-
 
 <div class="max-w-3xl mx-auto px-4 py-10">
 
@@ -44,6 +43,7 @@ include "../layout/header.php";
 
     <form action="../../controladores/producto_controlador.php" method="POST" class="space-y-4">
 
+      <!-- Nombre -->
       <div>
         <label class="block text-sm font-bold mb-1">Nombre del producto</label>
         <input type="text" name="nombre" required
@@ -58,11 +58,14 @@ include "../layout/header.php";
         <!-- Precio unidad (venta) -->
         <div>
           <label class="block text-sm font-bold mb-1">Precio unidad (venta)</label>
+
           <div class="relative">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 font-bold">Bs</span>
-            <input type="number" step="0.01" name="precio_unidad" required
-              class="w-full pl-9 pr-3 py-2 rounded-xl bg-pink-50 border-2 border-pink-300
-                     outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500"
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 font-black text-gray-800 bg-white/70 px-2 rounded-lg">
+              Bs
+            </span>
+
+            <input type="number" step="0.01" min="0" name="precio_unidad" required
+              class="chebs-num w-full pl-14"
               placeholder="0.00">
           </div>
         </div>
@@ -72,13 +75,17 @@ include "../layout/header.php";
           <label class="block text-sm font-bold mb-1">
             Precio mayorista (costo) unidad <span class="text-gray-500 font-semibold">(opcional)</span>
           </label>
+
           <div class="relative">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-700">Bs</span>
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 font-black text-gray-800 bg-white/70 px-2 rounded-lg">
+              Bs
+            </span>
+
             <input type="number" step="0.01" min="0" name="costo_unidad"
-              class="w-full pl-9 pr-3 py-2 rounded-xl bg-white border-2 border-chebs-line
-                     outline-none focus:ring-4 focus:ring-chebs-soft focus:border-chebs-green"
+              class="chebs-num w-full pl-14"
               placeholder="Ej: 0.80">
           </div>
+
           <div class="text-xs text-gray-500 mt-1">
             Se usa para calcular ganancia en reportes.
           </div>
@@ -95,6 +102,7 @@ include "../layout/header.php";
               Ej: Cajetilla 10 (9 Bs), Cajetilla 20 (18 Bs), Pack 6 (60 Bs)…
             </div>
           </div>
+
           <button type="button" id="btn_add_pres"
             class="px-4 py-2 rounded-xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition">
             + Agregar
@@ -103,12 +111,12 @@ include "../layout/header.php";
 
         <div class="overflow-x-auto rounded-xl border border-chebs-line">
           <table class="w-full text-sm">
-            <thead class="bg-chebs-soft/60">
+            <thead class="bg-chebs-soft/70">
               <tr>
                 <th class="text-left px-3 py-2 font-black">Nombre</th>
                 <th class="text-left px-3 py-2 font-black">Unidades</th>
                 <th class="text-left px-3 py-2 font-black">Precio venta</th>
-                <th class="text-left px-3 py-2 font-black">Costo (opcional)</th>
+                <th class="text-left px-3 py-2 font-black">Costo (mayorista)</th>
                 <th class="px-3 py-2 font-black text-center">×</th>
               </tr>
             </thead>
@@ -154,27 +162,33 @@ include "../layout/header.php";
     tr.innerHTML = `
       <td class="px-3 py-2">
         <input name="pres_nombre[]" value="${nombre}" required
-          class="w-full rounded-xl border border-chebs-line px-3 py-2 outline-none focus:ring-2 focus:ring-chebs-soft"
+          class="w-full rounded-xl bg-pink-50 border-2 border-pink-300 px-3 py-2 outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500"
           placeholder="Ej: Cajetilla 10">
       </td>
+
       <td class="px-3 py-2">
         <input name="pres_unidades[]" type="number" min="1" value="${unidades}" required
-          class="w-full rounded-xl border border-chebs-line px-3 py-2 outline-none focus:ring-2 focus:ring-chebs-soft"
+          class="w-full chebs-num"
           placeholder="10">
       </td>
+
       <td class="px-3 py-2">
         <input name="pres_precio[]" type="number" step="0.01" min="0" value="${precio}" required
-          class="w-full rounded-xl border border-chebs-line px-3 py-2 outline-none focus:ring-2 focus:ring-chebs-soft"
+          class="w-full chebs-num"
           placeholder="9.00">
       </td>
+
       <td class="px-3 py-2">
         <input name="pres_costo[]" type="number" step="0.01" min="0" value="${costo}"
-          class="w-full rounded-xl border border-chebs-line px-3 py-2 outline-none focus:ring-2 focus:ring-chebs-soft"
-          placeholder="Opcional">
+          class="w-full chebs-num"
+          placeholder="Ej: 5.00">
       </td>
+
       <td class="px-3 py-2 text-center">
         <button type="button"
-          class="px-3 py-2 rounded-xl border border-chebs-line hover:bg-red-50 hover:border-red-200 font-black">✕</button>
+          class="px-3 py-2 rounded-xl border border-chebs-line hover:bg-red-50 hover:border-red-200 font-black">
+          ✕
+        </button>
       </td>
     `;
     tr.querySelector('button').addEventListener('click', ()=> tr.remove());
@@ -182,9 +196,6 @@ include "../layout/header.php";
   }
 
   btn.addEventListener('click', ()=> addRow());
-
-  // Si quieres dejar una fila por defecto descomenta:
-  // addRow();
 })();
 </script>
 

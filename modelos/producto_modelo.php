@@ -1,91 +1,57 @@
 <?php
 
 /* =========================
+   Helpers
+   ========================= */
+function normalizarCosto($valor) {
+    if ($valor === '' || $valor === null) return null;
+    if (!is_numeric($valor)) return null;
+    $v = (float)$valor;
+    return ($v > 0) ? $v : null;
+}
+
+/* =========================
    PRODUCTOS (base)
    ========================= */
 
 function guardarProducto($conexion, $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete, $costo_unidad = null) {
 
-    // legacy: normalizar
-    $precio_paquete = (is_numeric($precio_paquete) ? (float)$precio_paquete : 0.00);
-    $unidades_paquete = (is_numeric($unidades_paquete) && (int)$unidades_paquete > 0) ? (int)$unidades_paquete : 1;
+    $precio_paquete     = (is_numeric($precio_paquete) ? (float)$precio_paquete : 0.00);
+    $unidades_paquete   = (is_numeric($unidades_paquete) && (int)$unidades_paquete > 0) ? (int)$unidades_paquete : 1;
+    $costo_unidad       = normalizarCosto($costo_unidad);
 
-    // costo_unidad opcional
-    if ($costo_unidad === '' || $costo_unidad === null) {
-        $costo_unidad = null;
-    } else {
-        $costo_unidad = (float)$costo_unidad;
-        if ($costo_unidad <= 0) $costo_unidad = null;
-    }
-
-    // ✅ incluimos costo_unidad
+    // ✅ 1 solo INSERT, costo puede ser NULL
     $sql = "INSERT INTO productos (nombre, descripcion, precio_unidad, precio_paquete, unidades_por_paquete, costo_unidad)
             VALUES (?, ?, ?, ?, ?, ?)";
     $stmt = $conexion->prepare($sql);
 
-    // bind: s s d d i d  -> pero costo puede ser NULL: usamos "d" igual, y enviamos null como 0 + set_null?
-    // Truco: si es null, lo mandamos como NULL usando bind_param con variable y luego ->send_long_data? (mysqli no)
-    // Solución simple: usar NULLIF en SQL para que '' sea NULL. Pero aquí es float.
-    // Mejor: si es null, insertamos NULL directamente con query preparada dinámica:
-    if ($costo_unidad === null) {
-        $sql2 = "INSERT INTO productos (nombre, descripcion, precio_unidad, precio_paquete, unidades_por_paquete, costo_unidad)
-                 VALUES (?, ?, ?, ?, ?, NULL)";
-        $stmt2 = $conexion->prepare($sql2);
-        $stmt2->bind_param("ssddi", $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete);
-
-        if(!$stmt2->execute()){
-            return 0;
-        }
-        return $conexion->insert_id;
-    }
-
+    // OJO: para NULL, mysqli lo acepta si la variable es null
     $stmt->bind_param("ssddid", $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete, $costo_unidad);
 
-    if(!$stmt->execute()){
-        return 0; // error
-    }
-
-    return $conexion->insert_id;
+    if (!$stmt->execute()) return 0;
+    return (int)$conexion->insert_id;
 }
 
-function obtenerProductos($conexion) {
-    $sql = "SELECT * FROM productos";
-    return $conexion->query($sql);
+function obtenerProductos($conexion, $soloActivos = false) {
+    if ($soloActivos) {
+        return $conexion->query("SELECT * FROM productos WHERE activo=1 ORDER BY nombre ASC");
+    }
+    return $conexion->query("SELECT * FROM productos ORDER BY nombre ASC");
 }
 
 function obtenerProductoPorId($conexion, $id) {
-    $sql = "SELECT * FROM productos WHERE id = ?";
-    $stmt = $conexion->prepare($sql);
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    return $stmt->get_result()->fetch_assoc();
-}
-
-function obtenerProductoPorIds($conexion, $id) {
-    $stmt = $conexion->prepare("SELECT * FROM productos WHERE id=?");
+    $id = (int)$id;
+    $stmt = $conexion->prepare("SELECT * FROM productos WHERE id=? LIMIT 1");
     $stmt->bind_param("i", $id);
     $stmt->execute();
     return $stmt->get_result()->fetch_assoc();
 }
 
 function actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paquete, $activo, $costo_unidad = null) {
+    $id            = (int)$id;
+    $activo        = (int)$activo;
     $precio_paquete = (is_numeric($precio_paquete) ? (float)$precio_paquete : 0.00);
-
-    if ($costo_unidad === '' || $costo_unidad === null) {
-        $costo_unidad = null;
-    } else {
-        $costo_unidad = (float)$costo_unidad;
-        if ($costo_unidad <= 0) $costo_unidad = null;
-    }
-
-    if ($costo_unidad === null) {
-        $sql2 = "UPDATE productos
-                 SET nombre=?, precio_unidad=?, precio_paquete=?, activo=?, costo_unidad=NULL
-                 WHERE id=?";
-        $stmt2 = $conexion->prepare($sql2);
-        $stmt2->bind_param("sddii", $nombre, $precio_unidad, $precio_paquete, $activo, $id);
-        return $stmt2->execute();
-    }
+    $costo_unidad  = normalizarCosto($costo_unidad);
 
     $sql = "UPDATE productos
             SET nombre=?, precio_unidad=?, precio_paquete=?, activo=?, costo_unidad=?
@@ -100,19 +66,19 @@ function actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paq
    ========================= */
 
 function obtenerStockTotal($conexion, $producto_id) {
-    // ✅ solo lotes activos
+    $producto_id = (int)$producto_id;
     $sql = "SELECT COALESCE(SUM(cantidad_unidades),0) AS total_stock
             FROM lotes
-            WHERE producto_id = ? AND activo = 1";
+            WHERE producto_id=? AND activo=1";
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("i", $producto_id);
     $stmt->execute();
-    $result = $stmt->get_result()->fetch_assoc();
-    return (int)($result['total_stock'] ?? 0);
+    $row = $stmt->get_result()->fetch_assoc();
+    return (int)($row['total_stock'] ?? 0);
 }
 
 /* =========================
-   ✅ PRESENTACIONES (packs)
+   PRESENTACIONES (packs)
    ========================= */
 
 function obtenerPresentacionesPorProducto($conexion, $producto_id) {
@@ -125,31 +91,25 @@ function obtenerPresentacionesPorProducto($conexion, $producto_id) {
     ");
     $stmt->bind_param("i", $producto_id);
     $stmt->execute();
-    $res = $stmt->get_result();
 
     $out = [];
+    $res = $stmt->get_result();
     while($row = $res->fetch_assoc()) $out[] = $row;
     return $out;
 }
 
-function obtenerPresentacionPorId($conexion, $presentacion_id) {
-    $presentacion_id = (int)$presentacion_id;
-    $stmt = $conexion->prepare("
-        SELECT id, producto_id, nombre, unidades, precio_venta, costo, activa
-        FROM producto_presentaciones
-        WHERE id=? AND activa=1
-        LIMIT 1
-    ");
-    $stmt->bind_param("i", $presentacion_id);
-    $stmt->execute();
-    return $stmt->get_result()->fetch_assoc();
-}
-
 function eliminarPresentacionesProducto($conexion, $producto_id) {
     $producto_id = (int)$producto_id;
-    $stmt = $conexion->prepare("DELETE FROM producto_presentaciones WHERE producto_id=?");
+
+    // ✅ opción PRO (recomendado): desactivar en vez de borrar
+    $stmt = $conexion->prepare("UPDATE producto_presentaciones SET activa=0 WHERE producto_id=?");
     $stmt->bind_param("i", $producto_id);
     $stmt->execute();
+
+    // Si prefieres borrar físico como antes, usa esto en vez del UPDATE:
+    // $stmt = $conexion->prepare("DELETE FROM producto_presentaciones WHERE producto_id=?");
+    // $stmt->bind_param("i", $producto_id);
+    // $stmt->execute();
 }
 
 function guardarPresentacionesProducto($conexion, $producto_id, $nombres, $unidades, $precios, $costos) {
@@ -159,7 +119,7 @@ function guardarPresentacionesProducto($conexion, $producto_id, $nombres, $unida
 
     $stmt = $conexion->prepare("
         INSERT INTO producto_presentaciones (producto_id, nombre, unidades, precio_venta, costo, activa)
-        VALUES (?, ?, ?, ?, NULLIF(?, ''), 1)
+        VALUES (?, ?, ?, ?, ?, 1)
     ");
 
     $count = count($nombres);
@@ -167,11 +127,13 @@ function guardarPresentacionesProducto($conexion, $producto_id, $nombres, $unida
         $nom = trim((string)($nombres[$i] ?? ''));
         $uni = (int)($unidades[$i] ?? 0);
         $pre = (float)($precios[$i] ?? 0);
-        $cos = trim((string)($costos[$i] ?? ''));
+
+        // ✅ costo opcional consistente
+        $cos = normalizarCosto($costos[$i] ?? null);
 
         if ($nom === '' || $uni <= 0 || $pre <= 0) continue;
 
-        $stmt->bind_param("isids", $producto_id, $nom, $uni, $pre, $cos);
+        $stmt->bind_param("isidd", $producto_id, $nom, $uni, $pre, $cos);
         $stmt->execute();
     }
 }

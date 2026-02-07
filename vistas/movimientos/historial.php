@@ -1,4 +1,4 @@
-<?php
+<?php 
 require_once __DIR__ . "/../../config/auth.php";
 require_role(['admin']);
 
@@ -119,106 +119,168 @@ $productos = $conexion->query("SELECT id, nombre FROM productos");
 $movimientos = obtenerMovimientos($conexion, $producto_id);
 ?>
 
-<div class="max-w-7xl mx-auto px-4 py-8">
+<div class="max-w-7xl mx-auto px-4 py-6">
 
-  <!-- Header -->
-  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
-    <div>
-      <h1 class="text-3xl font-black text-chebs-black">Historial de inventario</h1>
-      <p class="text-sm text-gray-600">
-        Entradas, salidas y ajustes + resumen de ventas y ganancia mensual.
-      </p>
-    </div>
-
-    <a href="/PULPERIA-CHEBS/vistas/lotes/listar.php"
-       class="inline-flex items-center justify-center px-6 py-3 rounded-2xl border border-chebs-line bg-white font-black
-              hover:bg-chebs-soft transition">
-      📦 Ver lotes
-    </a>
-  </div>
-
-  <!-- ✅ TOTAL DEL MES ACTUAL -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6">
-      <div class="text-xs text-gray-500 font-bold">Mes actual</div>
-      <div class="text-xl font-black text-chebs-black mt-1"><?= htmlspecialchars($mesActualData['mes']) ?></div>
-      <div class="text-xs text-gray-500 mt-2">Por defecto</div>
-    </div>
-
-    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6">
-      <div class="text-xs text-gray-500 font-bold">Total vendido (mes)</div>
-      <div class="text-2xl font-black text-chebs-black mt-1">
-        Bs <?= number_format($mesActualData['total_vendido'], 2) ?>
-      </div>
-      <div class="text-xs text-gray-500 mt-2">Suma de todas las ventas del mes</div>
-    </div>
-
-    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6">
-      <div class="text-xs text-gray-500 font-bold">Ganancia (mes)</div>
-      <div class="text-2xl font-black mt-1 <?= $mesActualData['ganancia'] >= 0 ? 'text-green-700' : 'text-red-700' ?>">
-        Bs <?= number_format($mesActualData['ganancia'], 2) ?>
-      </div>
-      <div class="text-xs text-gray-500 mt-2">
-        Solo calcula cuando hay costo (mayorista)
-      </div>
-    </div>
-  </div>
-
-  <!-- ✅ RESUMEN MENSUAL -->
+  <!-- Header PRO -->
   <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden mb-6">
-    <div class="px-6 py-4 border-b border-chebs-line">
-      <h2 class="text-lg font-black text-chebs-black">Resumen de ventas por mes</h2>
-      <p class="text-xs text-gray-500">
-        Ganancia = venta - costo. Unidad usa costo_unidad; Packs usan costo(pack) o costo_unidad*unidades(pack).
-      </p>
+    <div class="px-6 py-5 bg-chebs-soft/60 border-b border-chebs-line">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-2 mb-2">
+            <span class="px-3 py-1 rounded-full text-xs font-black bg-chebs-green/10 text-chebs-green border border-chebs-green/20">
+              ADMIN
+            </span>
+            <span class="text-xs text-gray-500">Inventario / Movimientos</span>
+          </div>
+
+          <h1 class="text-3xl font-black text-chebs-black leading-tight">
+            Historial de inventario
+          </h1>
+          <p class="text-sm text-gray-600 mt-1">
+            Entradas, salidas y ajustes + resumen de ventas y ganancia mensual.
+          </p>
+        </div>
+
+        <a href="/PULPERIA-CHEBS/vistas/lotes/listar.php"
+          class="inline-flex items-center justify-center px-6 py-3 rounded-2xl
+                 bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition shadow-soft whitespace-nowrap">
+          📦 Ver lotes
+        </a>
+      </div>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-gray-100">
-          <tr>
-            <th class="px-4 py-3 font-black">Mes</th>
-            <th class="px-4 py-3 font-black">Total vendido</th>
-            <th class="px-4 py-3 font-black">Total con costo</th>
-            <th class="px-4 py-3 font-black">Ganancia</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-chebs-line">
-          <?php if(count($resumenRows) > 0): ?>
-            <?php $i=0; foreach($resumenRows as $r): $i++; ?>
-              <tr class="<?= ($i % 2 ? 'bg-pink-50/60' : 'bg-white') ?>">
-                <td class="px-4 py-3 font-bold"><?= htmlspecialchars($r['mes']) ?></td>
-                <td class="px-4 py-3">Bs <?= number_format((float)$r['total_vendido'],2) ?></td>
-                <td class="px-4 py-3">Bs <?= number_format((float)$r['total_con_costo'],2) ?></td>
-                <td class="px-4 py-3 font-black <?= ((float)$r['ganancia'] >= 0) ? 'text-green-700' : 'text-red-700' ?>">
-                  Bs <?= number_format((float)$r['ganancia'],2) ?>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <tr>
-              <td colspan="4" class="px-4 py-4 text-gray-600">No hay ventas registradas.</td>
-            </tr>
-          <?php endif; ?>
-        </tbody>
-      </table>
+    <div class="px-6 py-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        <!-- Mes actual -->
+        <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 relative overflow-hidden">
+          <div class="absolute left-0 top-0 bottom-0 w-2 bg-chebs-green/60"></div>
+          <div class="pl-3">
+            <div class="text-xs text-gray-500 font-bold flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-chebs-green"></span> Mes actual
+            </div>
+            <div class="text-xl font-black text-chebs-black mt-1"><?= htmlspecialchars($mesActualData['mes']) ?></div>
+            <div class="text-xs text-gray-500 mt-2">Por defecto</div>
+          </div>
+        </div>
+
+        <!-- Total vendido -->
+        <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 relative overflow-hidden">
+          <div class="absolute left-0 top-0 bottom-0 w-2 bg-chebs-green/30"></div>
+          <div class="pl-3">
+            <div class="text-xs text-gray-500 font-bold">Total vendido (mes)</div>
+            <div class="text-2xl font-black text-chebs-black mt-1">
+              Bs <?= number_format($mesActualData['total_vendido'], 2) ?>
+            </div>
+            <div class="text-xs text-gray-500 mt-2">Suma de todas las ventas del mes</div>
+          </div>
+        </div>
+
+        <!-- Ganancia -->
+        <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 relative overflow-hidden">
+          <div class="absolute left-0 top-0 bottom-0 w-2 <?= $mesActualData['ganancia'] >= 0 ? 'bg-green-500/40' : 'bg-red-500/40' ?>"></div>
+          <div class="pl-3">
+            <div class="text-xs text-gray-500 font-bold">Ganancia (mes)</div>
+            <div class="text-2xl font-black mt-1 <?= $mesActualData['ganancia'] >= 0 ? 'text-green-700' : 'text-red-700' ?>">
+              Bs <?= number_format($mesActualData['ganancia'], 2) ?>
+            </div>
+            <div class="text-xs text-gray-500 mt-2">
+              Solo calcula cuando hay costo (mayorista)
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 
-  <!-- Filtro -->
-  <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 mb-6">
+  <!-- ✅ RESUMEN MENSUAL (más vivo) -->
+  <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-chebs-line bg-chebs-soft/50">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-black text-chebs-black">Resumen de ventas por mes</h2>
+          <p class="text-xs text-gray-600 mt-1">
+            Ganancia = venta - costo. Unidad usa costo_unidad; Packs usan costo(pack) o costo_unidad*unidades(pack).
+          </p>
+        </div>
+        <span class="hidden md:inline px-3 py-1 rounded-full text-xs font-black bg-chebs-green/10 text-chebs-green border border-chebs-green/20">
+          <?= count($resumenRows) ?> meses
+        </span>
+      </div>
+    </div>
+
+<div class="overflow-x-auto">
+  <table class="w-full text-sm table-fixed">
+    <colgroup>
+      <col class="w-[22%]">
+      <col class="w-[26%]">
+      <col class="w-[26%]">
+      <col class="w-[26%]">
+    </colgroup>
+
+    <thead class="bg-white">
+      <tr class="text-chebs-black border-b border-chebs-line">
+        <th class="px-4 py-3 font-black text-left">Mes</th>
+        <th class="px-4 py-3 font-black text-right">Total vendido</th>
+        <th class="px-4 py-3 font-black text-right">Total con costo</th>
+        <th class="px-4 py-3 font-black text-right">Ganancia</th>
+      </tr>
+    </thead>
+
+    <tbody class="divide-y divide-chebs-line">
+      <?php if(count($resumenRows) > 0): ?>
+        <?php $i=0; foreach($resumenRows as $r): $i++; ?>
+          <tr class="<?= ($i % 2 ? 'bg-chebs-soft/40' : 'bg-white') ?> hover:bg-chebs-soft/70 transition">
+            <td class="px-4 py-3 font-bold whitespace-nowrap">
+              <span class="inline-flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-chebs-green/70"></span>
+                <?= htmlspecialchars($r['mes']) ?>
+              </span>
+            </td>
+
+            <td class="px-4 py-3 text-right font-semibold tabular-nums whitespace-nowrap">
+              Bs <?= number_format((float)$r['total_vendido'],2) ?>
+            </td>
+
+            <td class="px-4 py-3 text-right text-gray-800 tabular-nums whitespace-nowrap">
+              Bs <?= number_format((float)$r['total_con_costo'],2) ?>
+            </td>
+
+            <td class="px-4 py-3 text-right font-black tabular-nums whitespace-nowrap <?= ((float)$r['ganancia'] >= 0) ? 'text-green-700' : 'text-red-700' ?>">
+              Bs <?= number_format((float)$r['ganancia'],2) ?>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <tr>
+          <td colspan="4" class="px-4 py-6 text-gray-600">No hay ventas registradas.</td>
+        </tr>
+      <?php endif; ?>
+    </tbody>
+  </table>
+</div>
+
+
+  </div>
+
+  <!-- Filtro (más pro, menos gris) -->
+  <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 mb-6 relative overflow-hidden">
+    <div class="absolute left-0 top-0 bottom-0 w-2 bg-chebs-green/30"></div>
+
     <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4 md:items-center" onsubmit="return validarFiltro();">
 
       <!-- Autocomplete producto -->
-      <div class="md:col-span-2 relative">
-        <label class="block text-sm font-bold mb-2 text-chebs-black">Filtrar por producto</label>
+      <div class="md:col-span-2 relative pl-3">
+        <label class="block text-sm font-black mb-2 text-chebs-black">Filtrar por producto</label>
 
         <input id="producto_buscar"
                type="text"
                placeholder="Escribe para buscar… (o deja vacío para todos)"
                autocomplete="off"
-               class="w-full px-4 py-3 rounded-2xl border border-chebs-line
-                      focus:outline-none focus:ring-2 focus:ring-chebs-green/40 bg-white">
+               class="w-full px-4 py-3 rounded-2xl border border-chebs-line bg-white
+                      focus:outline-none focus:ring-2 focus:ring-chebs-green/40
+                      hover:border-chebs-green/40 transition">
 
         <!-- este es el que se envía -->
         <input type="hidden" name="producto_id" id="producto_id_real" value="<?= $producto_id ? (int)$producto_id : '' ?>">
@@ -227,7 +289,6 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
         <div class="hidden">
           <datalist id="lista_productos_mov">
             <?php
-              // ⚠️ Volvemos a pedir productos porque arriba ya se consumió el resultset con fetch_assoc()
               $productos2 = $conexion->query("SELECT id, nombre FROM productos");
               while($p = $productos2->fetch_assoc()) { ?>
               <option value="<?= htmlspecialchars($p['nombre']) ?>" data-id="<?= (int)$p['id'] ?>"></option>
@@ -235,12 +296,12 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
           </datalist>
         </div>
 
-        <!-- Dropdown gris -->
+        <!-- Dropdown (con colores chebs, no gris muerto) -->
         <div id="auto_box"
-             class="hidden absolute left-0 right-0 mt-2 z-50 rounded-2xl border border-chebs-line bg-gray-100 shadow-soft overflow-hidden">
-          <div class="px-4 py-2 text-xs text-gray-500 bg-gray-200/60 border-b border-chebs-line flex items-center justify-between">
-            <span>Resultados</span>
-            <span class="hidden sm:inline">↑ ↓ · Enter</span>
+             class="hidden absolute left-0 right-0 mt-2 z-50 rounded-2xl border border-chebs-line bg-white shadow-soft overflow-hidden">
+          <div class="px-4 py-2 text-xs text-chebs-black bg-chebs-soft/60 border-b border-chebs-line flex items-center justify-between">
+            <span class="font-bold">Resultados</span>
+            <span class="hidden sm:inline text-gray-600">↑ ↓ · Enter</span>
           </div>
 
           <div id="auto_list" class="max-h-64 overflow-auto"></div>
@@ -275,12 +336,17 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
     </form>
   </div>
 
-  <!-- Tabla -->
+  <!-- Tabla movimientos (más viva) -->
   <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden">
+    <div class="px-6 py-4 border-b border-chebs-line bg-chebs-soft/40">
+      <h3 class="text-lg font-black text-chebs-black">Movimientos</h3>
+      <p class="text-xs text-gray-600 mt-1">Detalle por fecha, tipo, lote y motivo.</p>
+    </div>
+
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
-        <thead class="bg-gray-100">
-          <tr class="text-left text-chebs-black">
+        <thead class="bg-white">
+          <tr class="text-left text-chebs-black border-b border-chebs-line">
             <th class="px-4 py-3 font-black">Fecha</th>
             <th class="px-4 py-3 font-black">Producto</th>
             <th class="px-4 py-3 font-black">Tipo</th>
@@ -294,25 +360,31 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
           <?php while($m = $movimientos->fetch_assoc()) {
             $tipo = strtolower($m['tipo'] ?? '');
             $badgeClass = "bg-gray-100 text-gray-700 border-gray-200";
+            $rowAccent = "";
             $tipoLabel = strtoupper($tipo ?: '-');
 
             if ($tipo === 'entrada') {
-              $badgeClass = "bg-green-100 text-green-700 border-green-200";
+              $badgeClass = "bg-green-100 text-green-800 border-green-200";
+              $rowAccent  = "shadow-[inset_4px_0_0_0_rgba(34,197,94,0.35)]";
               $tipoLabel = "ENTRADA";
             } elseif ($tipo === 'salida') {
-              $badgeClass = "bg-red-100 text-red-700 border-red-200";
+              $badgeClass = "bg-red-100 text-red-800 border-red-200";
+              $rowAccent  = "shadow-[inset_4px_0_0_0_rgba(239,68,68,0.28)]";
               $tipoLabel = "SALIDA";
             } else {
               $badgeClass = "bg-yellow-100 text-yellow-800 border-yellow-200";
+              $rowAccent  = "shadow-[inset_4px_0_0_0_rgba(234,179,8,0.28)]";
               $tipoLabel = strtoupper($tipo ?: 'AJUSTE');
             }
 
             $fechaV = $m['fecha_vencimiento'] ?? '-';
           ?>
-            <tr class="hover:bg-chebs-soft/40 transition">
-              <td class="px-4 py-3 whitespace-nowrap"><?= htmlspecialchars($m['fecha'] ?? '-') ?></td>
+            <tr class="hover:bg-chebs-soft/60 transition <?= $rowAccent ?>">
+              <td class="px-4 py-3 whitespace-nowrap text-gray-700 font-semibold">
+                <?= htmlspecialchars($m['fecha'] ?? '-') ?>
+              </td>
 
-              <td class="px-4 py-3 font-semibold text-chebs-black">
+              <td class="px-4 py-3 font-black text-chebs-black">
                 <?= htmlspecialchars($m['producto'] ?? '-') ?>
               </td>
 
@@ -334,7 +406,9 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
                     -
                   </span>
                 <?php } else { ?>
-                  <?= htmlspecialchars($fechaV) ?>
+                  <span class="text-sm font-semibold text-gray-700">
+                    <?= htmlspecialchars($fechaV) ?>
+                  </span>
                 <?php } ?>
               </td>
 
@@ -352,8 +426,10 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
 </div>
 
 <style>
+  /* scrollbar pro (autocomplete) */
   #auto_list::-webkit-scrollbar { width: 10px; }
-  #auto_list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+  #auto_list::-webkit-scrollbar-thumb { background: rgba(78,122,43,.35); border-radius: 10px; }
+  #auto_list::-webkit-scrollbar-thumb:hover { background: rgba(78,122,43,.55); }
   #auto_list::-webkit-scrollbar-track { background: transparent; }
 </style>
 
@@ -409,7 +485,7 @@ function renderAuto(){
     const div = document.createElement('div');
     div.className =
       "px-4 py-3 text-sm cursor-pointer border-b border-chebs-line last:border-b-0 " +
-      (idx === autoIndex ? "bg-gray-200" : "hover:bg-gray-200");
+      (idx === autoIndex ? "bg-chebs-soft/70 font-black" : "hover:bg-chebs-soft/60");
 
     const q = inputP.value.trim();
     if(q.length > 0){

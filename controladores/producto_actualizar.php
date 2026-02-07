@@ -14,6 +14,9 @@ $precio_unidad = (float)($_POST['precio_unidad'] ?? 0);
 $precio_paquete = (float)($_POST['precio_paquete'] ?? 0); // legacy
 $activo = (int)($_POST['activo'] ?? 1);
 
+// ✅ NUEVO: costo unidad (mayorista) opcional
+$costo_unidad = $_POST['costo_unidad'] ?? null;
+
 if ($id <= 0 || $nombre === '' || $precio_unidad <= 0) {
     die("Datos inválidos");
 }
@@ -27,8 +30,8 @@ $pres_costos   = $_POST['pres_costo'] ?? [];
 $conexion->begin_transaction();
 
 try {
-    // 1) Actualizar producto base
-    $ok = actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paquete, $activo);
+    // 1) Actualizar producto base (incluye costo_unidad)
+    $ok = actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paquete, $activo, $costo_unidad);
     if (!$ok) {
         throw new Exception("No se pudo actualizar producto");
     }
@@ -44,7 +47,5 @@ try {
 
 } catch (Throwable $e) {
     $conexion->rollback();
-    // Si quieres, puedes mandar el error por GET en vez de die:
-    // header("Location: ../vistas/productos/listar.php?error=1");
     die("Error: " . $e->getMessage());
 }
