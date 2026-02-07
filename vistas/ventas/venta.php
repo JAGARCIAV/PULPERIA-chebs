@@ -132,108 +132,120 @@ $ultTurnos = $stmtT->get_result();
   <section class="lg:col-span-8 space-y-6">
 
     <!-- CABECERA CAJA (✅ overflow visible para dropdown) -->
-    <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-visible">
-      <div class="px-6 py-4 bg-chebs-soft/50 border-b border-chebs-line flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-chebs-green/10 border border-chebs-green/20 flex items-center justify-center">
-            <span class="text-chebs-green font-black">💳</span>
+<div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-visible">
+  <div class="px-6 py-4 bg-chebs-soft/50 border-b border-chebs-line flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl bg-chebs-green/10 border border-chebs-green/20 flex items-center justify-center">
+        <span class="text-chebs-green font-black">💳</span>
+      </div>
+      <div class="leading-tight">
+        <div class="text-xs text-gray-500 font-bold">MÓDULO</div>
+        <h1 class="text-xl font-black text-chebs-black">CAJA</h1>
+      </div>
+    </div>
+
+    <?php if(!$turnoAbierto){ ?>
+      <span class="text-xs font-black text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded-full">
+        Turno cerrado
+      </span>
+    <?php } else { ?>
+      <span class="text-xs font-black text-chebs-green bg-chebs-green/10 border border-chebs-green/20 px-3 py-2 rounded-full">
+        Turno abierto
+      </span>
+    <?php } ?>
+  </div>
+
+  <!-- FORM PRODUCTO -->
+  <div class="px-6 py-5">
+    <!-- ⬇️ CAMBIO: items-start para que TODO alinee por arriba (no por el alto extra del producto) -->
+    <form id="form_producto" onsubmit="return false;" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+
+      <!-- Producto -->
+      <div class="md:col-span-8 relative z-50 flex flex-col">
+        <label class="block text-sm font-black text-pink-600 mb-2 leading-none">
+          Buscar producto
+        </label>
+
+        <!-- ⬇️ CAMBIO: misma altura que cantidad/botón -->
+        <input id="producto_nombre" type="text" name="producto_nombre"
+              placeholder="Escribe el nombre del producto…"
+              autocomplete="off"
+              required
+              class="w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 text-gray-800 placeholder-pink-400
+                    outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 text-[16px] font-semibold">
+
+        <!-- Fuente de datos -->
+        <div class="hidden">
+          <datalist id="lista_productos">
+            <?php while($p = $productos->fetch_assoc()) { ?>
+              <option value="<?= htmlspecialchars($p['nombre']) ?>" data-id="<?= (int)$p['id'] ?>"></option>
+            <?php } ?>
+          </datalist>
+        </div>
+
+        <input type="hidden" id="producto_id">
+
+        <!-- Autocomplete (✅ borde rosado + z alto) -->
+        <div id="auto_box"
+            class="hidden absolute left-0 right-0 mt-2 z-[999] rounded-2xl bg-white overflow-hidden border-2 border-pink-300">
+          <div class="px-4 py-2 text-xs text-chebs-black bg-pink-50 border-b border-pink-200 flex items-center justify-between">
+            <span class="font-black">Resultados</span>
+            <span class="hidden sm:inline text-gray-600">↑ ↓ · Enter</span>
           </div>
-          <div class="leading-tight">
-            <div class="text-xs text-gray-500 font-bold">MÓDULO</div>
-            <h1 class="text-xl font-black text-chebs-black">CAJA</h1>
+
+          <div id="auto_list" class="max-h-64 overflow-auto chebs-scroll"></div>
+
+          <div id="auto_empty" class="hidden px-4 py-3 text-sm text-gray-500">
+            Sin resultados
           </div>
         </div>
 
-        <?php if(!$turnoAbierto){ ?>
-          <span class="text-xs font-black text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded-full">
-            Turno cerrado
-          </span>
-        <?php } else { ?>
-          <span class="text-xs font-black text-chebs-green bg-chebs-green/10 border border-chebs-green/20 px-3 py-2 rounded-full">
-            Turno abierto
-          </span>
-        <?php } ?>
+        <div id="stock_info" class="mt-2 text-xs text-gray-600"></div>
+
+        <!-- Presentación (si hay packs) -->
+        <div id="presentacion_box" class="hidden mt-3">
+          <label class="block text-xs font-black text-pink-600 mb-2 leading-none">Presentación</label>
+          <select id="presentacion_select"
+                  class="w-full h-[52px] rounded-2xl bg-white border-2 border-pink-300 px-4 text-gray-800
+                         outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 font-semibold">
+            <option value="">Unidad</option>
+          </select>
+          <input type="hidden" id="presentacion_id" value="">
+        </div>
       </div>
 
-      <!-- FORM PRODUCTO -->
-      <div class="px-6 py-5">
-        <form id="form_producto" onsubmit="return false;" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+      <!-- Cantidad -->
+      <div class="md:col-span-2 flex flex-col">
+        <label class="block text-sm font-black text-pink-600 mb-2 leading-none">
+          Cantidad
+        </label>
 
-          <!-- Producto -->
-          <div class="md:col-span-8 relative z-50">
-            <label class="block text-sm font-black text-pink-600 mb-2">
-              Buscar producto
-            </label>
-
-            <input id="producto_nombre" type="text" name="producto_nombre"
-                  placeholder="Escribe el nombre del producto…"
-                  autocomplete="off"
-                  required
-                  class="w-full rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 py-3 text-gray-800 placeholder-pink-400
-                        outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 text-[16px] font-semibold">
-
-            <!-- Fuente de datos -->
-            <div class="hidden">
-              <datalist id="lista_productos">
-                <?php while($p = $productos->fetch_assoc()) { ?>
-                  <option value="<?= htmlspecialchars($p['nombre']) ?>" data-id="<?= (int)$p['id'] ?>"></option>
-                <?php } ?>
-              </datalist>
-            </div>
-
-            <input type="hidden" id="producto_id">
-
-            <!-- Autocomplete (✅ borde rosado + z alto) -->
-            <div id="auto_box"
-                class="hidden absolute left-0 right-0 mt-2 z-[999] rounded-2xl bg-white overflow-hidden">
-              <div class="px-4 py-2 text-xs text-chebs-black bg-pink-50 border-b border-pink-200 flex items-center justify-between">
-                <span class="font-black">Resultados</span>
-                <span class="hidden sm:inline text-gray-600">↑ ↓ · Enter</span>
-              </div>
-
-              <div id="auto_list" class="max-h-64 overflow-auto chebs-scroll"></div>
-
-              <div id="auto_empty" class="hidden px-4 py-3 text-sm text-gray-500">
-                Sin resultados
-              </div>
-            </div>
-
-            <div id="stock_info" class="mt-2 text-xs text-gray-600"></div>
-
-            <!-- Presentación (si hay packs) -->
-            <div id="presentacion_box" class="hidden mt-3">
-              <label class="block text-xs font-black text-pink-600 mb-2">Presentación</label>
-              <select id="presentacion_select"
-                      class="w-full rounded-2xl bg-white border-2 border-pink-300 px-4 py-3 text-gray-800
-                             outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 font-semibold">
-                <option value="">Unidad</option>
-              </select>
-              <input type="hidden" id="presentacion_id" value="">
-            </div>
-          </div>
-
-          <!-- Cantidad -->
-          <div class="md:col-span-2">
-            <label class="block text-sm font-black text-pink-600 mb-2">
-              Cantidad
-            </label>
-            <input type="number" id="cantidad" min="1" value="1"
-                  class="w-full rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 py-3 text-gray-800
-                         outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 text-[16px] font-semibold">
-          </div>
-
-          <!-- Botón agregar -->
-          <div class="md:col-span-2">
-            <button type="button" onclick="agregarDesdeFormulario()"
-                    class="w-full px-6 py-3 rounded-2xl bg-chebs-green text-white font-black
-                           hover:bg-chebs-greenDark transition shadow-soft">
-              Agregar
-            </button>
-          </div>
-
-        </form>
+        <!-- ⬇️ CAMBIO: misma altura -->
+        <input type="number" id="cantidad" min="1" value="1"
+              class="w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 text-gray-800
+                     outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 text-[16px] font-semibold">
       </div>
-    </div>
+
+      <!-- Botón agregar -->
+      <div class="md:col-span-2 flex flex-col">
+        <!-- label fantasma para que el botón quede EXACTO a la misma altura visual -->
+        <div class="mb-2 text-sm font-black opacity-0 leading-none select-none">.</div>
+
+        <!-- ⬇️ Glow externo verde oscuro + parpadeo -->
+        <button type="button" onclick="agregarDesdeFormulario()"
+                class="relative w-full h-[52px] rounded-2xl bg-chebs-green text-white font-black
+                       hover:bg-chebs-greenDark transition shadow-soft
+                       focus:outline-none focus:ring-4 focus:ring-chebs-green/30
+                       after:content-[''] after:absolute after:inset-[-8px] after:rounded-[22px]
+                       after:bg-chebs-greenDark/30 after:blur-xl after:animate-pulse after:-z-10">
+          Agregar
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
 
     <!-- DETALLE DE VENTA (tabla + total + confirmar) -->
     <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden">
