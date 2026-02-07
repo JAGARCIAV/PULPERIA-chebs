@@ -119,6 +119,13 @@ $ultTurnos = $stmtT->get_result();
     border: 2px solid #f9a8d4 !important; /* pink-300 */
     box-shadow: 0 18px 40px rgba(0,0,0,.10);
   }
+.stock-zero{
+  font-size: 14px;
+  font-weight: 900;
+  color: #dc2626;
+}
+
+
 </style>
 
 <!-- =========================
@@ -226,21 +233,28 @@ $ultTurnos = $stmtT->get_result();
                      outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 text-[16px] font-semibold">
       </div>
 
-      <!-- Botón agregar -->
-      <div class="md:col-span-2 flex flex-col">
-        <!-- label fantasma para que el botón quede EXACTO a la misma altura visual -->
-        <div class="mb-2 text-sm font-black opacity-0 leading-none select-none">.</div>
+<!-- Botón agregar -->
+<div class="md:col-span-2 flex flex-col">
+  <!-- label fantasma para que el botón quede EXACTO a la misma altura visual -->
+  <div class="mb-2 text-sm font-black opacity-0 leading-none select-none">.</div>
 
-        <!-- ⬇️ Glow externo verde oscuro + parpadeo -->
-        <button type="button" onclick="agregarDesdeFormulario()"
-                class="relative w-full h-[52px] rounded-2xl bg-chebs-green text-white font-black
-                       hover:bg-chebs-greenDark transition shadow-soft
-                       focus:outline-none focus:ring-4 focus:ring-chebs-green/30
-                       after:content-[''] after:absolute after:inset-[-8px] after:rounded-[22px]
-                       after:bg-chebs-greenDark/30 after:blur-xl after:animate-pulse after:-z-10">
-          Agregar
-        </button>
-      </div>
+  <button type="button" onclick="agregarDesdeFormulario()"
+          class="relative w-full h-[52px] rounded-2xl text-white font-black
+                 bg-gradient-to-b from-[#6fa83c] to-[#4e7a2b]
+                 shadow-[0_6px_0_#35541d,0_14px_26px_rgba(0,0,0,0.25)]
+                 transition-all duration-150
+                 hover:from-[#7fb94a] hover:to-[#5a8b33]
+                 hover:shadow-[0_6px_0_#35541d,0_16px_28px_rgba(0,0,0,0.30)]
+                 hover:-translate-y-[1px]
+                 active:translate-y-[4px]
+                 active:shadow-[0_2px_0_#35541d,0_8px_14px_rgba(0,0,0,0.22)]
+                 focus:outline-none focus:ring-4 focus:ring-chebs-green/30
+                 after:content-[''] after:absolute after:inset-[-10px] after:rounded-[26px]
+                 after:bg-[#35541d]/35 after:blur-2xl after:animate-pulse after:-z-10">
+    Agregar
+  </button>
+</div>
+
 
     </form>
   </div>
@@ -302,15 +316,27 @@ $ultTurnos = $stmtT->get_result();
           <div class="text-xs text-gray-500">
             Tip: usa ↑ ↓ y Enter en el buscador para seleccionar rápido.
           </div>
+<button id="btn_confirmar" type="button"
+        <?= (!$turnoAbierto ? "disabled" : "") ?>
+        class="relative px-8 h-[52px] rounded-2xl font-black transition-all duration-150
+        <?= (!$turnoAbierto
+            ? "bg-gray-200 text-gray-500 cursor-not-allowed
+               shadow-[0_4px_0_#bdbdbd,0_8px_14px_rgba(0,0,0,0.15)]"
+            : "text-white
+               bg-gradient-to-b from-[#6fa83c] to-[#4e7a2b]
+               shadow-[0_6px_0_#35541d,0_14px_26px_rgba(0,0,0,0.25)]
+               hover:from-[#7fb94a] hover:to-[#5a8b33]
+               hover:shadow-[0_6px_0_#35541d,0_16px_28px_rgba(0,0,0,0.30)]
+               hover:-translate-y-[1px]
+               active:translate-y-[4px]
+               active:shadow-[0_2px_0_#35541d,0_8px_14px_rgba(0,0,0,0.22)]
+               focus:outline-none focus:ring-4 focus:ring-chebs-green/30
+               after:content-[''] after:absolute after:inset-[-10px]
+               after:rounded-[26px] after:bg-[#35541d]/35
+               after:blur-2xl after:animate-pulse after:-z-10") ?>">
+  Confirmar venta
+</button>
 
-          <button id="btn_confirmar" type="button"
-                  <?= (!$turnoAbierto ? "disabled" : "") ?>
-                  class="px-8 py-3 rounded-2xl font-black transition shadow-soft
-                         <?= (!$turnoAbierto
-                              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                              : "bg-chebs-green text-white hover:bg-chebs-greenDark") ?>">
-            Confirmar venta
-          </button>
         </div>
 
       </div>
@@ -955,7 +981,22 @@ async function seleccionarItem(idx){
     if(js.error){
       stockInfo.textContent = "Stock: error";
     } else {
-      stockInfo.textContent = `Stock disponible: ${parseInt(js.stock)}`;
+      const st = parseInt(js.stock);
+
+if (Number.isFinite(st) && st <= 0) {
+  stockInfo.classList.add('stock-zero');
+  stockInfo.classList.remove('text-xs','text-gray-600');
+  stockInfo.textContent = 'SIN STOCK (0)';
+} else if (Number.isFinite(st)) {
+  stockInfo.classList.remove('stock-zero');
+  stockInfo.classList.add('text-xs','text-gray-600');
+  stockInfo.textContent = `Stock disponible: ${st}`;
+} else {
+  stockInfo.classList.remove('stock-zero');
+  stockInfo.classList.add('text-xs','text-gray-600');
+  stockInfo.textContent = 'Stock: -';
+}
+
     }
   } catch {
     stockInfo.textContent = "Stock: error";
