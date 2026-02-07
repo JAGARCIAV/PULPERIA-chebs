@@ -100,6 +100,8 @@ $mesActualData = [
   'ganancia' => 0,
 ];
 
+
+
 foreach($resumenRows as $r){
   if(($r['mes'] ?? '') === $mesActual){
     $mesActualData = [
@@ -111,6 +113,62 @@ foreach($resumenRows as $r){
     break;
   }
 }
+
+/* ======================================================
+   ✅ GANANCIA DIARIA (HOY)
+   ====================================================== */
+$hoy = date('Y-m-d'); // ejemplo: 2026-02-07
+
+$sqlDiario = "
+SELECT
+  DATE(v.fecha) AS dia,
+  SUM(d.subtotal) AS total_vendido_dia,
+
+  SUM(
+    CASE
+      WHEN d.tipo_venta='unidad'
+        AND p.costo_unidad IS NOT NULL AND p.costo_unidad > 0
+        THEN (d.precio_unitario - p.costo_unidad) * d.cantidad
+
+      WHEN d.tipo_venta='paquete'
+        AND pp.id IS NOT NULL
+        THEN (
+          d.precio_unitario
+          -
+          COALESCE(
+            NULLIF(pp.costo, 0),
+            (p.costo_unidad * pp.unidades)
+          )
+        ) * d.cantidad
+
+      ELSE 0
+    END
+  ) AS ganancia_dia
+FROM ventas v
+JOIN detalle_venta d ON d.venta_id = v.id
+JOIN productos p ON p.id = d.producto_id
+LEFT JOIN producto_presentaciones pp ON pp.id = d.presentacion_id
+WHERE DATE(v.fecha) = ?
+$filtroSql
+";
+
+$stmtDia = $conexion->prepare($sqlDiario);
+
+if ($producto_id) {
+  $stmtDia->bind_param("si", $hoy, $producto_id);
+} else {
+  $stmtDia->bind_param("s", $hoy);
+}
+
+$stmtDia->execute();
+$diaRow = $stmtDia->get_result()->fetch_assoc();
+
+$diaData = [
+  'dia' => $hoy,
+  'total_vendido_dia' => (float)($diaRow['total_vendido_dia'] ?? 0),
+  'ganancia_dia' => (float)($diaRow['ganancia_dia'] ?? 0),
+];
+
 
 /* ======================================================
    Historial de movimientos
@@ -150,7 +208,7 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
     </div>
 
     <div class="px-6 py-4">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 
         <!-- Mes actual -->
         <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 relative overflow-hidden">
@@ -176,7 +234,7 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
           </div>
         </div>
 
-        <!-- Ganancia -->
+        <!-- Ganancia del mes-->
         <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 relative overflow-hidden">
           <div class="absolute left-0 top-0 bottom-0 w-2 <?= $mesActualData['ganancia'] >= 0 ? 'bg-green-500/40' : 'bg-red-500/40' ?>"></div>
           <div class="pl-3">
@@ -189,6 +247,24 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
             </div>
           </div>
         </div>
+
+<!-- Ganancia diaria (HOY) -->
+<div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 relative overflow-hidden">
+  <div class="absolute left-0 top-0 bottom-0 w-2 <?= $diaData['ganancia_dia'] >= 0 ? 'bg-green-500/40' : 'bg-red-500/40' ?>"></div>
+  <div class="pl-3">
+    <div class="text-xs text-gray-500 font-bold">Ganancia (diaria)</div>
+
+    <div class="text-2xl font-black mt-1 <?= $diaData['ganancia_dia'] >= 0 ? 'text-green-700' : 'text-red-700' ?>">
+      Bs <?= number_format($diaData['ganancia_dia'], 2) ?>
+    </div>
+
+    <div class="text-xs text-gray-500 mt-2">
+      Hoy: <?= htmlspecialchars($diaData['dia']) ?> · Vendido: Bs <?= number_format($diaData['total_vendido_dia'], 2) ?>
+    </div>
+  </div>
+</div>
+
+
 
       </div>
     </div>
@@ -259,7 +335,10 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
       <?php endif; ?>
     </tbody>
   </table>
+  
 </div>
+
+
 
 
   </div>
