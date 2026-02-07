@@ -162,40 +162,74 @@ $ultTurnos = $stmtT->get_result();
     <?php } ?>
   </div>
 
-  <!-- FORM PRODUCTO -->
-  <!-- Producto -->
-<div class="md:col-span-8 relative flex flex-col">
+<!-- FORM PRODUCTO -->
+  <div class="px-6 py-5">
+    <!-- ⬇️ CAMBIO: items-start para que TODO alinee por arriba (no por el alto extra del producto) -->
+    <form id="form_producto" onsubmit="return false;" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+
+      <!-- Producto -->
+<div class="md:col-span-8 z-50 flex flex-col">
   <label class="block text-sm font-black text-pink-600 mb-2 leading-none">
     Buscar producto
   </label>
 
-  <input id="producto_nombre" type="text" name="producto_nombre"
-        placeholder="Escribe el nombre del producto…"
-        autocomplete="off"
-        required
-        class="w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 text-gray-800 placeholder-pink-400
-              outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 text-[16px] font-semibold">
+  <?php
+    // ✅ IMPORTANTE: convertimos el resultset a array UNA SOLA VEZ
+    // para que NO se “consuma” y el autocomplete siempre tenga datos.
+    $productosArr = [];
+    if ($productos) {
+      $productos->data_seek(0);
+      while($p = $productos->fetch_assoc()){
+        $productosArr[] = [
+          'id' => (int)$p['id'],
+          'nombre' => (string)$p['nombre'],
+        ];
+      }
+    }
+  ?>
 
-  <input type="hidden" id="producto_id">
+  <!-- ✅ Wrapper relative SOLO para input + dropdown -->
+  <div class="relative">
+    <input id="producto_nombre" type="text" name="producto_nombre"
+          placeholder="Escribe el nombre del producto…"
+          autocomplete="off"
+          required
+          class="w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 text-gray-800 placeholder-pink-400
+                outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 text-[16px] font-semibold">
 
-  <!-- ✅ Autocomplete SIN absolute (ya no se sobrepone) -->
-  <div id="auto_box"
-      class="hidden mt-2 rounded-2xl bg-white overflow-hidden border-2 border-pink-300">
-    <div class="px-4 py-2 text-xs text-chebs-black bg-pink-50 border-b border-pink-200 flex items-center justify-between">
-      <span class="font-black">Resultados</span>
-      <span class="hidden sm:inline text-gray-600">↑ ↓ · Enter</span>
+    <!-- Fuente de datos (se deja, pero el JS ya NO depende de esto) -->
+    <div class="hidden">
+      <datalist id="lista_productos">
+        <?php foreach($productosArr as $p) { ?>
+          <option value="<?= htmlspecialchars($p['nombre']) ?>" data-id="<?= (int)$p['id'] ?>"></option>
+        <?php } ?>
+      </datalist>
     </div>
 
-    <div id="auto_list" class="max-h-64 overflow-auto chebs-scroll"></div>
+    <!-- ✅ Autocomplete: siempre debajo del input -->
+    <div id="auto_box"
+        class="hidden absolute left-0 right-0 top-full mt-2 z-[999]
+              rounded-2xl bg-white overflow-hidden border-2 border-pink-400
+              shadow-[0_18px_40px_rgba(236,72,153,0.20)]">
+      <div class="px-4 py-2 text-xs text-chebs-black bg-pink-50 border-b border-pink-200 flex items-center justify-between">
+        <span class="font-black">Resultados</span>
+        <span class="hidden sm:inline text-gray-600">↑ ↓ · Enter</span>
+      </div>
 
-    <div id="auto_empty" class="hidden px-4 py-3 text-sm text-gray-500">
-      Sin resultados
+      <div id="auto_list" class="max-h-64 overflow-auto chebs-scroll"></div>
+
+      <div id="auto_empty" class="hidden px-4 py-3 text-sm text-gray-500">
+        Sin resultados
+      </div>
     </div>
   </div>
 
-  <div id="stock_info" class="mt-2 text-xs text-gray-600"></div>
+  <input type="hidden" id="producto_id">
 
-  <!-- Presentación -->
+  <!-- ✅ Stock: reservamos altura para que no desalineé nada -->
+  <div id="stock_info" class="mt-2 text-xs text-gray-600 min-h-[18px]"></div>
+
+  <!-- Presentación (si hay packs) -->
   <div id="presentacion_box" class="hidden mt-3">
     <label class="block text-xs font-black text-pink-600 mb-2 leading-none">Presentación</label>
     <select id="presentacion_select"
@@ -205,8 +239,15 @@ $ultTurnos = $stmtT->get_result();
     </select>
     <input type="hidden" id="presentacion_id" value="">
   </div>
+
+  <!-- ✅ PASAMOS LISTA A JS (esto evita que desaparezcan los elementos) -->
+  <script>
+    window.__CHEBS_PRODUCTOS__ = <?= json_encode($productosArr, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+  </script>
+
 </div>
-  
+
+
       <!-- Cantidad -->
       <div class="md:col-span-2 flex flex-col">
         <label class="block text-sm font-black text-pink-600 mb-2 leading-none">
@@ -475,10 +516,10 @@ $ultTurnos = $stmtT->get_result();
         </div>
       </div>
 
-      <div class="px-6 py-5">
+<div class="px-3 py-5 md:px-4">
         <div class="max-h-[54vh] overflow-auto pr-1 chebs-scroll space-y-4">
           <?php while($v = $ultimasVentas->fetch_assoc()) { ?>
-            <div class="rounded-2xl border border-chebs-line p-4 bg-white hover:bg-chebs-soft/40 transition">
+<div class="rounded-2xl border border-chebs-line px-3 py-3 bg-white hover:bg-chebs-soft/40 transition">
               <div class="flex items-center justify-between gap-3">
                 <div class="font-black">Venta #<?= (int)$v['id'] ?></div>
                 <div class="text-xs text-gray-500"><?= htmlspecialchars($v['fecha']) ?></div>
