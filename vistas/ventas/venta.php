@@ -53,17 +53,7 @@ if ($turnoAbierto) {
   $efectivoEsperadoUI = $montoInicialUI + $totalTurno - $totalRetiros;
 }
 
-// ✅ Últimos turnos: admin ve todos / empleado solo los suyos
-$limite = 5;
-if ($rol === 'admin') {
-  $stmtT = $conexion->prepare("SELECT * FROM turnos ORDER BY id DESC LIMIT ?");
-  $stmtT->bind_param("i", $limite);
-} else {
-  $stmtT = $conexion->prepare("SELECT * FROM turnos WHERE usuario_id=? ORDER BY id DESC LIMIT ?");
-  $stmtT->bind_param("ii", $userId, $limite);
-}
-$stmtT->execute();
-$ultTurnos = $stmtT->get_result();
+
 ?>
 
 <style>
@@ -475,27 +465,7 @@ $ultTurnos = $stmtT->get_result();
 
         <?php } ?>
 
-        <?php if ($rol === 'admin') { ?>
-          <div class="h-px bg-chebs-line my-5"></div>
-          <h4 class="font-black mb-3">Últimos turnos</h4>
 
-          <div class="space-y-3">
-            <?php while($t = $ultTurnos->fetch_assoc()) { ?>
-              <div class="rounded-2xl border border-chebs-line p-4 bg-white">
-                <div class="flex items-center justify-between">
-                  <div class="font-black">#<?= (int)$t["id"] ?></div>
-                  <div class="text-xs text-gray-500"><?= htmlspecialchars($t["fecha"]) ?></div>
-                </div>
-                <div class="mt-2 text-xs text-gray-600 space-y-1">
-                  <div><b>Entrada:</b> <?= htmlspecialchars($t["abierto_en"]) ?></div>
-                  <div><b>Salida:</b> <?= htmlspecialchars($t["cerrado_en"] ?? '-') ?></div>
-                  <div><b>Estado:</b> <?= htmlspecialchars($t["estado"]) ?></div>
-                  <div><b>Resp:</b> <?= htmlspecialchars($t["responsable"]) ?></div>
-                </div>
-              </div>
-            <?php } ?>
-          </div>
-        <?php } ?>
 
       </div>
     </div>

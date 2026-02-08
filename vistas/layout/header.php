@@ -105,6 +105,11 @@ $rol = $_SESSION['user']['rol'] ?? '';
               Inicio
             </a>
 
+            <a href="/PULPERIA-CHEBS/vistas/perfiles/perfiles_usuarios.php"
+               class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
+              Usuarios
+            </a>
+
             <a href="/PULPERIA-CHEBS/vistas/productos/listar.php"
                class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
               Productos
