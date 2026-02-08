@@ -11,12 +11,12 @@ $turno     = $_GET['turno'] ?? null;
 $tipo      = $_GET['tipo'] ?? null;
 $busqueda  = $_GET['busqueda'] ?? null;
 
-$ventas = obtenerVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda);
+$ventasRs = obtenerVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda);
 
 /* =====================================================
    🎨 COLORES POR RESPONSABLE (FILA COMPLETA)
    + Colores distintos para ADMIN vs EMPLEADO
-   + PRIMERA venta del responsable = color más fuerte
+   + PRIMERA venta REAL = más temprana por (usuario + día)
    ===================================================== */
 
 // Mapa: nombre -> rol (para saber si es admin)
@@ -45,7 +45,7 @@ $coloresFilaAdmin = [
   ["bg-teal-50",   "hover:bg-teal-100/60",   "border-teal-300"],
 ];
 
-// Paletas (fila completa) - FUERTE (para la primera venta)
+// Paletas (fila completa) - FUERTE (para primera venta real)
 $coloresFilaEmpleadoFuerte = [
   ["bg-pink-200",   "hover:bg-pink-300/70",   "border-pink-400"],
   ["bg-green-200",  "hover:bg-green-300/70",  "border-green-400"],
@@ -90,8 +90,31 @@ function colorResponsableBadge($responsable){
   return $pal[$hash % count($pal)];
 }
 
-// ✅ Control: primera fila por responsable (según el orden que llega de la query)
-$primeraFilaPorResponsable = [];
+/* =====================================================
+   ✅ PASO 1: traer todas las ventas a un array
+   ✅ PASO 2: calcular la primera venta REAL por (responsable + día)
+   ===================================================== */
+
+$ventas = [];
+$primeraPorRespDia = []; // clave "resp|YYYY-MM-DD" => fechaHoraMinima (string)
+
+while($row = $ventasRs->fetch_assoc()){
+  $ventas[] = $row;
+
+  $resp = (string)($row['responsable'] ?? '');
+  $respKey = strtolower(trim($resp));
+
+  // fecha viene tipo "2026-02-06 20:48:22"
+  $fechaHora = (string)($row['fecha'] ?? '');
+  $dia = substr($fechaHora, 0, 10); // YYYY-MM-DD
+
+  $k = $respKey . '|' . $dia;
+
+  // guardamos la más pequeña (más temprana)
+  if (!isset($primeraPorRespDia[$k]) || $fechaHora < $primeraPorRespDia[$k]) {
+    $primeraPorRespDia[$k] = $fechaHora;
+  }
+}
 ?>
 
 <div class="max-w-7xl mx-auto px-4 py-8">
@@ -192,17 +215,19 @@ $primeraFilaPorResponsable = [];
         </thead>
 
         <tbody class="divide-y divide-chebs-line">
-          <?php while($v = $ventas->fetch_assoc()) { ?>
+          <?php foreach($ventas as $v) { ?>
 
           <?php
-            $respKey = strtolower(trim($v['responsable'] ?? ''));
             $resp = $v['responsable'] ?? '';
-
+            $respKey = strtolower(trim($resp));
             $rolResp = $mapRolPorNombre[$respKey] ?? 'empleado';
 
-            // ✅ primera fila de ese responsable (según orden actual)
-            $esPrimera = !isset($primeraFilaPorResponsable[$respKey]);
-            if ($esPrimera) $primeraFilaPorResponsable[$respKey] = true;
+            $fechaHora = (string)($v['fecha'] ?? '');
+            $dia = substr($fechaHora, 0, 10);
+            $k = $respKey . '|' . $dia;
+
+            // ✅ primera venta REAL del día para ese responsable
+            $esPrimera = isset($primeraPorRespDia[$k]) && ($fechaHora === $primeraPorRespDia[$k]);
 
             [$bgFila, $hoverFila, $borderFila] = filaColorPorUsuario(
               $resp,
@@ -221,7 +246,7 @@ $primeraFilaPorResponsable = [];
 
             <td class="px-4 py-3 font-semibold">#<?= (int)$v['id'] ?></td>
 
-            <!-- ✅ FECHA / HORA grande y negrita SOLO para primera venta -->
+            <!-- ✅ fecha/hora grande y negrita SOLO si es primera -->
             <td class="px-4 py-3 whitespace-nowrap <?= $esPrimera ? 'font-black text-base' : '' ?>">
               <?= htmlspecialchars($v['fecha']) ?>
               <?php if($esPrimera){ ?>
@@ -243,7 +268,6 @@ $primeraFilaPorResponsable = [];
               </span>
             </td>
 
-            <!-- ✅ RESPONSABLE: badge fuerte + etiqueta ADMIN -->
             <td class="px-4 py-3">
               <span class="inline-flex items-center px-3 py-1 rounded-xl text-xs font-black border <?= $badgeResp ?>">
                 <?= htmlspecialchars($resp) ?>
@@ -272,6 +296,7 @@ $primeraFilaPorResponsable = [];
             </td>
 
           </tr>
+
           <?php } ?>
         </tbody>
 
@@ -318,7 +343,6 @@ $primeraFilaPorResponsable = [];
 </div>
 
 <script>
-/* ✅ Mantener compatibilidad con tu JS actual */
 function abrirModalGeneral(){
   document.getElementById('modalGeneral').classList.remove('hidden');
 }
@@ -326,8 +350,6 @@ function cerrarModalGeneral(){
   document.getElementById('modalGeneral').classList.add('hidden');
   document.getElementById('modalContenido').innerHTML = '';
 }
-
-// ESC cierra modal
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') cerrarModalGeneral();
 });
