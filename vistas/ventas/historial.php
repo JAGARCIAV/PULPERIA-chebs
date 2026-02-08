@@ -16,6 +16,7 @@ $ventas = obtenerVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda);
 /* =====================================================
    🎨 COLORES POR RESPONSABLE (FILA COMPLETA)
    + Colores distintos para ADMIN vs EMPLEADO
+   + PRIMERA venta del responsable = color más fuerte
    ===================================================== */
 
 // Mapa: nombre -> rol (para saber si es admin)
@@ -27,7 +28,7 @@ if ($qRoles) {
   }
 }
 
-// Paletas (fila completa)
+// Paletas (fila completa) - SUAVE
 $coloresFilaEmpleado = [
   ["bg-pink-50",   "hover:bg-pink-100/60",   "border-pink-300"],
   ["bg-green-50",  "hover:bg-green-100/60",  "border-green-300"],
@@ -44,12 +45,34 @@ $coloresFilaAdmin = [
   ["bg-teal-50",   "hover:bg-teal-100/60",   "border-teal-300"],
 ];
 
-// mismo responsable => mismo color
-function filaColorPorUsuario($responsable, $rol, $palEmp, $palAdm){
+// Paletas (fila completa) - FUERTE (para la primera venta)
+$coloresFilaEmpleadoFuerte = [
+  ["bg-pink-200",   "hover:bg-pink-300/70",   "border-pink-400"],
+  ["bg-green-200",  "hover:bg-green-300/70",  "border-green-400"],
+  ["bg-blue-200",   "hover:bg-blue-300/70",   "border-blue-400"],
+  ["bg-purple-200", "hover:bg-purple-300/70", "border-purple-400"],
+  ["bg-yellow-200", "hover:bg-yellow-300/70", "border-yellow-400"],
+  ["bg-red-200",    "hover:bg-red-300/70",    "border-red-400"],
+];
+
+$coloresFilaAdminFuerte = [
+  ["bg-amber-200",  "hover:bg-amber-300/70",  "border-amber-400"],
+  ["bg-orange-200", "hover:bg-orange-300/70", "border-orange-400"],
+  ["bg-rose-200",   "hover:bg-rose-300/70",   "border-rose-400"],
+  ["bg-teal-200",   "hover:bg-teal-300/70",   "border-teal-400"],
+];
+
+// mismo responsable => mismo color (suave o fuerte)
+function filaColorPorUsuario($responsable, $rol, $palEmp, $palAdm, $palEmpFuerte, $palAdmFuerte, $fuerte = false){
   $key = strtolower(trim((string)$responsable));
   $hash = crc32($key);
 
-  $pal = ($rol === 'admin') ? $palAdm : $palEmp;
+  if ($rol === 'admin') {
+    $pal = $fuerte ? $palAdmFuerte : $palAdm;
+  } else {
+    $pal = $fuerte ? $palEmpFuerte : $palEmp;
+  }
+
   return $pal[$hash % count($pal)]; // [bg, hover, border]
 }
 
@@ -66,6 +89,9 @@ function colorResponsableBadge($responsable){
   $hash = crc32(strtolower(trim((string)$responsable)));
   return $pal[$hash % count($pal)];
 }
+
+// ✅ Control: primera fila por responsable (según el orden que llega de la query)
+$primeraFilaPorResponsable = [];
 ?>
 
 <div class="max-w-7xl mx-auto px-4 py-8">
@@ -169,16 +195,41 @@ function colorResponsableBadge($responsable){
           <?php while($v = $ventas->fetch_assoc()) { ?>
 
           <?php
+            $respKey = strtolower(trim($v['responsable'] ?? ''));
             $resp = $v['responsable'] ?? '';
-            $rolResp = $mapRolPorNombre[strtolower(trim($resp))] ?? 'empleado';
-            [$bgFila, $hoverFila, $borderFila] = filaColorPorUsuario($resp, $rolResp, $coloresFilaEmpleado, $coloresFilaAdmin);
+
+            $rolResp = $mapRolPorNombre[$respKey] ?? 'empleado';
+
+            // ✅ primera fila de ese responsable (según orden actual)
+            $esPrimera = !isset($primeraFilaPorResponsable[$respKey]);
+            if ($esPrimera) $primeraFilaPorResponsable[$respKey] = true;
+
+            [$bgFila, $hoverFila, $borderFila] = filaColorPorUsuario(
+              $resp,
+              $rolResp,
+              $coloresFilaEmpleado,
+              $coloresFilaAdmin,
+              $coloresFilaEmpleadoFuerte,
+              $coloresFilaAdminFuerte,
+              $esPrimera
+            );
+
             $badgeResp = colorResponsableBadge($resp);
           ?>
 
           <tr class="transition <?= $bgFila ?> <?= $hoverFila ?> border-l-4 <?= $borderFila ?>">
 
             <td class="px-4 py-3 font-semibold">#<?= (int)$v['id'] ?></td>
-            <td class="px-4 py-3 whitespace-nowrap"><?= htmlspecialchars($v['fecha']) ?></td>
+
+            <!-- ✅ FECHA / HORA grande y negrita SOLO para primera venta -->
+            <td class="px-4 py-3 whitespace-nowrap <?= $esPrimera ? 'font-black text-base' : '' ?>">
+              <?= htmlspecialchars($v['fecha']) ?>
+              <?php if($esPrimera){ ?>
+                <div class="text-[11px] uppercase tracking-wide opacity-80">
+                  primera venta
+                </div>
+              <?php } ?>
+            </td>
 
             <td class="px-4 py-3">
               <?php
