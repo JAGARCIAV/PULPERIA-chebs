@@ -12,6 +12,60 @@ $tipo      = $_GET['tipo'] ?? null;
 $busqueda  = $_GET['busqueda'] ?? null;
 
 $ventas = obtenerVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda);
+
+/* =====================================================
+   🎨 COLORES POR RESPONSABLE (FILA COMPLETA)
+   + Colores distintos para ADMIN vs EMPLEADO
+   ===================================================== */
+
+// Mapa: nombre -> rol (para saber si es admin)
+$mapRolPorNombre = [];
+$qRoles = $conexion->query("SELECT nombre, rol FROM usuarios");
+if ($qRoles) {
+  while($u = $qRoles->fetch_assoc()){
+    $mapRolPorNombre[strtolower(trim($u['nombre']))] = strtolower(trim($u['rol']));
+  }
+}
+
+// Paletas (fila completa)
+$coloresFilaEmpleado = [
+  ["bg-pink-50",   "hover:bg-pink-100/60",   "border-pink-300"],
+  ["bg-green-50",  "hover:bg-green-100/60",  "border-green-300"],
+  ["bg-blue-50",   "hover:bg-blue-100/60",   "border-blue-300"],
+  ["bg-purple-50", "hover:bg-purple-100/60", "border-purple-300"],
+  ["bg-yellow-50", "hover:bg-yellow-100/60", "border-yellow-300"],
+  ["bg-red-50",    "hover:bg-red-100/60",    "border-red-300"],
+];
+
+$coloresFilaAdmin = [
+  ["bg-amber-50",  "hover:bg-amber-100/60",  "border-amber-300"],
+  ["bg-orange-50", "hover:bg-orange-100/60", "border-orange-300"],
+  ["bg-rose-50",   "hover:bg-rose-100/60",   "border-rose-300"],
+  ["bg-teal-50",   "hover:bg-teal-100/60",   "border-teal-300"],
+];
+
+// mismo responsable => mismo color
+function filaColorPorUsuario($responsable, $rol, $palEmp, $palAdm){
+  $key = strtolower(trim((string)$responsable));
+  $hash = crc32($key);
+
+  $pal = ($rol === 'admin') ? $palAdm : $palEmp;
+  return $pal[$hash % count($pal)]; // [bg, hover, border]
+}
+
+// badge más fuerte para que resalte sobre el fondo
+function colorResponsableBadge($responsable){
+  $pal = [
+    "bg-pink-200 text-pink-900 border-pink-300",
+    "bg-green-200 text-green-900 border-green-300",
+    "bg-blue-200 text-blue-900 border-blue-300",
+    "bg-purple-200 text-purple-900 border-purple-300",
+    "bg-yellow-200 text-yellow-900 border-yellow-300",
+    "bg-red-200 text-red-900 border-red-300",
+  ];
+  $hash = crc32(strtolower(trim((string)$responsable)));
+  return $pal[$hash % count($pal)];
+}
 ?>
 
 <div class="max-w-7xl mx-auto px-4 py-8">
@@ -79,19 +133,18 @@ $ventas = obtenerVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda);
       </div>
 
       <!-- Botones -->
-        <div class="md:col-span-1 flex gap-3 md:justify-end">
-            <button type="submit"
-                    class="px-6 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition shadow-soft
-                        whitespace-nowrap min-w-[120px]">
-            Filtrar
-            </button>
+      <div class="md:col-span-1 flex gap-3 md:justify-end">
+        <button type="submit"
+                class="px-6 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition shadow-soft
+                       whitespace-nowrap min-w-[120px]">
+          Filtrar
+        </button>
 
-            <a href="historial.php"
-            class="px-6 py-3 rounded-2xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition text-center
-                    whitespace-nowrap min-w-[120px]">
-            Limpiar
-            </a>
-
+        <a href="historial.php"
+           class="px-6 py-3 rounded-2xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition text-center
+                  whitespace-nowrap min-w-[120px]">
+          Limpiar
+        </a>
       </div>
 
     </form>
@@ -114,24 +167,44 @@ $ventas = obtenerVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda);
 
         <tbody class="divide-y divide-chebs-line">
           <?php while($v = $ventas->fetch_assoc()) { ?>
-          <tr class="hover:bg-chebs-soft/40 transition">
+
+          <?php
+            $resp = $v['responsable'] ?? '';
+            $rolResp = $mapRolPorNombre[strtolower(trim($resp))] ?? 'empleado';
+            [$bgFila, $hoverFila, $borderFila] = filaColorPorUsuario($resp, $rolResp, $coloresFilaEmpleado, $coloresFilaAdmin);
+            $badgeResp = colorResponsableBadge($resp);
+          ?>
+
+          <tr class="transition <?= $bgFila ?> <?= $hoverFila ?> border-l-4 <?= $borderFila ?>">
+
             <td class="px-4 py-3 font-semibold">#<?= (int)$v['id'] ?></td>
             <td class="px-4 py-3 whitespace-nowrap"><?= htmlspecialchars($v['fecha']) ?></td>
 
             <td class="px-4 py-3">
               <?php
                 $t = strtolower($v['turno'] ?? '');
-                $badge = "bg-gray-100 text-gray-700 border-gray-200";
-                if ($t === 'mañana') $badge = "bg-blue-100 text-blue-700 border-blue-200";
-                if ($t === 'tarde')  $badge = "bg-purple-100 text-purple-700 border-purple-200";
+                $badgeTurno = "bg-gray-100 text-gray-700 border-gray-200";
+                if ($t === 'mañana') $badgeTurno = "bg-blue-100 text-blue-700 border-blue-200";
+                if ($t === 'tarde')  $badgeTurno = "bg-purple-100 text-purple-700 border-purple-200";
               ?>
-              <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black border <?= $badge ?>">
+              <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black border <?= $badgeTurno ?>">
                 <?= htmlspecialchars($v['turno']) ?>
               </span>
             </td>
 
-            <td class="px-4 py-3"><?= htmlspecialchars($v['responsable']) ?></td>
-            <td class="px-4 py-3 font-black text-chebs-black">Bs <?= number_format((float)$v['total'],2) ?></td>
+            <!-- ✅ RESPONSABLE: badge fuerte + etiqueta ADMIN -->
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center px-3 py-1 rounded-xl text-xs font-black border <?= $badgeResp ?>">
+                <?= htmlspecialchars($resp) ?>
+                <?php if($rolResp === 'admin'){ ?>
+                  <span class="ml-2 text-[10px] font-black opacity-80">(ADMIN)</span>
+                <?php } ?>
+              </span>
+            </td>
+
+            <td class="px-4 py-3 font-black text-chebs-black">
+              Bs <?= number_format((float)$v['total'], 2) ?>
+            </td>
 
             <td class="px-4 py-3 text-right">
               <button type="button"
@@ -139,12 +212,14 @@ $ventas = obtenerVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda);
                       onclick="location.href='corregir_venta.php?id=<?= (int)$v['id'] ?>'">
                 Editar
               </button>
+
               <button type="button"
                       class="px-4 py-2 rounded-xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition"
                       onclick="verDetalleVenta(<?= (int)$v['id'] ?>)">
                 Ver detalle
               </button>
             </td>
+
           </tr>
           <?php } ?>
         </tbody>
