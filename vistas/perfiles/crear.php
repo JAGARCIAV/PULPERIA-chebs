@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                value="<?= htmlspecialchars($_POST['usuario'] ?? '') ?>"
                class="w-full h-[52px] rounded-2xl bg-white border-2 border-pink-300 px-4 text-gray-800 outline-none
                       focus:ring-4 focus:ring-pink-200 focus:border-pink-500 font-semibold">
-        <div class="text-xs text-gray-500 mt-2">Ej: empleado1 (sin espacios).</div>
+        <div class="text-xs text-gray-500 mt-2">Ej: personal_1 (sin espacios).</div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -111,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <select name="rol"
                   class="w-full h-[52px] rounded-2xl bg-white border-2 border-pink-300 px-4 text-gray-800 outline-none
                          focus:ring-4 focus:ring-pink-200 focus:border-pink-500 font-semibold">
-            <option value="empleado" <?= (($_POST['rol'] ?? 'empleado')==='empleado')?'selected':'' ?>>Empleado</option>
+            <option value="empleado" <?= (($_POST['rol'] ?? 'empleado')==='empleado')?'selected':'' ?>>Personal</option>
             <option value="admin" <?= (($_POST['rol'] ?? '')==='admin')?'selected':'' ?>>Admin</option>
           </select>
         </div>

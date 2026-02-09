@@ -4,6 +4,15 @@ require_role(['admin']);
 
 require_once __DIR__ . "/../../config/conexion.php";
 
+function nombreRol($rol){
+  return match($rol){
+    'admin' => 'ADMIN',
+    'empleado' => 'PERSONAL',
+    default => strtoupper($rol),
+  };
+}
+
+
 $err = "";
 
 /* =========================
@@ -155,7 +164,7 @@ include __DIR__ . "/../layout/header.php";
         </div>
       </div>
       <span class="px-3 py-1 rounded-full text-xs font-black <?= ($u['rol']==='admin') ? 'bg-pink-100 text-pink-700 border border-pink-200' : 'bg-blue-50 text-blue-700 border border-blue-100' ?>">
-        <?= strtoupper($u['rol']) ?>
+      <?= nombreRol($u['rol']) ?>
       </span>
     </div>
 
@@ -175,7 +184,7 @@ include __DIR__ . "/../layout/header.php";
                value="<?= htmlspecialchars($u['usuario'] ?? '') ?>"
                class="w-full h-[52px] rounded-2xl bg-white border-2 border-pink-300 px-4 text-gray-800 outline-none
                       focus:ring-4 focus:ring-pink-200 focus:border-pink-500 font-semibold">
-        <div class="text-xs text-gray-500 mt-2">Ej: empleado1 (sin espacios).</div>
+        <div class="text-xs text-gray-500 mt-2">Ej: personal_1 (sin espacios).</div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -184,7 +193,7 @@ include __DIR__ . "/../layout/header.php";
           <select name="rol"
                   class="w-full h-[52px] rounded-2xl bg-white border-2 border-pink-300 px-4 text-gray-800 outline-none
                          focus:ring-4 focus:ring-pink-200 focus:border-pink-500 font-semibold">
-            <option value="empleado" <?= (($u['rol'] ?? 'empleado')==='empleado')?'selected':'' ?>>Empleado</option>
+            <option value="empleado" <?= (($u['rol'] ?? 'empleado')==='empleado')?'selected':'' ?>>Personal</option>
             <option value="admin" <?= (($u['rol'] ?? '')==='admin')?'selected':'' ?>>Admin</option>
           </select>
         </div>

@@ -5,6 +5,15 @@ require_role(['admin']); // ✅ SOLO ADMIN
 require_once __DIR__ . "/../../config/conexion.php";
 include __DIR__ . "/../layout/header.php";
 
+function nombreRol($rol){
+  return match($rol){
+    'admin' => 'ADMIN',
+    'empleado' => 'PERSONAL',
+    default => strtoupper($rol),
+  };
+}
+
+
 date_default_timezone_set('America/La_Paz');
 
 $hoy = date('Y-m-d');
@@ -253,7 +262,7 @@ while($u = $qAll->fetch_assoc()){
               <td class="px-5 py-3 text-gray-700">@<?= htmlspecialchars($u['usuario']) ?></td>
               <td class="px-5 py-3">
                 <span class="px-3 py-1 rounded-full text-xs font-black <?= ($u['rol']==='admin')?'badge-admin':'badge-emp' ?>">
-                  <?= strtoupper($u['rol']) ?>
+                <?= nombreRol($u['rol']) ?>
                 </span>
               </td>
               <td class="px-5 py-3">
@@ -292,8 +301,9 @@ while($u = $qAll->fetch_assoc()){
         $mesG = (float)$e['ganancia_mes'];
 
         $badgeRol = ($e['rol']==='admin') ? 'badge-admin' : 'badge-emp';
-        $rolTxt = strtoupper($e['rol']);
-      ?>
+        $rolTxt = nombreRol($e['rol']);
+
+?>
 
       <!-- ✅ CARD -->
       <div class="card-pro overflow-hidden relative flex flex-col min-h-[520px]">

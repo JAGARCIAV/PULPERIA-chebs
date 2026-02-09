@@ -2,14 +2,10 @@
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 if (!empty($_SESSION['user'])) {
-    $rol = $_SESSION['user']['rol'] ?? '';
-    if ($rol === 'admin') {
-        header("Location: /PULPERIA-CHEBS/index.php");
-        exit;
-    }
-    header("Location: /PULPERIA-CHEBS/vistas/ventas/venta.php");
+    header("Location: /PULPERIA-CHEBS/index.php");
     exit;
 }
+
 
 $error = $_GET['err'] ?? null;
 ?>

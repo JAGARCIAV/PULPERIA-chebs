@@ -15,10 +15,8 @@ $rol = $_SESSION['user']['rol'] ?? '';
   <title>Pulpería Chebs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="/PULPERIA-CHEBS/public/img/logo.png">
 
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -40,43 +38,10 @@ $rol = $_SESSION['user']['rol'] ?? '';
       }
     }
   </script>
-
-  <style>
-    /* Inputs PRO */
-    .chebs-input{
-      background:#fff;
-      border:2px solid #f9a8d4;
-      border-radius:16px;
-      padding:.65rem .9rem;
-      outline:none;
-      transition:.15s ease;
-    }
-    .chebs-input:focus{
-      border-color:#ec4899;
-      box-shadow:0 0 0 4px rgba(236,72,153,.18);
-    }
-
-    .chebs-num{
-      background:#fdf2f8;
-      border:2px solid #f472b6;
-      border-radius:16px;
-      padding:.65rem .9rem;
-      outline:none;
-      transition:.15s ease;
-    }
-    .chebs-num:focus{
-      background:#fff;
-      border-color:#db2777;
-      box-shadow:0 0 0 4px rgba(219,39,119,.20);
-    }
-  </style>
 </head>
 
 <body class="min-h-screen bg-chebs-soft text-chebs-black">
 
-<!-- =====================================================
-     NAVBAR FIXED / FULL WIDTH
-===================================================== -->
 <header class="fixed top-0 left-0 w-full z-50">
   <div class="bg-white border-b border-chebs-line shadow-soft">
     <div class="max-w-[1440px] mx-auto px-6">
@@ -91,7 +56,7 @@ $rol = $_SESSION['user']['rol'] ?? '';
           <div class="leading-tight">
             <div class="font-semibold text-sm">Pulpería Chebs</div>
             <div class="text-xs text-gray-500">
-              <?= $rol === 'admin' ? 'Administrador' : 'Caja' ?>
+              <?= $rol === 'admin' ? 'Administrador' : 'Empleado' ?>
             </div>
           </div>
         </div>
@@ -99,39 +64,41 @@ $rol = $_SESSION['user']['rol'] ?? '';
         <!-- Menú -->
         <nav class="flex items-center gap-2 text-sm font-semibold">
 
-          <?php if ($rol === 'admin'): ?>
-            <a href="/PULPERIA-CHEBS/index.php"
-               class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
-              Inicio
-            </a>
+          <!-- Visible para TODOS -->
+          <a href="/PULPERIA-CHEBS/index.php"
+             class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
+            Inicio
+          </a>
 
+          <a href="/PULPERIA-CHEBS/vistas/productos/listar.php"
+             class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
+            Productos
+          </a>
+
+          <a href="/PULPERIA-CHEBS/vistas/lotes/listar.php"
+             class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
+            Lotes
+          </a>
+
+          <a href="/PULPERIA-CHEBS/vistas/movimientos/historial.php"
+             class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
+            Historial Inv.
+          </a>
+
+          <a href="/PULPERIA-CHEBS/vistas/ventas/historial.php"
+             class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
+            Historial Ventas
+          </a>
+
+          <!-- SOLO ADMIN -->
+          <?php if ($rol === 'admin'): ?>
             <a href="/PULPERIA-CHEBS/vistas/perfiles/perfiles_usuarios.php"
                class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
               Usuarios
             </a>
-
-            <a href="/PULPERIA-CHEBS/vistas/productos/listar.php"
-               class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
-              Productos
-            </a>
-
-            <a href="/PULPERIA-CHEBS/vistas/lotes/listar.php"
-               class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
-              Lotes
-            </a>
-
-            <a href="/PULPERIA-CHEBS/vistas/movimientos/historial.php"
-               class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
-              Historial Inv.
-            </a>
-
-            <a href="/PULPERIA-CHEBS/vistas/ventas/historial.php"
-               class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
-              Historial Ventas
-            </a>
           <?php endif; ?>
 
-          <!-- Caja -->
+          <!-- Caja (siempre visible) -->
           <a href="/PULPERIA-CHEBS/vistas/ventas/venta.php"
              class="ml-2 px-5 py-2 rounded-xl bg-chebs-green text-white
                     hover:bg-chebs-greenDark transition shadow-soft">
@@ -144,6 +111,7 @@ $rol = $_SESSION['user']['rol'] ?? '';
                     hover:bg-gray-50 transition">
             Salir
           </a>
+
         </nav>
 
       </div>
@@ -151,8 +119,5 @@ $rol = $_SESSION['user']['rol'] ?? '';
   </div>
 </header>
 
-<!-- =====================================================
-     CONTENIDO (COMPENSACIÓN NAVBAR)
-===================================================== -->
 <main class="pt-[88px] px-6 pb-6">
   <div class="max-w-[1440px] mx-auto">
