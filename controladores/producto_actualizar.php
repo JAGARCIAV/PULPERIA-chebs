@@ -14,18 +14,72 @@ $precio_unidad = (float)($_POST['precio_unidad'] ?? 0);
 $precio_paquete = (float)($_POST['precio_paquete'] ?? 0); // legacy
 $activo = (int)($_POST['activo'] ?? 1);
 
-// ✅ NUEVO: costo unidad (mayorista) opcional
-$costo_unidad = $_POST['costo_unidad'] ?? null;
+// ✅ costo unidad (mayorista) opcional
+$costo_unidad_raw = trim((string)($_POST['costo_unidad'] ?? ''));
+$costo_unidad = ($costo_unidad_raw === '' ? null : (float)$costo_unidad_raw);
 
 if ($id <= 0 || $nombre === '' || $precio_unidad <= 0) {
-    die("Datos inválidos");
+    header("Location: ../vistas/productos/editar.php?id={$id}&error=datos_invalidos");
+    exit;
 }
 
-// ✅ Presentaciones (packs)
+/* =========================================================
+   ✅ VALIDACIÓN BACKEND (unidad + packs)
+   ========================================================= */
+
+// 1) costo_unidad no puede ser mayor que precio_unidad
+if ($costo_unidad !== null && $costo_unidad > $precio_unidad) {
+    header("Location: ../vistas/productos/editar.php?id={$id}&error=costo_mayor");
+    exit;
+}
+
+// 2) Presentaciones (packs)
 $pres_nombres  = $_POST['pres_nombre'] ?? [];
 $pres_unidades = $_POST['pres_unidades'] ?? [];
 $pres_precios  = $_POST['pres_precio'] ?? [];
 $pres_costos   = $_POST['pres_costo'] ?? [];
+
+if (!is_array($pres_nombres))  $pres_nombres = [];
+if (!is_array($pres_unidades)) $pres_unidades = [];
+if (!is_array($pres_precios))  $pres_precios = [];
+if (!is_array($pres_costos))   $pres_costos = [];
+
+$max = max(count($pres_nombres), count($pres_unidades), count($pres_precios), count($pres_costos));
+
+for ($i = 0; $i < $max; $i++) {
+    $n = trim((string)($pres_nombres[$i] ?? ''));
+    if ($n === '') continue;
+
+    $u_raw = trim((string)($pres_unidades[$i] ?? ''));
+    $p_raw = trim((string)($pres_precios[$i] ?? ''));
+    $c_raw = trim((string)($pres_costos[$i] ?? ''));
+
+    $u = (int)$u_raw;
+    $p = (float)$p_raw;
+    $c = ($c_raw === '' ? null : (float)$c_raw);
+
+    if ($u <= 0 || $p < 0) {
+        header("Location: ../vistas/productos/editar.php?id={$id}&error=pres_invalida");
+        exit;
+    }
+
+    if ($c !== null && $c > $p) {
+        header("Location: ../vistas/productos/editar.php?id={$id}&error=pres_costo_mayor&idx=" . ($i+1));
+        exit;
+    }
+
+    if ($c === null && $costo_unidad !== null) {
+        $costo_derivado = $costo_unidad * $u;
+        if ($costo_derivado > $p) {
+            header("Location: ../vistas/productos/editar.php?id={$id}&error=pres_derivado_mayor&idx=" . ($i+1));
+            exit;
+        }
+    }
+}
+
+/* =========================================================
+   ✅ GUARDAR (transacción)
+   ========================================================= */
 
 $conexion->begin_transaction();
 
@@ -42,10 +96,12 @@ try {
 
     $conexion->commit();
 
-    header("Location: ../vistas/productos/listar.php?ok=1");
+    header("Location: ../vistas/productos/editar.php?id={$id}&ok=1");
     exit;
 
 } catch (Throwable $e) {
     $conexion->rollback();
-    die("Error: " . $e->getMessage());
+    // Error bonito (si el CHECK de BD bloquea o cualquier otro)
+    header("Location: ../vistas/productos/editar.php?id={$id}&error=sql");
+    exit;
 }
