@@ -18,6 +18,9 @@ $activo = (int)($_POST['activo'] ?? 1);
 $costo_unidad_raw = trim((string)($_POST['costo_unidad'] ?? ''));
 $costo_unidad = ($costo_unidad_raw === '' ? null : (float)$costo_unidad_raw);
 
+// ✅ imagen actual desde el form (hidden)
+$imagenActual = trim((string)($_POST['imagen_actual'] ?? ''));
+
 if ($id <= 0 || $nombre === '' || $precio_unidad <= 0) {
     header("Location: ../vistas/productos/editar.php?id={$id}&error=datos_invalidos");
     exit;
@@ -93,6 +96,67 @@ try {
     // 2) Reemplazar presentaciones: borrar y volver a insertar
     eliminarPresentacionesProducto($conexion, $id);
     guardarPresentacionesProducto($conexion, $id, $pres_nombres, $pres_unidades, $pres_precios, $pres_costos);
+
+    /* =========================================================
+       ✅ SUBIR IMAGEN (OPCIONAL) Y GUARDAR EN BD
+       - NO toca modelo, solo hace UPDATE directo
+       - Si no subes nada, mantiene imagenActual
+       ========================================================= */
+
+    $nuevaImagenPath = null;
+
+    if (isset($_FILES['imagen']) && is_array($_FILES['imagen']) && ($_FILES['imagen']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+
+        if (($_FILES['imagen']['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+            // Si quieres manejar errores específicos:
+            // throw new Exception("Error al subir imagen");
+        } else {
+
+            $tmp  = $_FILES['imagen']['tmp_name'] ?? '';
+            $name = $_FILES['imagen']['name'] ?? '';
+            $size = (int)($_FILES['imagen']['size'] ?? 0);
+
+            // límite opcional: 5MB
+            if ($size > 5 * 1024 * 1024) {
+                // throw new Exception("Imagen muy pesada");
+            } else {
+
+                $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                $permitidas = ['jpg','jpeg','png','webp'];
+
+                if (in_array($ext, $permitidas, true)) {
+
+                    $dir = __DIR__ . '/../uploads/productos/';
+                    if (!is_dir($dir)) {
+                        @mkdir($dir, 0777, true);
+                    }
+
+                    $nuevoNombre = 'prod_' . (int)$id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                    $destino = $dir . $nuevoNombre;
+
+                    if (is_uploaded_file($tmp) && move_uploaded_file($tmp, $destino)) {
+                        $nuevaImagenPath = 'uploads/productos/' . $nuevoNombre;
+
+                        // Update en BD
+                        $stmt = $conexion->prepare("UPDATE productos SET imagen = ? WHERE id = ?");
+                        if ($stmt) {
+                            $stmt->bind_param("si", $nuevaImagenPath, $id);
+                            $stmt->execute();
+                            $stmt->close();
+                        }
+
+                        // (opcional) borrar la anterior si era local
+                        if ($imagenActual !== '' && strpos($imagenActual, 'uploads/productos/') === 0) {
+                            $old = __DIR__ . '/../' . $imagenActual;
+                            if (is_file($old)) {
+                                @unlink($old);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     $conexion->commit();
 

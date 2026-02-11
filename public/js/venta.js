@@ -25,6 +25,19 @@
     return;
   }
 
+  // ====== ✅ IMÁGENES (desde venta.php) ======
+  // En venta.php ya estás mandando window.__CHEBS_PRODUCTOS__ con img_url.
+  // Creamos un mapa por id para sacar la imagen rápido.
+  const productosData = Array.isArray(window.__CHEBS_PRODUCTOS__) ? window.__CHEBS_PRODUCTOS__ : [];
+  const IMG_BY_ID = new Map(
+    productosData.map(p => [Number(p.id), String(p.img_url || p.imagen || "")])
+  );
+
+  function getImgByProductoId(id) {
+    const k = Number(id);
+    return IMG_BY_ID.get(k) || "";
+  }
+
   // ====== Helpers ======
   function escapeHtml(str) {
     return String(str ?? "")
@@ -105,51 +118,64 @@
 
       const nombreSeguro = escapeHtml(item.nombre);
 
-// alternar filas: rosado/blanco
-const rowBg = (index % 2 === 0) ? "bg-pink-50" : "bg-white";
+      // ✅ imagen (si no hay, icono)
+      const img = (item.imagen || "").trim();
+      const imgHtml = img
+        ? `<img src="${img}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;">`
+        : `<span style="font-size:22px;">🧃</span>`;
 
-tablaBody.insertAdjacentHTML("beforeend", `
-  <tr class="${rowBg} hover:bg-pink-100 transition">
-    <!-- Producto -->
-    <td class="px-4 py-3">
-      <div class="text-lg font-black text-chebs-black leading-tight">
-        ${nombreSeguro}
-      </div>
-      <div class="text-sm font-semibold text-gray-500">
-        (${item.tipo === "paquete" ? "Paquete" : "Unidad"})
-      </div>
-    </td>
+      // alternar filas: rosado/blanco
+      const rowBg = (index % 2 === 0) ? "bg-pink-50" : "bg-white";
 
-    <!-- Cantidad -->
-    <td class="px-4 py-3 text-lg font-black text-chebs-black">
-      ${item.cantidad}
-    </td>
+      tablaBody.insertAdjacentHTML("beforeend", `
+        <tr class="${rowBg} hover:bg-pink-100 transition">
+          <!-- Producto -->
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-3">
+              <div class="w-14 h-14 rounded-2xl border border-pink-200 bg-white overflow-hidden flex items-center justify-center">
+                ${imgHtml}
+              </div>
 
-    <!-- Precio -->
-    <td class="px-4 py-3 text-lg font-bold text-chebs-black">
-      ${Number(item.precio).toFixed(2)}
-    </td>
+              <div class="min-w-0">
+                <div class="text-lg font-black text-chebs-black leading-tight truncate">
+                  ${nombreSeguro}
+                </div>
+                <div class="text-sm font-semibold text-gray-500">
+                  (${item.tipo === "paquete" ? "Paquete" : "Unidad"})
+                </div>
+              </div>
+            </div>
+          </td>
 
-    <!-- Subtotal -->
-    <td class="px-4 py-3 text-xl font-black text-chebs-green">
-      ${Number(subtotal).toFixed(2)}
-    </td>
+          <!-- Cantidad -->
+          <td class="px-4 py-3 text-lg font-black text-chebs-black">
+            ${item.cantidad}
+          </td>
 
-    <!-- Acción (X roja con icono) -->
-    <td class="px-4 py-3 text-center">
-      <button type="button"
-              title="Eliminar"
-              class="w-10 h-10 inline-flex items-center justify-center rounded-xl
-                     border border-red-200 bg-white
-                     hover:bg-red-50 hover:border-red-300
-                     transition"
-              onclick="window.eliminarProducto(${index})">
-        <span class="text-red-600 text-2xl font-black leading-none">×</span>
-      </button>
-    </td>
-  </tr>
-`);
+          <!-- Precio -->
+          <td class="px-4 py-3 text-lg font-bold text-chebs-black">
+            ${Number(item.precio).toFixed(2)}
+          </td>
 
+          <!-- Subtotal -->
+          <td class="px-4 py-3 text-xl font-black text-chebs-green">
+            ${Number(subtotal).toFixed(2)}
+          </td>
+
+          <!-- Acción -->
+          <td class="px-4 py-3 text-center">
+            <button type="button"
+                    title="Eliminar"
+                    class="w-10 h-10 inline-flex items-center justify-center rounded-xl
+                           border border-red-200 bg-white
+                           hover:bg-red-50 hover:border-red-300
+                           transition"
+                    onclick="window.eliminarProducto(${index})">
+              <span class="text-red-600 text-2xl font-black leading-none">×</span>
+            </button>
+          </td>
+        </tr>
+      `);
     });
 
     totalEl.innerText = total.toFixed(2);
@@ -172,6 +198,9 @@ tablaBody.insertAdjacentHTML("beforeend", `
       carrito[idx].cantidad += item.cantidad;
       carrito[idx].precio = item.precio;
       carrito[idx].unidades_reales += item.unidades_reales;
+
+      // ✅ si antes no tenía imagen, la intentamos poner
+      if (!carrito[idx].imagen) carrito[idx].imagen = item.imagen || "";
       return;
     }
     carrito.push(item);
@@ -259,6 +288,9 @@ tablaBody.insertAdjacentHTML("beforeend", `
       return;
     }
 
+    // ✅ imagen desde el mapa (usa lo que viene de venta.php)
+    const imgUrl = getImgByProductoId(producto_id);
+
     for (const it of r.items) {
       pushOrSum({
         producto_id: parseInt(producto_id, 10),
@@ -267,7 +299,8 @@ tablaBody.insertAdjacentHTML("beforeend", `
         presentacion_id: it.presentacion_id,
         cantidad: it.cantidad,
         precio: Number(it.precio),
-        unidades_reales: it.unidades_reales
+        unidades_reales: it.unidades_reales,
+        imagen: imgUrl // ✅ NUEVO
       });
     }
 

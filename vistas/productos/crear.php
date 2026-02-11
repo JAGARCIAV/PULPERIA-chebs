@@ -69,6 +69,7 @@ include "../layout/header.php";
       <form id="form_producto"
             action="../../controladores/producto_controlador.php"
             method="POST"
+            enctype="multipart/form-data"
             class="grid grid-cols-1 lg:grid-cols-2 gap-6"
             onsubmit="return validarPrecioCosto();">
 
@@ -213,6 +214,64 @@ include "../layout/header.php";
              ========================= -->
         <div class="space-y-4 lg:sticky lg:top-6 self-start">
 
+          <!-- ✅ IMAGEN DEL PRODUCTO (solo UI) -->
+          <div class="rounded-2xl border border-chebs-line p-4 bg-white">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="font-black text-chebs-black">Imagen del producto</div>
+                <div class="text-xs text-gray-500">
+                  Sube una foto (JPG/PNG/WebP). Recomendado: cuadrada.
+                </div>
+              </div>
+              <span class="text-[11px] font-black text-gray-600 bg-chebs-soft/60 border border-chebs-line px-2 py-1 rounded-xl">
+                opcional
+              </span>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              <div>
+                <label class="block text-xs font-bold mb-2">Archivo</label>
+                <input id="imagen_producto"
+                       type="file"
+                       name="imagen"
+                       accept="image/*"
+                       class="w-full rounded-2xl bg-white border-2 border-chebs-line px-4 py-3
+                              outline-none focus:ring-4 focus:ring-chebs-soft focus:border-chebs-green">
+                <div class="mt-2 flex gap-2">
+                  <button type="button" id="btn_quitar_img"
+                    class="px-4 py-2 rounded-xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition">
+                    Quitar
+                  </button>
+
+                  <div class="text-xs text-gray-600 self-center" id="img_hint">
+                    Sin imagen seleccionada
+                  </div>
+                </div>
+
+                <div class="mt-3 text-xs text-gray-500">
+                  Guardar en BD recomendado: <b>uploads/productos/archivo.jpg</b>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold mb-2">Vista previa</label>
+                <div class="rounded-2xl border border-chebs-line bg-chebs-soft/40 p-3">
+                  <div class="w-full aspect-square rounded-2xl bg-white border border-chebs-line overflow-hidden flex items-center justify-center">
+                    <img id="img_preview"
+                         src=""
+                         alt=""
+                         class="hidden w-full h-full object-cover">
+                    <div id="img_placeholder" class="text-center px-4">
+                      <div class="text-4xl">🧃</div>
+                      <div class="text-xs text-gray-600 font-bold mt-2">Aún sin imagen</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
           <!-- ✅ Presentaciones -->
           <div class="rounded-2xl border border-chebs-line p-4 bg-white">
             <div class="flex items-center justify-between gap-3 mb-3">
@@ -320,6 +379,49 @@ include "../layout/header.php";
   }
 
   btn.addEventListener('click', ()=> addRow());
+})();
+</script>
+
+<script>
+/* ✅ Preview imagen (solo UI, no toca backend) */
+(function(){
+  const input = document.getElementById('imagen_producto');
+  const img   = document.getElementById('img_preview');
+  const ph    = document.getElementById('img_placeholder');
+  const hint  = document.getElementById('img_hint');
+  const btnQ  = document.getElementById('btn_quitar_img');
+
+  if(!input || !img || !ph || !hint || !btnQ) return;
+
+  function limpiar(){
+    input.value = '';
+    img.src = '';
+    img.classList.add('hidden');
+    ph.classList.remove('hidden');
+    hint.textContent = 'Sin imagen seleccionada';
+  }
+
+  input.addEventListener('change', ()=>{
+    const file = input.files && input.files[0] ? input.files[0] : null;
+    if(!file){
+      limpiar();
+      return;
+    }
+    const ok = /^image\//.test(file.type || '');
+    if(!ok){
+      limpiar();
+      alert('Selecciona un archivo de imagen (JPG/PNG/WebP).');
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    img.src = url;
+    img.classList.remove('hidden');
+    ph.classList.add('hidden');
+    hint.textContent = file.name;
+  });
+
+  btnQ.addEventListener('click', limpiar);
 })();
 </script>
 

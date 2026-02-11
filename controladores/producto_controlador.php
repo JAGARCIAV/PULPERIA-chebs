@@ -82,7 +82,7 @@ for ($i = 0; $i < $max; $i++) {
 }
 
 /* =========================================================
-   ✅ GUARDAR PRODUCTO + PRESENTACIONES
+   ✅ GUARDAR PRODUCTO + PRESENTACIONES + IMAGEN
    ========================================================= */
 
 try {
@@ -111,6 +111,61 @@ try {
         $pres_precios,
         $pres_costos
     );
+
+    /* =========================================================
+       ✅ SUBIR IMAGEN (OPCIONAL) Y GUARDAR EN BD
+       - NO toca modelo, solo hace UPDATE directo
+       ========================================================= */
+
+    if (isset($_FILES['imagen']) && is_array($_FILES['imagen']) && ($_FILES['imagen']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+
+        if (($_FILES['imagen']['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+            // Si quieres, puedes redirigir con error específico
+            // header("Location: ../vistas/productos/crear.php?error=img_upload");
+            // exit;
+        } else {
+
+            $tmp  = $_FILES['imagen']['tmp_name'] ?? '';
+            $name = $_FILES['imagen']['name'] ?? '';
+            $size = (int)($_FILES['imagen']['size'] ?? 0);
+
+            // límite opcional: 5MB
+            if ($size > 5 * 1024 * 1024) {
+                // header("Location: ../vistas/productos/crear.php?error=img_size");
+                // exit;
+            } else {
+
+                $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                $permitidas = ['jpg','jpeg','png','webp'];
+
+                if (in_array($ext, $permitidas, true)) {
+
+                    // Carpeta destino real
+                    $dir = __DIR__ . '/../uploads/productos/';
+                    if (!is_dir($dir)) {
+                        @mkdir($dir, 0777, true);
+                    }
+
+                    // Nombre seguro (incluye id)
+                    $nuevoNombre = 'prod_' . (int)$id_nuevo . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                    $destino = $dir . $nuevoNombre;
+
+                    if (is_uploaded_file($tmp) && move_uploaded_file($tmp, $destino)) {
+
+                        // Guardamos ruta relativa en BD (esto es lo que tus vistas esperan)
+                        $imagenPath = 'uploads/productos/' . $nuevoNombre;
+
+                        $stmt = $conexion->prepare("UPDATE productos SET imagen = ? WHERE id = ?");
+                        if ($stmt) {
+                            $stmt->bind_param("si", $imagenPath, $id_nuevo);
+                            $stmt->execute();
+                            $stmt->close();
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     header("Location: ../vistas/productos/crear.php?creado=1&id=" . (int)$id_nuevo);
     exit;

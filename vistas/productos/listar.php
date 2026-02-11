@@ -8,6 +8,9 @@ require_once "../../modelos/producto_modelo.php";
 include "../layout/header.php";
 
 $productos = obtenerProductos($conexion);
+
+// ✅ base URL para construir src correcto
+$base = '/PULPERIA-CHEBS/';
 ?>
 
 <div class="max-w-7xl mx-auto px-4 py-8">
@@ -48,6 +51,7 @@ $productos = obtenerProductos($conexion);
       <thead class="bg-teal-50">
         <tr class="text-left text-gray-800">
           <th class="px-4 py-3 font-black text-teal-700">ID</th>
+          <th class="px-4 py-3 font-black text-teal-700">Imagen</th>
           <th class="px-4 py-3 font-black text-teal-700">Nombre</th>
           <th class="px-4 py-3 font-black text-teal-700">Precio Unidad</th>
           <th class="px-4 py-3 font-black text-teal-700">Precio Paquete</th>
@@ -59,9 +63,33 @@ $productos = obtenerProductos($conexion);
       <tbody id="tabla_body">
       <?php while($p = $productos->fetch_assoc()) {
         $stock = obtenerStockTotal($conexion, $p['id']);
+
+        // ✅ construimos URL de imagen
+        $img_db = trim((string)($p['imagen'] ?? ''));
+        $img_url = '';
+        if ($img_db !== '') {
+          $img_url = ($img_db[0] === '/')
+            ? $img_db
+            : $base . ltrim($img_db, './');
+        }
       ?>
         <tr class="border-t border-teal-100 hover:bg-teal-50 transition">
           <td class="px-4 py-3"><?= (int)$p['id'] ?></td>
+
+          <!-- ✅ IMAGEN -->
+          <td class="px-4 py-3">
+            <div class="w-14 h-14 rounded-2xl border border-teal-100 bg-white overflow-hidden flex items-center justify-center">
+              <?php if($img_url !== ''){ ?>
+                <img src="<?= htmlspecialchars($img_url) ?>"
+                     alt=""
+                     loading="lazy"
+                     class="w-full h-full object-cover">
+              <?php } else { ?>
+                <span class="text-2xl">🧃</span>
+              <?php } ?>
+            </div>
+          </td>
+
           <td class="px-4 py-3 font-semibold"><?= htmlspecialchars($p['nombre']) ?></td>
           <td class="px-4 py-3">Bs <?= number_format((float)$p['precio_unidad'], 2) ?></td>
           <td class="px-4 py-3">Bs <?= number_format((float)$p['precio_paquete'], 2) ?></td>
@@ -100,7 +128,8 @@ buscador.addEventListener("input", () => {
   const q = buscador.value.toLowerCase();
 
   filas.forEach(tr => {
-    const nombre = tr.children[1].innerText.toLowerCase();
+    // ✅ Nombre ahora está en la columna 2 (porque agregamos Imagen)
+    const nombre = tr.children[2].innerText.toLowerCase();
     tr.style.display = nombre.includes(q) ? "" : "none";
   });
 });

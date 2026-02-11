@@ -120,4 +120,10 @@ $rol = $_SESSION['user']['rol'] ?? '';
 </header>
 
 <main class="pt-[88px] px-6 pb-6">
-  <div class="max-w-[1440px] mx-auto">
+  <?php
+    // ✅ Solo la pantalla de Caja será full ancho
+    $ruta = $_SERVER['REQUEST_URI'] ?? '';
+    $esCaja = (strpos($ruta, '/vistas/ventas/venta.php') !== false);
+  ?>
+
+  <div class="<?= $esCaja ? 'w-full max-w-none' : 'max-w-[1440px]' ?> mx-auto">
