@@ -300,9 +300,10 @@ if ($turnoAbierto) {
 
   <!-- Producto (SOLO label + input + dropdown) -->
   <div class="md:col-span-8 z-50 flex flex-col">
-    <label class="block text-sm font-black text-pink-600 mb-2 leading-none">
-      Buscar producto
-    </label>
+<label for="producto_nombre" class="block text-sm font-black text-pink-600 mb-2 leading-none">
+  Buscar producto
+</label>
+
 
     <?php
       // ✅ IMPORTANTE: convertimos el resultset a array UNA SOLA VEZ
@@ -384,9 +385,10 @@ if ($turnoAbierto) {
 
   <!-- Cantidad -->
   <div class="md:col-span-2 flex flex-col">
-    <label class="block text-sm font-black text-pink-600 mb-2 leading-none">
-      Cantidad
-    </label>
+<label for="cantidad" class="block text-sm font-black text-pink-600 mb-2 leading-none">
+  Cantidad
+</label>
+
 
     <input type="number" id="cantidad" min="1" value="1"
           class="w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 text-gray-800
@@ -419,7 +421,10 @@ if ($turnoAbierto) {
     <div id="stock_info" class="mt-2 text-xs text-gray-600 min-h-[18px]"></div>
 
     <div id="presentacion_box" class="hidden mt-3">
-      <label class="block text-xs font-black text-pink-600 mb-2 leading-none">Presentación</label>
+  <label for="presentacion_select" class="block text-xs font-black text-pink-600 mb-2 leading-none">
+  Presentación
+</label>
+
       <select id="presentacion_select"
               class="w-full h-[52px] rounded-2xl bg-white border-2 border-pink-300 px-4 text-gray-800
                      outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 font-semibold">
@@ -715,7 +720,9 @@ if ($turnoAbierto) {
         <div class="px-6 py-5 space-y-2">
           <div class="text-xs text-gray-500">(Cuenta el dinero físico antes de empezar)</div>
 
-          <label class="text-sm font-semibold text-chebs-black">Efectivo inicial</label>
+<label for="abrir_monto" class="text-sm font-semibold text-chebs-black">
+  Efectivo inicial
+</label>
           <input type="number" step="0.01" name="monto_inicial" id="abrir_monto"
                  value="0" required
                  class="w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none focus:ring-4 focus:ring-chebs-soft bg-white">
@@ -761,7 +768,9 @@ if ($turnoAbierto) {
             <div class="text-xs text-gray-500">(Inicial + Ventas - Retiros)</div>
           </div>
 
-          <label class="text-sm font-semibold text-chebs-black">¿Cuánto efectivo estás dejando?</label>
+<label for="cerrar_efectivo" class="text-sm font-semibold text-chebs-black">
+  ¿Cuánto efectivo estás dejando?
+</label>
           <input type="number" step="0.01" name="efectivo_cierre" id="cerrar_efectivo"
                  value="<?= number_format($efectivoEsperadoUI,2,'.','') ?>"
                  required
@@ -810,27 +819,48 @@ if ($turnoAbierto) {
             <div class="text-xs text-gray-500">Turno #<?= $turnoAbierto ? (int)$turnoAbierto["id"] : 0 ?></div>
           </div>
 
-          <label class="text-sm font-semibold text-chebs-black">Monto a retirar</label>
-          <input type="number" step="0.01" name="monto" id="retiro_monto"
-                 value="0" required
-                 class="w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none focus:ring-4 focus:ring-chebs-soft bg-white">
+          <!-- ✅ Label asociado -->
+          <label for="retiro_monto" class="text-sm font-semibold text-chebs-black">
+            Monto a retirar
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            name="monto"
+            id="retiro_monto"
+            value="0"
+            required
+            class="w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none focus:ring-4 focus:ring-chebs-soft bg-white"
+          >
 
-          <label class="text-sm font-semibold text-chebs-black">Motivo (opcional)</label>
-          <input type="text" name="motivo" maxlength="255"
-                 placeholder="Ej: deposito, guardar dinero…"
-                 class="w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none focus:ring-4 focus:ring-chebs-soft bg-white">
+          <!-- ✅ Label asociado (agregamos id al input) -->
+          <label for="retiro_motivo" class="text-sm font-semibold text-chebs-black">
+            Motivo (opcional)
+          </label>
+          <input
+            type="text"
+            name="motivo"
+            id="retiro_motivo"
+            maxlength="255"
+            placeholder="Ej: deposito, guardar dinero…"
+            class="w-full rounded-2xl border border-chebs-line px-4 py-3 outline-none focus:ring-4 focus:ring-chebs-soft bg-white"
+          >
 
           <div id="retiro_error" class="hidden text-sm font-semibold text-red-600"></div>
         </div>
 
         <div class="px-6 py-5 border-t border-chebs-line flex justify-end gap-2">
-          <button type="button"
-                  class="px-5 py-3 rounded-2xl border border-chebs-line font-semibold hover:bg-gray-50"
-                  onclick="cerrarModal('modalRetiro')">
+          <button
+            type="button"
+            class="px-5 py-3 rounded-2xl border border-chebs-line font-semibold hover:bg-gray-50"
+            onclick="cerrarModal('modalRetiro')"
+          >
             Cancelar
           </button>
-          <button type="submit"
-                  class="px-5 py-3 rounded-2xl bg-chebs-green text-white font-bold hover:bg-chebs-greenDark">
+          <button
+            type="submit"
+            class="px-5 py-3 rounded-2xl bg-chebs-green text-white font-bold hover:bg-chebs-greenDark"
+          >
             Guardar retiro
           </button>
         </div>
@@ -839,6 +869,7 @@ if ($turnoAbierto) {
   </div>
 </div>
 <?php } ?>
+
 
 <!-- ✅ MODAL: CONFIRMACIÓN / MENSAJE -->
 <div id="modalConfirmacion" class="chebs-hidden fixed inset-0 z-[9999]">
@@ -862,7 +893,9 @@ if ($turnoAbierto) {
         </div>
 
         <div>
-          <label class="text-sm font-black text-chebs-black">Cliente paga</label>
+<label for="confirm_pago" class="text-sm font-black text-chebs-black">
+  Cliente paga
+</label>
           <input id="confirm_pago"
                  type="number"
                  step="0.01"
