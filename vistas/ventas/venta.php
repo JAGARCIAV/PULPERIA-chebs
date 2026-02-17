@@ -108,17 +108,73 @@ if ($turnoAbierto) {
     background: #fdf2f8;         /* pink-50 */
   }
 
-  /* ✅ Autocomplete: borde rosado para separar visualmente */
-  #auto_box{
-    border: 2px solid #f9a8d4 !important; /* pink-300 */
-    box-shadow: 0 18px 40px rgba(0,0,0,.10);
-    max-height: none; /* el JS pondrá un maxHeight exacto */
-  }
+/* ✅ FIX: Sticky header del detalle NO se mezcla al hacer scroll */
+#tabla_detalle{
+  border-collapse: separate;   /* importante para sticky */
+  border-spacing: 0;
+}
 
-  /* ✅ Lista con scroll interno */
-  #auto_list{
-    overflow: auto;
-  }
+#tabla_detalle thead{
+  position: sticky;
+  top: 0;
+  z-index: 50;                 /* arriba de todo */
+}
+
+#tabla_detalle thead th{
+  position: sticky;
+  top: 0;
+  z-index: 51;
+  background: #e5efdc;         /* verde suave (igual que tu header) */
+}
+
+#tabla_detalle thead tr{
+  box-shadow: 0 2px 0 rgba(0,0,0,0.10); /* línea separadora */
+}
+
+#tabla_detalle tbody td{
+  position: relative;
+  z-index: 1;
+}
+
+/* por si el botón eliminar trae z-index raro */
+#tabla_detalle td:last-child button,
+#tabla_detalle td:last-child .btn-eliminar,
+#tabla_detalle td:last-child .btn-remove,
+#tabla_detalle td:last-child a{
+  position: relative;
+  z-index: 1;
+}
+
+
+/* =========================
+   AUTOCOMPLETE ENCIMA DE TODO
+========================= */
+/* 2) Autocomplete encima de TODO */
+#auto_box{
+  position: absolute !important;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 6px;
+  z-index: 999999 !important;
+  background: #fff;
+}
+
+/* 3) BAJAMOS el z-index del header sticky de la tabla */
+#tabla_detalle thead{
+  z-index: 5 !important;
+}
+
+#tabla_detalle thead th{
+  z-index: 6 !important;
+}
+
+/* 4) Por si el contenedor del scroll crea stacking raro */
+.max-h-\[44vh\]{
+  position: relative;
+  z-index: 1 !important;
+}
+
 
   /* ✅ Item layout: imagen más grande */
   .chebs-auto-item{
@@ -258,7 +314,7 @@ if ($turnoAbierto) {
     ?>
 
     <!-- ✅ Wrapper relative SOLO para input + dropdown -->
-    <div class="relative">
+    <div class="relative z-50">
       <input id="producto_nombre" type="text" name="producto_nombre"
             placeholder="Escribe el nombre del producto…"
             autocomplete="off"
@@ -376,7 +432,7 @@ if ($turnoAbierto) {
         <div class="px-6 py-5">
 
           <div class="rounded-2xl border border-chebs-line overflow-hidden">
-            <div class="max-h-[44vh] overflow-auto chebs-scroll">
+            <div class="max-h-[44vh] overflow-auto chebs-scroll relative">
 
               <table class="w-full text-[15px] chebs-table table-auto" id="tabla_detalle">
                 <colgroup>

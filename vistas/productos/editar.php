@@ -8,6 +8,7 @@ include "../layout/header.php";
 
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) { ?>
+
   <div class="max-w-7xl mx-auto px-4 py-6">
     <div class="bg-white border border-red-200 rounded-3xl shadow-soft p-6 text-red-700 font-semibold">
       ❌ ID inválido
@@ -172,10 +173,6 @@ if ($img_db !== '') {
     Calculadora de costo por unidad
   </div>
 
-  <div class="text-xs text-gray-600 mb-3">
-    Escribe cuántas unidades recibiste y cuánto pagaste en total.
-    Se calculará el costo por unidad y se llenará en “Precio mayorista”.
-  </div>
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
 
@@ -209,7 +206,7 @@ if ($img_db !== '') {
   <div class="mt-3 flex flex-col sm:flex-row gap-2">
     <button type="button" id="btn_aplicar_costo"
       class="px-4 py-2 rounded-xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition">
-      Aplicar al precio mayorista
+      Aplicar al precio
     </button>
 
     <button type="button" id="btn_limpiar_calc"
@@ -217,9 +214,7 @@ if ($img_db !== '') {
       Limpiar
     </button>
 
-    <div class="text-xs text-gray-600 sm:ml-auto sm:text-right">
-      Tip: también puedes escribir directo el costo si ya lo sabes.
-    </div>
+
   </div>
 
 </div>
@@ -259,19 +254,21 @@ if ($img_db !== '') {
              ========================= -->
         <div class="space-y-4 lg:sticky lg:top-6 self-start">
 
-          <!-- ✅ IMAGEN DEL PRODUCTO (solo UI) -->
-          <div class="rounded-2xl border border-chebs-line p-4 bg-white">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <div class="font-black text-chebs-black">Imagen del producto</div>
-                <div class="text-xs text-gray-500">
-                  Puedes subir una nueva imagen. Si no subes nada, se mantiene la actual.
-                </div>
-              </div>
-              <span class="text-[11px] font-black text-gray-600 bg-chebs-soft/60 border border-chebs-line px-2 py-1 rounded-xl">
-                opcional
-              </span>
-            </div>
+<!-- ✅ IMAGEN DEL PRODUCTO (solo UI) -->
+<div class="rounded-2xl border-2 border-chebs-green/30 p-4 bg-chebs-green/10">
+  <div class="flex items-start justify-between gap-3">
+    <div>
+      <div class="font-black text-chebs-green">Imagen del producto</div>
+      <div class="text-xs text-chebs-green/80">
+        Puedes subir una nueva imagen. Si no subes nada, se mantiene la actual.
+      </div>
+    </div>
+
+    <span class="text-[11px] font-black text-chebs-green bg-white/70 border border-chebs-green/30 px-2 py-1 rounded-xl">
+      opcional
+    </span>
+  </div>
+
 
             <!-- ✅ Guardamos la ruta actual en hidden (por si tu backend ya lo usa) -->
             <input type="hidden" name="imagen_actual" value="<?= htmlspecialchars($img_db) ?>">
@@ -301,9 +298,6 @@ if ($img_db !== '') {
                   </div>
                 </div>
 
-                <div class="mt-3 text-xs text-gray-500">
-                  Guardar en BD recomendado: <b>uploads/productos/archivo.jpg</b>
-                </div>
               </div>
 
               <div>
@@ -316,7 +310,7 @@ if ($img_db !== '') {
                          class="<?= ($img_url !== '' ? '' : 'hidden') ?> w-full h-full object-cover">
                     <div id="img_placeholder" class="<?= ($img_url === '' ? '' : 'hidden') ?> text-center px-4">
                       <div class="text-4xl">🧃</div>
-                      <div class="text-xs text-gray-600 font-bold mt-2">Aún sin imagen</div>
+                      <div class="text-xs text-gray-500 font-bold mt-2">Aún sin imagen</div>
                     </div>
                   </div>
 
@@ -336,15 +330,17 @@ if ($img_db !== '') {
           <div class="rounded-2xl border border-chebs-line p-4 bg-white">
             <div class="flex items-center justify-between gap-3 mb-3">
               <div>
-                <div class="font-black text-chebs-black">Presentaciones (packs)</div>
-                <div class="text-xs text-gray-500">
-                  Ej: Cajetilla 10 (9 Bs), Cajetilla 20 (18 Bs), Pack 6 (60 Bs)…
-                </div>
+                <div class="font-black text-chebs-black">Venta de paquetes</div>
+
               </div>
+                            <span class="text-[11px] font-black text-gray-600 bg-chebs-soft/60 border border-chebs-line px-2 py-1 rounded-xl">
+                opcional
+              </span>
 <button type="button" id="btn_add_pres"
   class="px-4 py-2 rounded-xl bg-orange-400 text-black font-black
          hover:bg-orange-500 transition">
-  + Agregar
+  + Agregar venta por paquete
+  
 </button>
 
             </div>
@@ -393,10 +389,10 @@ if ($img_db !== '') {
             </div>
 
             <div class="mt-2 text-xs text-gray-500">
-              Si no agregas presentaciones, el producto se venderá solo por unidad.
+              Si no agregas paquetes, el producto se venderá solo por unidad.
             </div>
           </div>
-
+        </div>
           <!-- Botones desktop (siempre visibles) -->
           <div class="hidden lg:flex flex-col sm:flex-row gap-3 pt-2">
             <button type="submit"
@@ -404,14 +400,12 @@ if ($img_db !== '') {
               💾 Guardar cambios
             </button>
 
-            <a href="listar.php"
+
+          </div>
+                      <a href="listar.php"
                class="flex-1 px-6 py-3 rounded-2xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition text-center">
               ← Volver
             </a>
-          </div>
-
-        </div>
-
       </form>
 
     </div>

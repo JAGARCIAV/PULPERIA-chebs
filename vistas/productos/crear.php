@@ -143,9 +143,7 @@ include "../layout/header.php";
           <!-- ✅ Panelcito: Calculadora de costo por unidad -->
           <div class="mt-2 rounded-2xl border border-chebs-line p-4 bg-chebs-soft/40">
             <div class="font-black text-chebs-black mb-1">Calculadora de costo por unidad</div>
-            <div class="text-xs text-gray-600 mb-3">
-              Escribe cuántas unidades recibiste y cuánto pagaste en total. Se calculará el costo por unidad y se llenará en “Precio mayorista”.
-            </div>
+
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
 <div>
@@ -178,7 +176,7 @@ include "../layout/header.php";
             <div class="mt-3 flex flex-col sm:flex-row gap-2">
               <button type="button" id="btn_aplicar_costo"
                 class="px-4 py-2 rounded-xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition">
-                Aplicar al precio mayorista
+                Aplicar al precio 
               </button>
 
               <button type="button" id="btn_limpiar_calc"
@@ -186,9 +184,7 @@ include "../layout/header.php";
                 Limpiar
               </button>
 
-              <div class="text-xs text-gray-600 sm:ml-auto sm:text-right">
-                Tip: también puedes escribir directo el costo si ya lo sabes.
-              </div>
+
             </div>
           </div>
 
@@ -214,78 +210,79 @@ include "../layout/header.php";
              ========================= -->
         <div class="space-y-4 lg:sticky lg:top-6 self-start">
 
-          <!-- ✅ IMAGEN DEL PRODUCTO (solo UI) -->
-          <div class="rounded-2xl border border-chebs-line p-4 bg-white">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <div class="font-black text-chebs-black">Imagen del producto</div>
-                <div class="text-xs text-gray-500">
-                  Sube una foto (JPG/PNG/WebP). Recomendado: cuadrada.
-                </div>
-              </div>
-              <span class="text-[11px] font-black text-gray-600 bg-chebs-soft/60 border border-chebs-line px-2 py-1 rounded-xl">
-                opcional
-              </span>
+<!-- ✅ IMAGEN DEL PRODUCTO (solo UI) -->
+<div class="rounded-2xl border-2 border-chebs-green/30 p-4 bg-chebs-green/10">
+  <div class="flex items-start justify-between gap-3">
+    <div>
+      <div class="font-black text-chebs-green">Imagen del producto</div>
+      <div class="text-xs text-chebs-green/80">
+        Sube una foto (JPG/PNG/WebP). Recomendado: cuadrada.
+      </div>
+    </div>
+
+    <span class="text-[11px] font-black text-chebs-green bg-white/70 border border-chebs-green/30 px-2 py-1 rounded-xl">
+      opcional
+    </span>
+  </div>
+
+  <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+    <div>
+      <label class="block text-xs font-bold mb-2 text-chebs-green">Archivo</label>
+      <input id="imagen_producto"
+             type="file"
+             name="imagen"
+             accept="image/*"
+             class="w-full rounded-2xl bg-white border-2 border-chebs-green/30 px-4 py-3
+                    outline-none focus:ring-4 focus:ring-chebs-green/20 focus:border-chebs-green">
+
+      <div class="mt-2 flex gap-2">
+        <button type="button" id="btn_quitar_img"
+          class="px-4 py-2 rounded-xl border border-chebs-green/30 bg-white font-black hover:bg-chebs-green/10 transition">
+          Quitar
+        </button>
+
+        <div class="text-xs text-chebs-green/80 self-center" id="img_hint">
+          Sin imagen seleccionada
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-xs font-bold mb-2 text-chebs-green">Vista previa</label>
+
+      <div class="rounded-2xl border border-chebs-green/30 bg-white p-3">
+        <div class="w-full aspect-square rounded-2xl bg-white border border-chebs-green/20 overflow-hidden flex items-center justify-center">
+          <img id="img_preview"
+               src=""
+               alt=""
+               class="hidden w-full h-full object-cover">
+
+          <div id="img_placeholder" class="text-center px-4">
+            <div class="text-4xl">🧃</div>
+            <div class="text-xs text-chebs-green font-bold mt-2">
+              Aún sin imagen
             </div>
-
-            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-              <div>
-                <label class="block text-xs font-bold mb-2">Archivo</label>
-                <input id="imagen_producto"
-                       type="file"
-                       name="imagen"
-                       accept="image/*"
-                       class="w-full rounded-2xl bg-white border-2 border-chebs-line px-4 py-3
-                              outline-none focus:ring-4 focus:ring-chebs-soft focus:border-chebs-green">
-                <div class="mt-2 flex gap-2">
-                  <button type="button" id="btn_quitar_img"
-                    class="px-4 py-2 rounded-xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition">
-                    Quitar
-                  </button>
-
-                  <div class="text-xs text-gray-600 self-center" id="img_hint">
-                    Sin imagen seleccionada
-                  </div>
-                </div>
-
-                <div class="mt-3 text-xs text-gray-500">
-                  Guardar en BD recomendado: <b>uploads/productos/archivo.jpg</b>
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold mb-2">Vista previa</label>
-                <div class="rounded-2xl border border-chebs-line bg-chebs-soft/40 p-3">
-                  <div class="w-full aspect-square rounded-2xl bg-white border border-chebs-line overflow-hidden flex items-center justify-center">
-                    <img id="img_preview"
-                         src=""
-                         alt=""
-                         class="hidden w-full h-full object-cover">
-                    <div id="img_placeholder" class="text-center px-4">
-                      <div class="text-4xl">🧃</div>
-                      <div class="text-xs text-gray-600 font-bold mt-2">Aún sin imagen</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
           </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 
           <!-- ✅ Presentaciones -->
           <div class="rounded-2xl border border-chebs-line p-4 bg-white">
             <div class="flex items-center justify-between gap-3 mb-3">
               <div>
-                <div class="font-black text-chebs-black">Presentaciones (packs)</div>
-                <div class="text-xs text-gray-500">
-                  Ej: Cajetilla 10 (9 Bs), Cajetilla 20 (18 Bs), Pack 6 (60 Bs)…
-                </div>
+                <div class="font-black text-chebs-black">Venta por paquetes</div>
+
               </div>
 
 <button type="button" id="btn_add_pres"
   class="px-4 py-2 rounded-xl bg-orange-400 text-black font-black
          hover:bg-orange-500 transition">
-  + Agregar
+  + Agregar venta por paquete
 </button>
 
             </div>
@@ -311,22 +308,23 @@ include "../layout/header.php";
           </div>
 
           <!-- ✅ Botones en desktop (siempre visibles por sticky) -->
-          <div class="hidden lg:flex flex-col sm:flex-row gap-3 pt-2">
+
+
+        </div>
+                  <div class="hidden lg:flex flex-col sm:flex-row gap-3 pt-2">
             <button type="submit"
               class="flex-1 inline-flex items-center justify-center px-5 py-3 rounded-2xl
                      bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition shadow-soft">
               💾 Guardar
             </button>
 
+
+          </div>
             <a href="listar.php"
               class="flex-1 inline-flex items-center justify-center px-5 py-3 rounded-2xl
                      border border-chebs-line bg-white font-black hover:bg-chebs-soft transition">
               ← Volver
             </a>
-          </div>
-
-        </div>
-
       </form>
 
     </div>
