@@ -108,112 +108,145 @@ if ($turnoAbierto) {
     background: #fdf2f8;         /* pink-50 */
   }
 
-/* ✅ FIX: Sticky header del detalle NO se mezcla al hacer scroll */
-#tabla_detalle{
-  border-collapse: separate;   /* importante para sticky */
-  border-spacing: 0;
-}
+  /* ✅ FIX: Sticky header del detalle NO se mezcla al hacer scroll */
+  #tabla_detalle{
+    border-collapse: separate;   /* importante para sticky */
+    border-spacing: 0;
+  }
 
-#tabla_detalle thead{
-  position: sticky;
-  top: 0;
-  z-index: 50;                 /* arriba de todo */
-}
+  #tabla_detalle thead{
+    position: sticky;
+    top: 0;
+    z-index: 50;                 /* arriba de todo */
+  }
 
-#tabla_detalle thead th{
-  position: sticky;
-  top: 0;
-  z-index: 51;
-  background: #e5efdc;         /* verde suave (igual que tu header) */
-}
+  #tabla_detalle thead th{
+    position: sticky;
+    top: 0;
+    z-index: 51;
+    background: #e5efdc;         /* verde suave (igual que tu header) */
+  }
 
-#tabla_detalle thead tr{
-  box-shadow: 0 2px 0 rgba(0,0,0,0.10); /* línea separadora */
-}
+  #tabla_detalle thead tr{
+    box-shadow: 0 2px 0 rgba(0,0,0,0.10); /* línea separadora */
+  }
 
-#tabla_detalle tbody td{
-  position: relative;
-  z-index: 1;
-}
+  #tabla_detalle tbody td{
+    position: relative;
+    z-index: 1;
+  }
 
-/* por si el botón eliminar trae z-index raro */
-#tabla_detalle td:last-child button,
-#tabla_detalle td:last-child .btn-eliminar,
-#tabla_detalle td:last-child .btn-remove,
-#tabla_detalle td:last-child a{
-  position: relative;
-  z-index: 1;
-}
+  /* por si el botón eliminar trae z-index raro */
+  #tabla_detalle td:last-child button,
+  #tabla_detalle td:last-child .btn-eliminar,
+  #tabla_detalle td:last-child .btn-remove,
+  #tabla_detalle td:last-child a{
+    position: relative;
+    z-index: 1;
+  }
 
-
-/* =========================
-   AUTOCOMPLETE ENCIMA DE TODO
-========================= */
-/* 2) Autocomplete encima de TODO */
+  /* =========================
+     AUTOCOMPLETE ENCIMA DE TODO
+  ========================= */
 #auto_box{
   position: absolute !important;
-  left: 0;
-  right: 0;
+  left: -25px;
+  right: -800px;  /* ← crece a la derecha */
   top: 100%;
-  margin-top: 6px;
+  margin-top: 10px;
   z-index: 999999 !important;
   background: #fff;
 }
 
-/* 3) BAJAMOS el z-index del header sticky de la tabla */
-#tabla_detalle thead{
-  z-index: 5 !important;
-}
 
-#tabla_detalle thead th{
-  z-index: 6 !important;
-}
-
-/* 4) Por si el contenedor del scroll crea stacking raro */
-.max-h-\[44vh\]{
-  position: relative;
-  z-index: 1 !important;
-}
-
-
-  /* ✅ Item layout: imagen más grande */
-  .chebs-auto-item{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:0px 0px;
+  /* 3) BAJAMOS el z-index del header sticky de la tabla */
+  #tabla_detalle thead{
+    z-index: 5 !important;
   }
 
-  .chebs-auto-img{
-    width:100px;      /* 👈 más grande */
-    height:100px;
-    border-radius:0px;
-    background:#fff;
-    border:1px solid #f9a8d4; /* pink-300 */
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    flex:0 0 auto;
-    overflow:hidden;
+  #tabla_detalle thead th{
+    z-index: 6 !important;
   }
 
-  .chebs-auto-img img{
-    width:100%;
-    height:100%;
-    object-fit:cover; /* si son fotos */
+  /* 4) Por si el contenedor del scroll crea stacking raro */
+  .max-h-\[44vh\]{
+    position: relative;
+    z-index: 1 !important;
   }
 
+  /* =========================
+     ✅ CAMBIO: AUTOCOMPLETE EN TARJETAS (GRID) + IMÁGENES CUADRADAS
+  ========================= */
+  #auto_list{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)); /* móvil: 2 columnas */
+    gap: 14px;
+    padding: 14px;
+  }
+@media (min-width: 768px){
+  #auto_list{
+    grid-template-columns: repeat(5, minmax(0, 1fr)); /* antes 4 */
+  }
+}
+
+
+  .chebs-auto-card{
+    background: #fff;
+    border: 2px solid #f7d7e9;           /* pink-200 */
+    border-radius: 18px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: .15s ease;
+    box-shadow: 0 10px 25px rgba(236,72,153,0.08);
+  }
+  .chebs-auto-card:hover{
+    background: #f87abf;                 /* pink-50 */
+  }
+  .chebs-auto-card.is-active{
+    border-color: #ec4899;               /* pink-500 */
+    box-shadow: 0 0 0 4px rgba(236, 72, 154, 0.22);
+  }
+
+.chebs-auto-imgbox{
+  width: 100%;
+  aspect-ratio: 1 / 1;   /* ✅ SIEMPRE CUADRADA */
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+
+
+.chebs-auto-imgbox img{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;   /* producto centrado */
+  padding: 10px;         /* ajusta tamaño del producto */
+}
+
+
+  .chebs-auto-info{
+    padding: 12px 12px 14px;
+    border-top: 1px solid #fce7f3;       /* pink-100 */
+  }
   .chebs-auto-title{
-    font-weight:900;
-    font-size:16px;
-    line-height:1.15;
+    font-weight: 900;
+    font-size: 14px;
+    line-height: 1.15;
+    color: #000000;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 34px;
   }
-
   .chebs-auto-sub{
-    font-size:12px;
-    color:#6b7280;
-    font-weight:700;
-    margin-top:2px;
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #6b7280;
   }
 
   .stock-zero{
@@ -262,16 +295,8 @@ if ($turnoAbierto) {
 
         <!-- FORM PRODUCTO -->
         <div class="px-6 py-5">
-          <!-- ✅ CAMBIO CLAVE:
-               - md:items-end (se alinea por abajo)
-               - items-start en móvil
-          -->
- <form id="form_producto" onsubmit="return false;" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
 
-  <!-- =========================
-       FILA 1 (ARRIBA): Producto + Cantidad + Botón
-       (✅ Cantidad queda a la par del buscador)
-  ========================= -->
+<form id="form_producto" onsubmit="return false;" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
 
   <!-- Producto (SOLO label + input + dropdown) -->
   <div class="md:col-span-8 z-50 flex flex-col">
@@ -341,7 +366,7 @@ if ($turnoAbierto) {
           <span class="hidden sm:inline text-gray-600">↑ ↓ · Enter</span>
         </div>
 
-        <div id="auto_list" class="max-h-64 overflow-auto chebs-scroll"></div>
+        <div id="auto_list" class="max-h-20 overflow-auto chebs-scroll"></div>
 
         <div id="auto_empty" class="hidden px-4 py-3 text-sm text-gray-500">
           Sin resultados
@@ -357,7 +382,7 @@ if ($turnoAbierto) {
     </script>
   </div>
 
-  <!-- Cantidad (✅ ahora NO depende del alto del stock/presentación) -->
+  <!-- Cantidad -->
   <div class="md:col-span-2 flex flex-col">
     <label class="block text-sm font-black text-pink-600 mb-2 leading-none">
       Cantidad
@@ -368,7 +393,7 @@ if ($turnoAbierto) {
                  outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 text-[16px] font-semibold">
   </div>
 
-  <!-- Botón agregar (✅ con label fantasma para quedar a la misma altura del input) -->
+  <!-- Botón agregar -->
   <div class="md:col-span-2 flex flex-col">
     <div class="mb-2 text-sm font-black opacity-0 leading-none select-none">.</div>
 
@@ -389,10 +414,7 @@ if ($turnoAbierto) {
     </button>
   </div>
 
-  <!-- =========================
-       FILA 2 (ABAJO): Stock + Presentación
-       (✅ ya NO empuja Cantidad/Agregar hacia abajo)
-  ========================= -->
+  <!-- FILA 2 -->
   <div class="md:col-span-12">
     <div id="stock_info" class="mt-2 text-xs text-gray-600 min-h-[18px]"></div>
 
@@ -412,7 +434,7 @@ if ($turnoAbierto) {
         </div>
       </div>
 
-      <!-- DETALLE DE VENTA (tabla + total + confirmar) -->
+      <!-- DETALLE DE VENTA -->
       <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden">
 
         <div class="px-6 py-4 border-b border-chebs-line bg-white flex items-center justify-between gap-4">
@@ -615,7 +637,7 @@ if ($turnoAbierto) {
     </div>
 
     <!-- ✅ CAMBIO: ahora es cuadrado con radio 5 -->
-<div class="w-[120px] h-[76px] rounded-[5px] bg-chebs-green/10 border border-chebs-green/20 flex flex-col items-center justify-center">
+    <div class="w-[120px] h-[76px] rounded-[5px] bg-chebs-green/10 border border-chebs-green/20 flex flex-col items-center justify-center">
       <div class="text-[10px] font-black text-gray-600 leading-none">HOY</div>
       <div class="text-sm font-black text-chebs-black tabular-nums leading-tight">
         Bs <?= number_format($totalHoy, 2) ?>
@@ -623,7 +645,6 @@ if ($turnoAbierto) {
     </div>
 
   </div>
-
 
         <div class="px-3 py-5 md:px-4">
           <div class="max-h-[54vh] overflow-auto pr-1 chebs-scroll space-y-4">
@@ -1067,6 +1088,7 @@ let autoItems = [];
 function abrirAuto(){ autoBox.classList.remove('hidden'); }
 function cerrarAuto(){ autoBox.classList.add('hidden'); autoIndex = -1; }
 
+/* ✅ CAMBIO: renderAuto en GRID de tarjetas con imagen cuadrada */
 function renderAuto(){
   autoList.innerHTML = '';
   autoEmpty.classList.add('hidden');
@@ -1081,40 +1103,33 @@ function renderAuto(){
   const re = safe ? new RegExp(safe, 'ig') : null;
 
   autoItems.forEach((it, idx) => {
-    const div = document.createElement('div');
+    const card = document.createElement('div');
 
-    div.className =
-      "cursor-pointer border-b border-pink-100 last:border-b-0 transition " +
-      (idx === autoIndex
-        ? "bg-pink-200 border-l-4 border-pink-500"
-        : "hover:bg-pink-100");
+    card.className = "chebs-auto-card" + (idx === autoIndex ? " is-active" : "");
 
     let tituloHtml = it.label;
     if (re) {
-      tituloHtml = it.label.replace(re, (m)=>`<span class="font-black text-chebs-green">${m}</span>`);
+      tituloHtml = it.label.replace(re, (m)=>`<span style="font-weight:900;color:#850547">${m}</span>`);
     }
 
     const img = (it.imagen || '').trim();
     const imgHtml = img
       ? `<img src="${img}" alt="" loading="lazy">`
-      : `<span class="text-2xl">🧃</span>`;
+      : `<div style="font-size:40px;opacity:.6">🧃</div>`;
 
-    div.innerHTML = `
-      <div class="chebs-auto-item">
-        <div class="chebs-auto-img">${imgHtml}</div>
-        <div class="min-w-0">
-          <div class="chebs-auto-title text-chebs-black truncate">${tituloHtml}</div>
-          <div class="chebs-auto-sub">Enter para seleccionar</div>
-        </div>
+    card.innerHTML = `
+      <div class="chebs-auto-imgbox">${imgHtml}</div>
+      <div class="chebs-auto-info">
+        <div class="chebs-auto-title">${tituloHtml}</div>
       </div>
     `;
 
-    div.addEventListener('mousedown', (e) => {
+    card.addEventListener('mousedown', (e) => {
       e.preventDefault();
       seleccionarItem(idx);
     });
 
-    autoList.appendChild(div);
+    autoList.appendChild(card);
   });
 
   ajustarAltoAuto();
@@ -1130,7 +1145,9 @@ function ajustarAltoAuto(){
   const header = autoBox.querySelector('div');
   const headerH = header ? header.getBoundingClientRect().height : 40;
 
-  const maxList = Math.max(180, espacioAbajo - headerH);
+  /* ✅ opcional (más alto): antes Math.max(180, ...) */
+  const maxList = Math.max(260, espacioAbajo - headerH);
+
   autoList.style.maxHeight = maxList + "px";
   autoBox.style.maxHeight = (headerH + maxList) + "px";
 }
