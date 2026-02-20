@@ -3,7 +3,12 @@ require_once __DIR__ . "/config/auth.php";
 require_role(['admin','empleado']);
 
 if (session_status() === PHP_SESSION_NONE) session_start();
+
 $nombre = $_SESSION['user']['nombre'] ?? ($_SESSION['user']['usuario'] ?? 'Admin');
+$rol    = $_SESSION['user']['rol'] ?? 'empleado';
+
+// ✅ Permisos de vista (admin = todo / empleado = solo caja)
+$soloCaja = ($rol !== 'admin');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -32,10 +37,10 @@ $nombre = $_SESSION['user']['nombre'] ?? ($_SESSION['user']['usuario'] ?? 'Admin
     /* Fondo con vida (pero limpio) */
     body{
       background:
-        radial-gradient(900px 400px at 20% 5%, rgba(236,72,153,.18), transparent 60%),
+        radial-gradient(900px 400px at 20% 5%, rgba(236, 72, 154, 0.27), transparent 60%),
         radial-gradient(900px 400px at 80% 0%, rgba(78,122,43,.20), transparent 60%),
-        radial-gradient(900px 500px at 50% 110%, rgba(199,216,185,.55), transparent 60%),
-        #f7faf7;
+        radial-gradient(900px 500px at 50% 110%, rgba(170, 224, 125, 0.55), transparent 60%),
+        #d7f5d7;
     }
 
     /* Tarjetas con “luz” por color */
@@ -154,157 +159,173 @@ $nombre = $_SESSION['user']['nombre'] ?? ($_SESSION['user']['usuario'] ?? 'Admin
       box-shadow: 0 22px 45px rgba(236,72,153,.18);
     }
 
-    /* Titulares más pro */
     .title{
       letter-spacing: -0.02em;
       text-shadow: 0 1px 0 rgba(255,255,255,.7);
     }
 
-    /* Para que no se vea “apagado” */
     .muted{ color: rgba(17,17,17,.68); }
     .link-green{ color: var(--chebs-green); font-weight: 900; }
     .link-green:hover{ color: var(--chebs-greenDark); }
-
   </style>
+
+  <link rel="icon" type="image/png" href="/PULPERIA-CHEBS/public/img/logo.png">
 </head>
 
-<body class="text-chebs-black">
+<!-- ✅ CAMBIO 1: body ahora es flex y ocupa pantalla -->
+<body class="text-chebs-black min-h-screen flex flex-col">
 
 <?php include __DIR__ . "/vistas/layout/header.php"; ?>
 
-<div class="max-w-6xl mx-auto px-4 py-8">
+<!-- ✅ CAMBIO 2: main flex-1 para empujar footer abajo -->
+<main class="flex-1">
+  <div class="max-w-6xl mx-auto px-4 py-8">
 
-  <!-- Encabezado -->
-  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-    <div>
-      <h1 class="text-3xl md:text-4xl font-black text-chebs-black title">Panel de Administración</h1>
-      <p class="text-sm mt-2 muted">
-        Bienvenido, <span class="font-black text-chebs-black"><?= htmlspecialchars($nombre) ?></span>.
-        Administra tu tienda desde aquí.
-      </p>
+    <!-- Encabezado -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+      <div>
+        <h1 class="text-3xl md:text-4xl font-black text-chebs-black title">
+          <?= ($soloCaja ? "Caja" : "Panel de Administración") ?>
+        </h1>
 
-      <div class="mt-4 inline-flex items-center chebs-pill">
-        <span class="inline-flex w-7 h-7 rounded-full bg-white border border-chebs-line items-center justify-center">🛡️</span>
-        Modo Admin activo
+        <p class="text-sm mt-2 muted">
+          Bienvenido, <span class="font-black text-chebs-black"><?= htmlspecialchars($nombre) ?></span>.
+          <?= ($soloCaja ? "Acceso restringido: solo Caja." : "Administra tu tienda desde aquí.") ?>
+        </p>
+
+        <?php if (!$soloCaja): ?>
+          <div class="mt-4 inline-flex items-center chebs-pill">
+            <span class="inline-flex w-7 h-7 rounded-full bg-white border border-chebs-line items-center justify-center">🛡️</span>
+            Modo Admin activo
+          </div>
+        <?php endif; ?>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <!-- ✅ Siempre visible (admin y empleado): Caja -->
+        <a href="/PULPERIA-CHEBS/vistas/ventas/venta.php"
+          class="btn-chebs btn-green inline-flex items-center justify-center gap-2">
+          <span class="inline-flex w-6 h-6 rounded-lg bg-white/15 items-center justify-center">💳</span>
+          Ir Caja
+        </a>
+
+        <a href="/PULPERIA-CHEBS/controladores/logout.php"
+          class="btn-chebs inline-flex items-center justify-center gap-2
+                  bg-red-600 text-white font-extrabold
+                  hover:bg-red-700 hover:shadow-xl transition">
+          <span class="inline-flex w-6 h-6 rounded-lg bg-white/20 items-center justify-center">⎋</span>
+          Cerrar sesión
+        </a>
       </div>
     </div>
 
-    <div class="flex flex-col sm:flex-row gap-3">
-      <a href="/PULPERIA-CHEBS/vistas/ventas/venta.php"
-         class="btn-chebs btn-green inline-flex items-center justify-center gap-2">
-        <span class="inline-flex w-6 h-6 rounded-lg bg-white/15 items-center justify-center">💳</span>
-        Ir Caja
+    <!-- ✅ Accesos rápidos -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+
+      <!-- Caja (SIEMPRE) -->
+      <a href="/PULPERIA-CHEBS/vistas/ventas/venta.php" class="chebs-card card-green p-6 group">
+        <div class="relative z-10 flex items-start justify-between gap-3">
+          <div>
+            <h3 class="text-lg font-black text-chebs-black group-hover:text-chebs-greenDark transition">Caja</h3>
+            <p class="text-sm muted mt-1">Registrar ventas, abrir/cerrar turno y retiros.</p>
+          </div>
+          <div class="chebs-icon" style="border-color: rgba(78,122,43,.35); color: var(--chebs-green);">
+            $
+          </div>
+        </div>
+        <div class="relative z-10 mt-4 inline-flex items-center gap-2 text-sm font-black link-green">
+          Entrar <span class="transition group-hover:translate-x-1">→</span>
+        </div>
       </a>
 
-      <a href="/PULPERIA-CHEBS/controladores/logout.php"
-         class="btn-chebs btn-white inline-flex items-center justify-center gap-2">
-        <span class="inline-flex w-6 h-6 rounded-lg bg-pink-50 items-center justify-center">⎋</span>
-        Cerrar sesión
-      </a>
-    </div>
-  </div>
+      <?php if (!$soloCaja): ?>
+        <!-- ✅ SOLO ADMIN: Productos -->
+        <a href="/PULPERIA-CHEBS/vistas/productos/listar.php" class="chebs-card card-pink p-6 group">
+          <div class="relative z-10 flex items-start justify-between gap-3">
+            <div>
+              <h3 class="text-lg font-black text-chebs-black group-hover:text-pink-600 transition">Productos</h3>
+              <p class="text-sm muted mt-1">Crear, editar y administrar precios.</p>
+            </div>
+            <div class="chebs-icon">P</div>
+          </div>
+          <div class="relative z-10 mt-4 inline-flex items-center gap-2 text-sm font-black text-pink-600">
+            Gestionar <span class="transition group-hover:translate-x-1">→</span>
+          </div>
+        </a>
 
-  <!-- Accesos rápidos -->
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+        <!-- ✅ SOLO ADMIN: Lotes -->
+        <a href="/PULPERIA-CHEBS/vistas/lotes/listar.php" class="chebs-card card-green p-6 group">
+          <div class="relative z-10 flex items-start justify-between gap-3">
+            <div>
+              <h3 class="text-lg font-black text-chebs-black group-hover:text-chebs-greenDark transition">Lotes</h3>
+              <p class="text-sm muted mt-1">Entradas, stock por lote y control.</p>
+            </div>
+            <div class="chebs-icon" style="border-color: rgba(78,122,43,.35); color: var(--chebs-green); background: linear-gradient(180deg, rgba(78,122,43,.10), rgba(255,255,255,.95));">
+              L
+            </div>
+          </div>
+          <div class="relative z-10 mt-4 inline-flex items-center gap-2 text-sm font-black link-green">
+            Ver lotes <span class="transition group-hover:translate-x-1">→</span>
+          </div>
+        </a>
 
-    <!-- Caja (verde) -->
-    <a href="/PULPERIA-CHEBS/vistas/ventas/venta.php" class="chebs-card card-green p-6 group">
-      <div class="relative z-10 flex items-start justify-between gap-3">
-        <div>
-          <h3 class="text-lg font-black text-chebs-black group-hover:text-chebs-greenDark transition">Caja</h3>
-          <p class="text-sm muted mt-1">Registrar ventas, abrir/cerrar turno y retiros.</p>
-        </div>
-        <div class="chebs-icon" style="border-color: rgba(78,122,43,.35); color: var(--chebs-green);">
-          $
-        </div>
-      </div>
-      <div class="relative z-10 mt-4 inline-flex items-center gap-2 text-sm font-black link-green">
-        Entrar <span class="transition group-hover:translate-x-1">→</span>
-      </div>
-    </a>
+        <!-- ✅ SOLO ADMIN: Inventario -->
+        <a href="/PULPERIA-CHEBS/vistas/movimientos/historial.php" class="chebs-card card-soft p-6 group" style="border-color: rgba(236,72,153,.35);">
+          <div class="relative z-10 flex items-start justify-between gap-3">
+            <div>
+              <h3 class="text-lg font-black text-chebs-black group-hover:text-pink-600 transition">Inventario</h3>
+              <p class="text-sm muted mt-1">Historial de movimientos y stock.</p>
+            </div>
+            <div class="chebs-icon">I</div>
+          </div>
+          <div class="relative z-10 mt-4 inline-flex items-center gap-2 text-sm font-black text-pink-600">
+            Ver historial <span class="transition group-hover:translate-x-1">→</span>
+          </div>
+        </a>
+      <?php endif; ?>
 
-    <!-- Productos (rosado) -->
-    <a href="/PULPERIA-CHEBS/vistas/productos/listar.php" class="chebs-card card-pink p-6 group">
-      <div class="relative z-10 flex items-start justify-between gap-3">
-        <div>
-          <h3 class="text-lg font-black text-chebs-black group-hover:text-pink-600 transition">Productos</h3>
-          <p class="text-sm muted mt-1">Crear, editar y administrar precios.</p>
-        </div>
-        <div class="chebs-icon">P</div>
-      </div>
-      <div class="relative z-10 mt-4 inline-flex items-center gap-2 text-sm font-black text-pink-600">
-        Gestionar <span class="transition group-hover:translate-x-1">→</span>
-      </div>
-    </a>
-
-    <!-- Lotes (verde) -->
-    <a href="/PULPERIA-CHEBS/vistas/lotes/listar.php" class="chebs-card card-green p-6 group">
-      <div class="relative z-10 flex items-start justify-between gap-3">
-        <div>
-          <h3 class="text-lg font-black text-chebs-black group-hover:text-chebs-greenDark transition">Lotes</h3>
-          <p class="text-sm muted mt-1">Entradas, stock por lote y control.</p>
-        </div>
-        <div class="chebs-icon" style="border-color: rgba(78,122,43,.35); color: var(--chebs-green); background: linear-gradient(180deg, rgba(78,122,43,.10), rgba(255,255,255,.95));">
-          L
-        </div>
-      </div>
-      <div class="relative z-10 mt-4 inline-flex items-center gap-2 text-sm font-black link-green">
-        Ver lotes <span class="transition group-hover:translate-x-1">→</span>
-      </div>
-    </a>
-
-    <!-- Inventario (rosado + verde suave) -->
-    <a href="/PULPERIA-CHEBS/vistas/movimientos/historial.php" class="chebs-card card-soft p-6 group" style="border-color: rgba(236,72,153,.35);">
-      <div class="relative z-10 flex items-start justify-between gap-3">
-        <div>
-          <h3 class="text-lg font-black text-chebs-black group-hover:text-pink-600 transition">Inventario</h3>
-          <p class="text-sm muted mt-1">Historial de movimientos y stock.</p>
-        </div>
-        <div class="chebs-icon">I</div>
-      </div>
-      <div class="relative z-10 mt-4 inline-flex items-center gap-2 text-sm font-black text-pink-600">
-        Ver historial <span class="transition group-hover:translate-x-1">→</span>
-      </div>
-    </a>
-
-  </div>
-
-  <!-- Segunda fila -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
-
-    <!-- Historial de ventas (rosado) -->
-    <a href="/PULPERIA-CHEBS/vistas/ventas/historial.php" class="chebs-card card-pink p-6 group">
-      <div class="relative z-10 flex items-center justify-between gap-3">
-        <div>
-          <h3 class="text-lg font-black text-chebs-black group-hover:text-pink-600 transition">Historial de Ventas</h3>
-          <p class="text-sm muted mt-1">Revisa ventas anteriores y reportes.</p>
-        </div>
-        <div class="text-pink-600 text-2xl font-black transition group-hover:translate-x-1">→</div>
-      </div>
-    </a>
-
-    <!-- Tips (verde) -->
-    <div class="chebs-card card-green p-6">
-      <div class="relative z-10">
-        <h3 class="text-lg font-black text-chebs-black">Tips rápidos</h3>
-        <ul class="mt-3 space-y-2 text-sm muted">
-          <li class="flex gap-2">
-            <span class="font-black text-chebs-green">•</span> Ctrl + Enter en ventas para confirmar rápido.
-          </li>
-          <li class="flex gap-2">
-            <span class="font-black text-chebs-green">•</span> Usa “Abrir turno” antes de vender.
-          </li>
-          <li class="flex gap-2">
-            <span class="font-black text-chebs-green">•</span> Recuerda: stock considera solo lotes activos.
-          </li>
-        </ul>
-      </div>
     </div>
 
-  </div>
+    <?php if (!$soloCaja): ?>
+      <!-- ✅ SOLO ADMIN: Segunda fila -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
 
-</div>
+        <!-- Historial de ventas -->
+        <a href="/PULPERIA-CHEBS/vistas/ventas/historial.php" class="chebs-card card-pink p-6 group">
+          <div class="relative z-10 flex items-center justify-between gap-3">
+            <div>
+              <h3 class="text-lg font-black text-chebs-black group-hover:text-pink-600 transition">Historial de Ventas</h3>
+              <p class="text-sm muted mt-1">Revisa ventas anteriores y reportes.</p>
+            </div>
+            <div class="text-pink-600 text-2xl font-black transition group-hover:translate-x-1">→</div>
+          </div>
+        </a>
+
+        <!-- Tips -->
+        <div class="chebs-card card-green p-6">
+          <div class="relative z-10">
+            <h3 class="text-lg font-black text-chebs-black">Tips rápidos</h3>
+            <ul class="mt-3 space-y-2 text-sm muted">
+              <li class="flex gap-2">
+                <span class="font-black text-chebs-green">•</span> Ctrl + Enter en ventas para confirmar rápido.
+              </li>
+              <li class="flex gap-2">
+                <span class="font-black text-chebs-green">•</span> Usa “Abrir turno” antes de vender.
+              </li>
+              <li class="flex gap-2">
+                <span class="font-black text-chebs-green">•</span> Recuerda: stock considera solo lotes activos.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    <?php endif; ?>
+
+  </div>
+</main>
 
 <?php include __DIR__ . "/vistas/layout/footer.php"; ?>
+
 </body>
 </html>

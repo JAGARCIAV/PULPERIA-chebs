@@ -12,7 +12,6 @@ function nombreRol($rol){
   };
 }
 
-
 $err = "";
 
 /* =========================
@@ -20,7 +19,6 @@ $err = "";
    ========================= */
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) {
-  // como aún no imprimimos nada, podemos redirigir o mostrar error simple
   header("Location: /PULPERIA-CHEBS/vistas/perfiles/perfiles_usuarios.php?err=id");
   exit;
 }
@@ -106,7 +104,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->execute()) {
           $stmt->close();
 
-          // ✅ AHORA SI: REDIRECT SIN ERROR (no se imprimió HTML todavía)
           header("Location: /PULPERIA-CHEBS/vistas/perfiles/perfiles_usuarios.php?ok=edit");
           exit;
 
@@ -211,18 +208,38 @@ include __DIR__ . "/../layout/header.php";
           Si no quieres cambiarla, deja ambos campos vacíos.
         </div>
 
+        <!-- ✅ CAMPOS CON OJITO -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div>
+          <div class="relative">
             <label class="block text-sm font-black text-pink-600 mb-2">Nueva contraseña</label>
-            <input type="password" name="password"
-                   class="w-full h-[52px] rounded-2xl bg-white border-2 border-pink-300 px-4 text-gray-800 outline-none
+            <input type="password" name="password" id="password"
+                   class="w-full h-[52px] rounded-2xl bg-white border-2 border-pink-300 px-4 pr-12 text-gray-800 outline-none
                           focus:ring-4 focus:ring-pink-200 focus:border-pink-500 font-semibold">
+
+            <button type="button" onclick="togglePassword('password')"
+                    class="absolute right-4 top-[42px] text-gray-500 hover:text-pink-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6"
+                   fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 0c-1.5 4-5 7-9 7s-7.5-3-9-7c1.5-4 5-7 9-7s7.5 3 9 7z"/>
+              </svg>
+            </button>
           </div>
-          <div>
+
+          <div class="relative">
             <label class="block text-sm font-black text-pink-600 mb-2">Repetir nueva contraseña</label>
-            <input type="password" name="password2"
-                   class="w-full h-[52px] rounded-2xl bg-white border-2 border-pink-300 px-4 text-gray-800 outline-none
+            <input type="password" name="password2" id="password2"
+                   class="w-full h-[52px] rounded-2xl bg-white border-2 border-pink-300 px-4 pr-12 text-gray-800 outline-none
                           focus:ring-4 focus:ring-pink-200 focus:border-pink-500 font-semibold">
+
+            <button type="button" onclick="togglePassword('password2')"
+                    class="absolute right-4 top-[42px] text-gray-500 hover:text-pink-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6"
+                   fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 0c-1.5 4-5 7-9 7s-7.5-3-9-7c1.5-4 5-7 9-7s7.5 3 9 7z"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -237,5 +254,13 @@ include __DIR__ . "/../layout/header.php";
     </form>
   </div>
 </div>
+
+<!-- ✅ SCRIPT: antes de incluir el footer -->
+<script>
+function togglePassword(inputId) {
+  const input = document.getElementById(inputId);
+  input.type = (input.type === "password") ? "text" : "password";
+}
+</script>
 
 <?php include __DIR__ . "/../layout/footer.php"; ?>

@@ -1,132 +1,294 @@
 <?php
-// 1. INCLUIR CONEXIÓN Y MODELOS
-include_once "../../config/conexion.php";
-include_once "../../modelos/venta_modelo.php";
-include "../layout/header.php";
-include_once "../../modelos/producto_modelo.php";
+require_once __DIR__ . "/../../config/auth.php";
+require_role(['admin','empleado']);
 
-// 2. OBTENER DATOS
-$id_venta = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+require_once __DIR__ . "/../../config/conexion.php";
+require_once __DIR__ . "/../../modelos/producto_modelo.php";
+require_once __DIR__ . "/../../modelos/venta_modelo.php";
+require_once __DIR__ . "/../../modelos/venta_corregir_modelo.php"; // ✅ AQUÍ está obtenerDetalleVentaPorVenta()
 
-if ($id_venta === 0) {
-    die("ID de venta no válido");
+include __DIR__ . "/../layout/header.php";
+
+$venta_id = isset($_GET["id"]) ? (int)$_GET["id"] : 0;
+if ($venta_id <= 0) {
+  echo "<div class='p-6'>ID inválido</div>";
+  include __DIR__ . "/../layout/footer.php";
+  exit;
 }
 
-// Obtener los detalles de la venta actual
-$detalles = corregirVenta($conexion, $id_venta);
+$venta = obtenerVentaPorId($conexion, $venta_id);
+if (!$venta) {
+  echo "<div class='p-6'>Venta no existe</div>";
+  include __DIR__ . "/../layout/footer.php";
+  exit;
+}
 
-// Obtener todos los productos para el input de "cambiar producto"
-$productosDisponibles = obtenerProductos($conexion); 
-// Guardamos productos en un array para usarlos fácil en el datalist
-$listaProductos = [];
-while($p = $productosDisponibles->fetch_assoc()){
-    $listaProductos[] = $p;
+$anulada = isset($venta["anulada"]) ? ((int)$venta["anulada"] === 1) : false;
+
+// ✅ ESTA FUNCIÓN YA EXISTE EN venta_corregir_modelo.php
+$detalles = obtenerDetalleVentaPorVenta($conexion, $venta_id);
+
+// productos activos para datalist
+$productos = obtenerProductos($conexion, true);
+$productosArr = [];
+if ($productos) {
+  while($p = $productos->fetch_assoc()){
+    $productosArr[] = [
+      "id" => (int)$p["id"],
+      "nombre" => (string)$p["nombre"]
+    ];
+  }
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Corregir Venta #<?= $id_venta ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .text-chebs-green { color: #16a34a; }
-        .bg-chebs-green { background-color: #16a34a; }
-    </style>
-</head>
-<body class="bg-gray-50 p-6">
+<div class="max-w-[1200px] mx-auto px-6 py-6">
+  <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden">
+    <div class="px-6 py-4 bg-chebs-soft/50 border-b border-chebs-line flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-black">Corregir Venta #<?= (int)$venta_id ?></h1>
+        <p class="text-sm text-gray-500">Edita cantidades, elimina items o cambia productos.</p>
+      </div>
 
-<div class="max-w-4xl mx-auto">
-    
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h1 class="text-2xl font-black text-gray-800">Corregir Venta #<?= $id_venta ?></h1>
-            <p class="text-sm text-gray-500">Edita cantidades, elimina items o cambia productos.</p>
-        </div>
-        <a href="javascript:history.back()" class="text-gray-500 hover:text-gray-700 underline">Volver</a>
+      <a href="/PULPERIA-CHEBS/vistas/ventas/historial.php"
+         class="text-sm font-bold underline text-gray-600 hover:text-gray-900">
+        Volver
+      </a>
     </div>
 
-    <form action="../../controladores/corregir_venta.php" method="POST" class="bg-white rounded-3xl shadow-lg border border-gray-200 overflow-hidden">
-        <input type="hidden" name="venta_id" value="<?= $id_venta ?>">
+    <div class="p-6">
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-gray-100 text-gray-600 uppercase font-bold text-xs">
-                    <tr>
-                        <th class="p-4">Producto Original</th>
-                        <th class="p-4 w-1/3">Cambiar por (Opcional)</th>
-                        <th class="p-4 w-24">Cantidad</th>
-                        <th class="p-4 text-center">Eliminar</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    <?php while($d = $detalles->fetch_assoc()) { ?>
-                        <tr class="hover:bg-gray-50">
-                            <td class="p-4">
-                                <div class="font-bold text-gray-800"><?= htmlspecialchars($d['nombre']) ?></div>
-                                <div class="text-xs text-gray-500">
-                                    Precio: Bs <?= number_format($d['precio_unitario'], 2) ?>
-                                    <span class="ml-1 px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 text-[10px]"><?= $d['tipo_venta'] ?></span>
-                                </div>
-                            </td>
+      <?php if (isset($_GET["ok"])): ?>
+        <div class="mb-4 rounded-2xl bg-green-50 border border-green-200 text-green-700 font-bold p-4">
+          ✅ Cambios guardados y stock ajustado.
+        </div>
+      <?php endif; ?>
 
-                            <td class="p-4">
-                                <input 
-                                    list="lista-productos" 
-                                    name="nuevo_producto[<?= $d['id'] ?>]" 
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none text-sm"
-                                    placeholder="Buscar otro producto..."
-                                >
-                                <p class="text-[10px] text-gray-400 mt-1">Déjalo vacío para mantener el original</p>
-                            </td>
+      <?php if (isset($_GET["ok_anular"])): ?>
+        <div class="mb-4 rounded-2xl bg-green-50 border border-green-200 text-green-700 font-bold p-4">
+          ✅ Venta anulada y stock devuelto.
+        </div>
+      <?php endif; ?>
 
-                            <td class="p-4">
-                                <input 
-                                    type="number" 
-                                    name="cantidad[<?= $d['id'] ?>]" 
-                                    value="<?= (int)$d['cantidad'] ?>" 
-                                    min="1" 
-                                    class="w-full font-bold text-center border border-gray-300 rounded-lg px-2 py-2 focus:ring-2 focus:ring-green-500 outline-none"
-                                >
-                            </td>
+      <?php if (isset($_GET["err"])): ?>
+        <div class="mb-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 font-bold p-4">
+          ❌ <?= htmlspecialchars($_GET["err"]) ?>
+        </div>
+      <?php endif; ?>
 
-                            <td class="p-4 text-center">
-                                <label class="cursor-pointer flex items-center justify-center group">
-                                    <input type="checkbox" name="eliminar[]" value="<?= $d['id'] ?>" class="peer sr-only">
-                                    <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-400 peer-checked:bg-red-100 peer-checked:text-red-600 flex items-center justify-center transition-all group-hover:bg-red-50">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </div>
-                                </label>
-                                <div class="text-[10px] text-gray-400 mt-1">Borrar</div>
-                            </td>
-                        </tr>
-                    <?php } ?>
-                </tbody>
-            </table>
+      <?php if ($anulada): ?>
+        <div class="mb-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 font-bold p-4">
+          ⚠️ Esta venta está ANULADA. No se permiten más cambios.
+        </div>
+      <?php endif; ?>
+
+      <form method="POST" action="/PULPERIA-CHEBS/controladores/venta_corregir_guardar.php" class="space-y-4">
+        <input type="hidden" name="venta_id" value="<?= (int)$venta_id ?>">
+
+        <div class="overflow-auto rounded-2xl border border-chebs-line">
+          <table class="min-w-[900px] w-full text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="text-left p-4 font-black">PRODUCTO ORIGINAL</th>
+                <th class="text-left p-4 font-black">CAMBIAR POR (OPCIONAL)</th>
+                <th class="text-left p-4 font-black">CANTIDAD</th>
+                <th class="text-left p-4 font-black">ELIMINAR</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+
+            <?php $i=0; while($d = $detalles->fetch_assoc()): ?>
+              <tr class="bg-white">
+                <td class="p-4">
+                  <div class="font-black"><?= htmlspecialchars($d["nombre"]) ?></div>
+                  <div class="text-xs text-gray-500">
+                    Precio: Bs <?= number_format((float)$d["precio_unitario"],2) ?>
+                    <span class="ml-2 inline-flex px-2 py-1 rounded-lg bg-gray-100 text-gray-700 font-bold">
+                      <?= htmlspecialchars($d["tipo_venta"]) ?>
+                    </span>
+                  </div>
+
+                  <input type="hidden" name="detalle_id[]" value="<?= (int)$d["id"] ?>">
+                </td>
+
+                <td class="p-4">
+                  <input
+                    <?= $anulada ? "disabled" : "" ?>
+                    type="text"
+                    list="lista_prod_<?= $i ?>"
+                    placeholder="Buscar otro producto..."
+                    class="w-full rounded-xl border border-chebs-line px-3 py-2"
+                    oninput="window.__setNuevoProdId(this, <?= $i ?>)"
+                  >
+                  <input type="hidden" name="nuevo_producto_id[]" id="nuevo_producto_id_<?= $i ?>" value="">
+
+                  <datalist id="lista_prod_<?= $i ?>">
+                    <?php foreach($productosArr as $p): ?>
+                      <option value="<?= htmlspecialchars($p["nombre"]) ?>" data-id="<?= (int)$p["id"] ?>"></option>
+                    <?php endforeach; ?>
+                  </datalist>
+
+                  <div class="text-xs text-gray-400 mt-1">Déjalo vacío para mantener el original</div>
+                </td>
+
+                <td class="p-4">
+                  <input
+                    <?= $anulada ? "disabled" : "" ?>
+                    type="number"
+                    min="0"
+                    name="cantidad[]"
+                    value="<?= (int)$d["cantidad"] ?>"
+                    class="w-24 rounded-xl border border-chebs-line px-3 py-2 font-black text-center"
+                  >
+                </td>
+
+                <td class="p-4">
+                  <label class="inline-flex items-center gap-2">
+                    <input <?= $anulada ? "disabled" : "" ?> type="checkbox" value="1" name="eliminar[<?= $i ?>]">
+                    <span class="font-bold text-red-600">Borrar</span>
+                  </label>
+                </td>
+              </tr>
+            <?php $i++; endwhile; ?>
+
+            </tbody>
+          </table>
         </div>
 
-        <div class="p-6 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
-            <a href="javascript:history.back()" class="px-5 py-2.5 rounded-xl border border-gray-300 font-bold text-gray-600 hover:bg-white transition-colors">
-                Cancelar
-            </a>
-            <button type="submit" class="px-5 py-2.5 rounded-xl bg-chebs-green text-white font-bold shadow-lg shadow-green-200 hover:shadow-green-300 hover:scale-[1.02] transition-all">
-                Guardar Cambios
-            </button>
-        </div>
+        <div class="flex flex-col sm:flex-row gap-3 justify-end">
 
-    </form>
+          <!-- ✅ ANULAR VENTA (abre modal bonito) -->
+          <button
+            type="button"
+            id="btn_abrir_modal_anular"
+            <?= $anulada ? "disabled" : "" ?>
+            class="px-5 py-3 rounded-2xl bg-red-600 text-white font-black hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            Anular venta
+          </button>
+
+          <a href="/PULPERIA-CHEBS/vistas/ventas/historial.php"
+             class="px-5 py-3 rounded-2xl border border-chebs-line font-black hover:bg-gray-50">
+            Cancelar
+          </a>
+
+          <button
+            type="submit"
+            <?= $anulada ? "disabled" : "" ?>
+            class="px-6 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            Guardar Cambios
+          </button>
+        </div>
+      </form>
+
+      <!-- ✅ FORM ANULAR SEPARADO (sin forms anidados) -->
+      <form id="form_anular" method="POST" action="/PULPERIA-CHEBS/controladores/venta_anular.php">
+        <input type="hidden" name="venta_id" value="<?= (int)$venta_id ?>">
+      </form>
+
+    </div>
+  </div>
 </div>
 
-<datalist id="lista-productos">
-    <?php foreach($listaProductos as $prod) { ?>
-        <option value="<?= htmlspecialchars($prod['id']) ?> - <?= htmlspecialchars($prod['nombre']) ?>">
-            Bs <?= number_format($prod['precio'], 2) ?>
-        </option>
-    <?php } ?>
-</datalist>
+<!-- ✅ MODAL ANULAR VENTA (Tailwind) -->
+<div id="modal_anular" class="hidden fixed inset-0 z-[99999]">
+  <!-- backdrop -->
+  <div class="absolute inset-0 bg-black/50" data-close="1"></div>
 
-</body>
-</html>
+  <!-- caja -->
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="w-full max-w-lg rounded-3xl bg-white shadow-soft border border-chebs-line overflow-hidden">
+      <div class="px-6 py-5 border-b border-chebs-line flex items-start justify-between gap-4">
+        <div>
+          <h3 class="text-lg font-black text-chebs-black">Anular venta</h3>
+          <p class="text-sm text-gray-600 mt-1">
+            ¿Seguro que deseas <b>ANULAR</b> esta venta? Se devolverá todo el stock a sus lotes.
+          </p>
+        </div>
+
+        <button type="button"
+                class="w-10 h-10 rounded-2xl border border-chebs-line font-black hover:bg-chebs-soft transition"
+                data-close="1">
+          ✕
+        </button>
+      </div>
+
+      <div class="px-6 py-5">
+        <div class="rounded-2xl bg-red-50 border border-red-200 text-red-700 p-4 text-sm">
+          ⚠️ Esta acción no se puede deshacer.
+        </div>
+      </div>
+
+      <div class="px-6 py-5 border-t border-chebs-line flex justify-end gap-3">
+        <button type="button"
+                class="px-5 py-3 rounded-2xl border border-chebs-line font-black hover:bg-chebs-soft transition"
+                data-close="1">
+          Cancelar
+        </button>
+
+        <button type="button"
+                id="btn_confirmar_anular"
+                class="px-6 py-3 rounded-2xl bg-red-600 text-white font-black hover:bg-red-700 transition">
+          Sí, anular
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.__setNuevoProdId = function(input, idx){
+  const dl = document.getElementById("lista_prod_" + idx);
+  const hid = document.getElementById("nuevo_producto_id_" + idx);
+  if(!dl || !hid) return;
+
+  const val = (input.value || "").trim();
+  if(!val){ hid.value = ""; return; }
+
+  const opts = dl.querySelectorAll("option");
+  for(const o of opts){
+    if((o.value || "").trim() === val){
+      hid.value = o.getAttribute("data-id") || "";
+      return;
+    }
+  }
+  hid.value = "";
+};
+
+(() => {
+  const modal = document.getElementById("modal_anular");
+  const btnAbrir = document.getElementById("btn_abrir_modal_anular");
+  const btnOk = document.getElementById("btn_confirmar_anular");
+  const form = document.getElementById("form_anular");
+
+  if (!modal || !btnAbrir || !btnOk || !form) return;
+
+  function abrir(){
+    modal.classList.remove("hidden");
+    document.body.classList.add("overflow-hidden");
+  }
+
+  function cerrar(){
+    modal.classList.add("hidden");
+    document.body.classList.remove("overflow-hidden");
+  }
+
+  btnAbrir.addEventListener("click", abrir);
+
+  modal.addEventListener("click", (e) => {
+    if (e.target && e.target.getAttribute("data-close") === "1") cerrar();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modal.classList.contains("hidden")) cerrar();
+  });
+
+  btnOk.addEventListener("click", () => {
+    btnOk.disabled = true;
+    btnOk.classList.add("opacity-70", "cursor-not-allowed");
+    form.submit();
+  });
+})();
+</script>
+
+<?php include __DIR__ . "/../layout/footer.php"; ?>

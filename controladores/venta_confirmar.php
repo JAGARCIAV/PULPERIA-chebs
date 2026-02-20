@@ -10,7 +10,7 @@ require_once __DIR__ . "/../modelos/venta_modelo.php";
 header("Content-Type: application/json; charset=utf-8");
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-$raw = file_get_contents("php://input");
+$raw  = file_get_contents("php://input");
 $data = json_decode($raw, true);
 
 if (!$data || !isset($data["carrito"]) || !is_array($data["carrito"]) || count($data["carrito"]) === 0) {
@@ -19,6 +19,12 @@ if (!$data || !isset($data["carrito"]) || !is_array($data["carrito"]) || count($
 }
 
 $carrito = $data["carrito"];
+
+/* =========================
+   ✅ CAMBIO: Limpieza global ANTES de vender
+   - desactiva lotes con 0
+   ========================= */
+autoDesactivarLotesSinStock($conexion);
 
 $conexion->begin_transaction();
 
@@ -29,6 +35,45 @@ try {
     throw new Exception("No hay turno abierto. Abra turno antes de vender.");
   }
 
+  /* =========================
+     ✅ CAMBIO: Pre-validación de stock (por producto)
+     - Evita que si el carrito tiene el mismo producto en 2 filas,
+       se valide una por una y luego falle en FIFO.
+     ========================= */
+  $reqPorProducto = [];
+  foreach ($carrito as $item) {
+    $pid = (int)($item["producto_id"] ?? 0);
+    if ($pid <= 0) throw new Exception("Datos inválidos en carrito");
+
+    $unidadesReales = (int)($item["unidades_reales"] ?? 0);
+    if ($unidadesReales <= 0) {
+      // fallback si por algo no vino unidades_reales
+      $cant = (int)($item["cantidad"] ?? 0);
+      if ($cant <= 0) throw new Exception("Cantidad inválida en carrito");
+
+      // si fuera paquete y no viene unidades_reales, igual lo recalculamos luego,
+      // aquí solo prevenimos 0
+      $unidadesReales = $cant;
+    }
+
+    if (!isset($reqPorProducto[$pid])) $reqPorProducto[$pid] = 0;
+    $reqPorProducto[$pid] += $unidadesReales;
+  }
+
+  // ✅ validar contra stock real por lotes (activo + no vencido)
+  foreach ($reqPorProducto as $pid => $req) {
+    $p = obtenerProductoPorId($conexion, (int)$pid);
+    if (!$p) throw new Exception("Producto no existe (ID: $pid)");
+
+    $stock = obtenerStockDisponible($conexion, (int)$pid);
+    if ((int)$stock < (int)$req) {
+      throw new Exception("Stock insuficiente para {$p['nombre']} (disp: $stock, req: $req)");
+    }
+  }
+
+  /* =========================
+     Procesar cada item del carrito
+     ========================= */
   foreach ($carrito as $item) {
     $producto_id = (int)($item["producto_id"] ?? 0);
     $tipo = (($item["tipo"] ?? "unidad") === "paquete") ? "paquete" : "unidad";
@@ -61,6 +106,7 @@ try {
       $stmt->bind_param("i", $presentacion_id);
       $stmt->execute();
       $pres = $stmt->get_result()->fetch_assoc();
+      $stmt->close();
 
       if (!$pres) throw new Exception("Presentación no existe o está inactiva");
       if ((int)$pres["producto_id"] !== $producto_id) throw new Exception("Presentación no pertenece al producto");
@@ -81,41 +127,28 @@ try {
       $presentacion_id = null;
     }
 
-    // ✅ stock SOLO lotes activos (recuerda: tu BD tiene campo lotes.activo)
-    $stock = obtenerStockDisponible($conexion, $producto_id);
-    if ((int)$stock < (int)$unidades_reales) {
-      throw new Exception("Stock insuficiente para {$p['nombre']} (disp: $stock, req: $unidades_reales)");
+    // ✅ CAMBIO: no re-validamos stock aquí porque ya pre-validamos acumulado.
+    // Igual dejamos un check ultra seguro (opcional):
+    $stockNow = obtenerStockDisponible($conexion, $producto_id);
+    if ((int)$stockNow < (int)$unidades_reales) {
+      throw new Exception("Stock insuficiente para {$p['nombre']} (disp: $stockNow, req: $unidades_reales)");
     }
 
-    // ✅ descontar FIFO SOLO lotes activos
+    // ✅ descontar FIFO SOLO lotes activos + no vencidos (y auto desactiva si llega a 0)
     $ok = descontarStockFIFO($conexion, $producto_id, $unidades_reales, $venta_id);
     if (!$ok) throw new Exception("No se pudo descontar stock FIFO");
 
     $subtotal = round($precio * $cantidad, 2);
 
     // ✅ guardar detalle con presentacion_id + unidades_reales
-    $stmtD = $conexion->prepare("
-      INSERT INTO detalle_venta
-        (venta_id, producto_id, presentacion_id, tipo_venta, cantidad, precio_unitario, subtotal, unidades_reales)
-      VALUES
-        (?,?,?,?,?,?,?,?)
-    ");
-
-    // presentacion_id puede ser NULL => bind_param no acepta null directo en "i" sin truco:
-    // Solución: si es null, usar set to NULL vía mysqli_stmt::bind_param no sirve, así que lo hacemos con variable y si null, lo mandamos como NULL con bind + stmt->send_long_data no aplica aquí.
-    // ✅ Truco simple: si es null, usamos 0 y guardamos NULL con IF en SQL? Mejor: dejamos presentacion_id como NULL usando query dinámica.
-    // Como ya tienes la columna, lo más estable: dos prepares.
-
-    $stmtD->close();
-
     if ($presentacion_id === null) {
-      $stmtD2 = $conexion->prepare("
+      $stmtD = $conexion->prepare("
         INSERT INTO detalle_venta
           (venta_id, producto_id, presentacion_id, tipo_venta, cantidad, precio_unitario, subtotal, unidades_reales)
         VALUES
           (?, ?, NULL, ?, ?, ?, ?, ?)
       ");
-      $stmtD2->bind_param(
+      $stmtD->bind_param(
         "iisiddi",
         $venta_id,
         $producto_id,
@@ -125,16 +158,16 @@ try {
         $subtotal,
         $unidades_reales
       );
-      $stmtD2->execute();
-      $stmtD2->close();
+      $stmtD->execute();
+      $stmtD->close();
     } else {
-      $stmtD3 = $conexion->prepare("
+      $stmtD = $conexion->prepare("
         INSERT INTO detalle_venta
           (venta_id, producto_id, presentacion_id, tipo_venta, cantidad, precio_unitario, subtotal, unidades_reales)
         VALUES
           (?, ?, ?, ?, ?, ?, ?, ?)
       ");
-      $stmtD3->bind_param(
+      $stmtD->bind_param(
         "iiisiddi",
         $venta_id,
         $producto_id,
@@ -145,12 +178,15 @@ try {
         $subtotal,
         $unidades_reales
       );
-      $stmtD3->execute();
-      $stmtD3->close();
+      $stmtD->execute();
+      $stmtD->close();
     }
   }
 
   actualizarTotalVenta($conexion, $venta_id);
+
+  // ✅ CAMBIO: Limpieza final por si algún lote quedó 0 activo por edición previa
+  autoDesactivarLotesSinStock($conexion);
 
   $conexion->commit();
   echo json_encode(["ok" => true, "venta_id" => $venta_id]);

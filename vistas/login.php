@@ -6,7 +6,6 @@ if (!empty($_SESSION['user'])) {
     exit;
 }
 
-
 $error = $_GET['err'] ?? null;
 ?>
 <!doctype html>
@@ -103,14 +102,44 @@ $error = $_GET['err'] ?? null;
 
           <div>
             <label class="text-sm font-semibold">Contraseña</label>
-            <input
-              type="password"
-              name="password"
-              placeholder="••••••••"
-              required
-              class="mt-1 w-full px-3 py-2 rounded-xl border border-black/10 bg-white
-                     focus:outline-none focus:ring-2 focus:ring-chebs-green/20 focus:border-chebs-green"
-            >
+
+            <!-- ✅ Contenedor para el input + ojo -->
+            <div class="relative mt-1">
+              <input
+                id="password"
+                type="password"
+                name="password"
+                placeholder="••••••••"
+                required
+                class="w-full px-3 py-2 pr-11 rounded-xl border border-black/10 bg-white
+                       focus:outline-none focus:ring-2 focus:ring-chebs-green/20 focus:border-chebs-green"
+              >
+
+              <!-- ✅ Botón ojo -->
+              <button
+                type="button"
+                id="togglePassword"
+                class="absolute inset-y-0 right-2 flex items-center justify-center
+                       w-9 rounded-lg text-black/60 hover:text-black
+                       focus:outline-none focus:ring-2 focus:ring-chebs-green/20"
+                aria-label="Mostrar u ocultar contraseña"
+              >
+                <!-- Icono ojo (ver) -->
+                <svg id="iconEye" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+
+                <!-- Icono ojo tachado (ocultar) -->
+                <svg id="iconEyeOff" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.58 10.58A2 2 0 0 0 12 15a2 2 0 0 0 1.42-.58"></path>
+                  <path d="M9.88 9.88A3 3 0 0 1 12 9a3 3 0 0 1 3 3c0 .82-.33 1.57-.88 2.12"></path>
+                  <path d="M2 12s3-7 10-7c2.1 0 3.9.64 5.4 1.55"></path>
+                  <path d="M22 12s-3 7-10 7c-2.1 0-3.9-.64-5.4-1.55"></path>
+                  <line x1="2" y1="2" x2="22" y2="22"></line>
+                </svg>
+              </button>
+            </div>
           </div>
 
           <button
@@ -130,5 +159,25 @@ $error = $_GET['err'] ?? null;
     </div>
 
   </div>
+
+  <!-- ✅ Script mostrar/ocultar contraseña -->
+  <script>
+    const passInput = document.getElementById('password');
+    const btnToggle = document.getElementById('togglePassword');
+    const iconEye = document.getElementById('iconEye');
+    const iconEyeOff = document.getElementById('iconEyeOff');
+
+    btnToggle.addEventListener('click', () => {
+      const isPassword = passInput.type === 'password';
+      passInput.type = isPassword ? 'text' : 'password';
+
+      // Cambia iconos
+      iconEye.classList.toggle('hidden', isPassword);
+      iconEyeOff.classList.toggle('hidden', !isPassword);
+
+      // (Opcional) Mantener foco
+      passInput.focus();
+    });
+  </script>
 </body>
 </html>

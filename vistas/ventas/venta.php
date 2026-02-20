@@ -19,7 +19,9 @@ $userId = (int)($_SESSION['user']['id'] ?? 0);
 $turnoAbierto = obtenerTurnoAbiertoHoy($conexion);
 
 // ✅ Datos base
-$productos = obtenerProductos($conexion);
+autoDesactivarLotesSinStock($conexion);
+$productos = obtenerProductosVendibles($conexion);
+
 $totalHoy  = obtenerTotalVentasHoy($conexion);
 
 // ✅ Historial desde marca del turno

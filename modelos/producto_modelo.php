@@ -48,10 +48,10 @@ function obtenerProductoPorId($conexion, $id) {
 }
 
 function actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paquete, $activo, $costo_unidad = null) {
-    $id            = (int)$id;
-    $activo        = (int)$activo;
+    $id             = (int)$id;
+    $activo         = (int)$activo;
     $precio_paquete = (is_numeric($precio_paquete) ? (float)$precio_paquete : 0.00);
-    $costo_unidad  = normalizarCosto($costo_unidad);
+    $costo_unidad   = normalizarCosto($costo_unidad);
 
     $sql = "UPDATE productos
             SET nombre=?, precio_unidad=?, precio_paquete=?, activo=?, costo_unidad=?
@@ -59,6 +59,49 @@ function actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paq
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("sddidi", $nombre, $precio_unidad, $precio_paquete, $activo, $costo_unidad, $id);
     return $stmt->execute();
+}
+
+/* =========================
+   ✅ CAMBIO: SOLO VENDIBLES (con stock real por lotes)
+   =========================
+   - Requiere que exista obtenerStockDisponible() en lote_modelo.php
+   - Devuelve un mysqli_result “falso” (array) NO, devuelve array simple
+   - Para no romper tu venta.php que hace ->data_seek() y ->fetch_assoc(),
+     aquí lo devolvemos como RESULTSET real usando una query por IDs.
+*/
+
+function obtenerProductosVendibles($conexion) {
+    // ✅ Cargamos activos
+    $res = $conexion->query("SELECT * FROM productos WHERE activo=1 ORDER BY nombre ASC");
+
+    if (!$res) return $conexion->query("SELECT * FROM productos WHERE 1=0"); // vacío
+
+    // ✅ Filtrar por stock disponible real (lotes activos, no vencidos)
+    $ids = [];
+    $rows = [];
+
+    while ($p = $res->fetch_assoc()) {
+        $pid = (int)$p['id'];
+
+        // ⚠️ necesita lote_modelo.php incluido donde se llama
+        if (function_exists('obtenerStockDisponible')) {
+            $stock = (int) obtenerStockDisponible($conexion, $pid);
+            if ($stock > 0) {
+                $ids[] = $pid;
+            }
+        } else {
+            // si no existe la función, por seguridad NO filtramos
+            $ids[] = $pid;
+        }
+    }
+
+    if (count($ids) === 0) {
+        return $conexion->query("SELECT * FROM productos WHERE 1=0");
+    }
+
+    // ✅ devolvemos resultset real (para que tu venta.php funcione igual)
+    $in = implode(',', array_map('intval', $ids));
+    return $conexion->query("SELECT * FROM productos WHERE id IN ($in) ORDER BY nombre ASC");
 }
 
 /* =========================
@@ -105,11 +148,6 @@ function eliminarPresentacionesProducto($conexion, $producto_id) {
     $stmt = $conexion->prepare("UPDATE producto_presentaciones SET activa=0 WHERE producto_id=?");
     $stmt->bind_param("i", $producto_id);
     $stmt->execute();
-
-    // Si prefieres borrar físico como antes, usa esto en vez del UPDATE:
-    // $stmt = $conexion->prepare("DELETE FROM producto_presentaciones WHERE producto_id=?");
-    // $stmt->bind_param("i", $producto_id);
-    // $stmt->execute();
 }
 
 function guardarPresentacionesProducto($conexion, $producto_id, $nombres, $unidades, $precios, $costos) {

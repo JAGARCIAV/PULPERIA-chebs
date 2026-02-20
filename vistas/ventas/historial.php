@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . "/../../config/auth.php";
-require_role(['admin','empleado']); // si solo admin, cambia a ['admin']
+require_role(['admin']); // si solo admin, cambia a ['admin']
 
 require_once "../../config/conexion.php";
 require_once "../../modelos/venta_modelo.php";

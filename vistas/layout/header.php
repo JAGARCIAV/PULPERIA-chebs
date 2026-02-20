@@ -7,6 +7,7 @@ require_once __DIR__ . "/../../config/auth.php";
 require_login();
 
 $rol = $_SESSION['user']['rol'] ?? '';
+$esAdmin = ($rol === 'admin');
 ?>
 <!doctype html>
 <html lang="es">
@@ -56,61 +57,68 @@ $rol = $_SESSION['user']['rol'] ?? '';
           <div class="leading-tight">
             <div class="font-semibold text-sm">Pulpería Chebs</div>
             <div class="text-xs text-gray-500">
-              <?= $rol === 'admin' ? 'Administrador' : 'Empleado' ?>
+              <?= $esAdmin ? 'Administrador' : 'Empleado' ?>
             </div>
           </div>
         </div>
 
-        <!-- Menú -->
+        <!-- MENÚ -->
         <nav class="flex items-center gap-2 text-sm font-semibold">
 
-          <!-- Visible para TODOS -->
+          <!-- ✅ Inicio (admin y empleado) -->
           <a href="/PULPERIA-CHEBS/index.php"
              class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
             Inicio
           </a>
 
-          <a href="/PULPERIA-CHEBS/vistas/productos/listar.php"
-             class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
-            Productos
-          </a>
+          <?php if ($esAdmin): ?>
+            <!-- 🔒 SOLO ADMIN -->
+            <a href="/PULPERIA-CHEBS/vistas/productos/listar.php"
+               class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
+              Productos
+            </a>
 
-          <a href="/PULPERIA-CHEBS/vistas/lotes/listar.php"
-             class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
-            Lotes
-          </a>
+            <a href="/PULPERIA-CHEBS/vistas/lotes/listar.php"
+               class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
+              Lotes
+            </a>
 
-          <a href="/PULPERIA-CHEBS/vistas/movimientos/historial.php"
-             class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
-            Historial Inv.
-          </a>
+            <a href="/PULPERIA-CHEBS/vistas/notificacion/notificacion.php"
+               class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
+              🔔 Notificaciones
+            </a>
 
-          <a href="/PULPERIA-CHEBS/vistas/ventas/historial.php"
-             class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
-            Historial Ventas
-          </a>
+            <a href="/PULPERIA-CHEBS/vistas/movimientos/historial.php"
+               class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
+              Historial Inv.
+            </a>
 
-          <!-- SOLO ADMIN -->
-          <?php if ($rol === 'admin'): ?>
+            <a href="/PULPERIA-CHEBS/vistas/ventas/historial.php"
+               class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
+              Historial Ventas
+            </a>
+
             <a href="/PULPERIA-CHEBS/vistas/perfiles/perfiles_usuarios.php"
                class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
               Usuarios
             </a>
           <?php endif; ?>
 
-          <!-- Caja (siempre visible) -->
+          <!-- ✅ Caja (admin y empleado) -->
           <a href="/PULPERIA-CHEBS/vistas/ventas/venta.php"
              class="ml-2 px-5 py-2 rounded-xl bg-chebs-green text-white
                     hover:bg-chebs-greenDark transition shadow-soft">
             Caja
           </a>
 
-          <!-- Salir -->
-          <a href="/PULPERIA-CHEBS/controladores/logout.php"
-             class="ml-1 px-5 py-2 rounded-xl border border-chebs-line
-                    hover:bg-gray-50 transition">
-            Salir
-          </a>
+          <!-- ✅ Salir (admin y empleado) -->
+<a href="/PULPERIA-CHEBS/controladores/logout.php"
+   class="ml-1 px-5 py-2 rounded-xl
+          bg-red-600 text-white font-extrabold
+          hover:bg-red-700 hover:shadow-lg
+          transition duration-200">
+  Salir
+</a>
 
         </nav>
 
@@ -121,9 +129,7 @@ $rol = $_SESSION['user']['rol'] ?? '';
 
 <main class="pt-[88px] px-6 pb-6">
   <?php
-    // ✅ Solo la pantalla de Caja será full ancho
     $ruta = $_SERVER['REQUEST_URI'] ?? '';
     $esCaja = (strpos($ruta, '/vistas/ventas/venta.php') !== false);
   ?>
-
   <div class="<?= $esCaja ? 'w-full max-w-none' : 'max-w-[1440px]' ?> mx-auto">

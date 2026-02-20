@@ -13,6 +13,12 @@ if ($producto_id <= 0) {
     exit;
 }
 
+/* =========================
+   ✅ CAMBIO: limpieza rápida
+   - si hay lotes con 0 y siguen activos, se desactivan
+   ========================= */
+autoDesactivarLotesSinStock($conexion);
+
 $stock = obtenerStockDisponible($conexion, $producto_id);
 
 echo json_encode(["stock" => (int)$stock]);

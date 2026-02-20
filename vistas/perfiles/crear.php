@@ -123,18 +123,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
       </div>
 
+      <!-- ✅ CONTRASEÑAS CON OJITO -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
+        <div class="relative">
           <label class="block text-sm font-black text-pink-600 mb-2">Contraseña</label>
-          <input type="password" name="password" required
-                 class="w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 text-gray-800 outline-none
+
+          <input type="password" name="password" id="password" required
+                 class="w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 pr-12 text-gray-800 outline-none
                         focus:ring-4 focus:ring-pink-200 focus:border-pink-500 font-semibold">
+
+          <button type="button" onclick="togglePassword('password','icon1')"
+                  class="absolute right-4 top-[42px] text-gray-500 hover:text-pink-600">
+            <svg id="icon1" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 0c-1.5 4-5 7-9 7s-7.5-3-9-7c1.5-4 5-7 9-7s7.5 3 9 7z"/>
+            </svg>
+          </button>
         </div>
-        <div>
+
+        <div class="relative">
           <label class="block text-sm font-black text-pink-600 mb-2">Repetir contraseña</label>
-          <input type="password" name="password2" required
-                 class="w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 text-gray-800 outline-none
+
+          <input type="password" name="password2" id="password2" required
+                 class="w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 pr-12 text-gray-800 outline-none
                         focus:ring-4 focus:ring-pink-200 focus:border-pink-500 font-semibold">
+
+          <button type="button" onclick="togglePassword('password2','icon2')"
+                  class="absolute right-4 top-[42px] text-gray-500 hover:text-pink-600">
+            <svg id="icon2" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 0c-1.5 4-5 7-9 7s-7.5-3-9-7c1.5-4 5-7 9-7s7.5 3 9 7z"/>
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -148,5 +170,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
   </div>
 </div>
+
+<!-- ✅ SCRIPT: antes de incluir el footer -->
+<script>
+function togglePassword(inputId, iconId) {
+  const input = document.getElementById(inputId);
+  input.type = (input.type === "password") ? "text" : "password";
+}
+</script>
 
 <?php include __DIR__ . "/../layout/footer.php"; ?>
