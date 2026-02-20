@@ -18,8 +18,7 @@ $esAdmin = ($rol === 'admin');
 
   <link rel="icon" type="image/png" href="/PULPERIA-CHEBS/public/img/logo.png">
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
+<link rel="stylesheet" href="/PULPERIA-CHEBS/dist/output.css">  <script>
     tailwind.config = {
       theme: {
         extend: {
