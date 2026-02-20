@@ -144,7 +144,7 @@ while($row = $ventasRs->fetch_assoc()){
                name="fecha"
                value="<?= htmlspecialchars($_GET['fecha'] ?? '') ?>"
                class="w-full px-4 py-3 rounded-2xl border border-chebs-line
-                      focus:outline-none focus:ring-2 focus:ring-chebs-green/40">
+                      focus:outline-none focus:ring-2 focus:ring-green-600/40">
       </div>
 
       <!-- Turno -->
@@ -152,7 +152,7 @@ while($row = $ventasRs->fetch_assoc()){
         <label class="block text-sm font-bold mb-2 text-chebs-black">Turno</label>
         <select name="turno"
                 class="w-full px-4 py-3 rounded-2xl border border-chebs-line bg-white
-                       focus:outline-none focus:ring-2 focus:ring-chebs-green/40">
+                       focus:outline-none focus:ring-2 focus:ring-green-600/40">
           <option value="">Todos</option>
           <option value="mañana" <?= (($_GET['turno'] ?? '') === 'mañana' ? 'selected' : '') ?>>Mañana</option>
           <option value="tarde" <?= (($_GET['turno'] ?? '') === 'tarde' ? 'selected' : '') ?>>Tarde</option>
@@ -164,7 +164,7 @@ while($row = $ventasRs->fetch_assoc()){
         <label class="block text-sm font-bold mb-2 text-chebs-black">Buscar por</label>
         <select name="tipo"
                 class="w-full px-4 py-3 rounded-2xl border border-chebs-line bg-white
-                       focus:outline-none focus:ring-2 focus:ring-chebs-green/40">
+                       focus:outline-none focus:ring-2 focus:ring-green-600/40">
           <option value="id" <?= (($_GET['tipo'] ?? 'id') === 'id' ? 'selected' : '') ?>>ID Venta</option>
           <option value="responsable" <?= (($_GET['tipo'] ?? '') === 'responsable' ? 'selected' : '') ?>>Responsable</option>
         </select>
@@ -178,7 +178,7 @@ while($row = $ventasRs->fetch_assoc()){
                placeholder="Ej: 120 | Juan | Maria..."
                value="<?= htmlspecialchars($_GET['busqueda'] ?? '') ?>"
                class="w-full px-4 py-3 rounded-2xl border border-chebs-line
-                      focus:outline-none focus:ring-2 focus:ring-chebs-green/40">
+                      focus:outline-none focus:ring-2 focus:ring-green-600/40">
       </div>
 
       <!-- Botones -->

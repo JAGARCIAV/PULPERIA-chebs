@@ -1,3 +1,58 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@config "../tailwind.config.cjs";
+@import "tailwindcss";
+
+@layer base {
+  html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
+  img { max-width: 100%; height: auto; }
+}
+
+@layer components {
+  .chebs-container { @apply max-w-[1440px] mx-auto px-6; }
+
+  .chebs-card { @apply bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden; }
+
+  .chebs-card-head {
+    @apply px-6 py-4 bg-chebs-soft/50 border-b border-chebs-line flex items-center justify-between gap-4;
+  }
+
+  /* ✅ Clase base (para usarla en HTML si quieres) */
+  .chebs-btn {
+    @apply inline-flex items-center justify-center gap-2
+           rounded-2xl px-5 py-3 font-black
+           transition duration-200;
+  }
+
+  /* ✅ VARIANTES: NO aplicar chebs-btn aquí */
+  .chebs-btn-green {
+    @apply inline-flex items-center justify-center gap-2
+           rounded-2xl px-5 py-3 font-black
+           transition duration-200
+           bg-chebs-green text-white hover:bg-chebs-greenDark shadow-soft;
+  }
+
+  .chebs-btn-red {
+    @apply inline-flex items-center justify-center gap-2
+           rounded-2xl px-5 py-3 font-black
+           transition duration-200
+           bg-red-600 text-white hover:bg-red-700 hover:shadow-lg;
+  }
+
+  .chebs-btn-white {
+    @apply inline-flex items-center justify-center
+           px-4 py-2 rounded-xl border border-chebs-line
+           bg-white hover:bg-chebs-soft font-black transition;
+  }
+
+  .chebs-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+  .chebs-scroll::-webkit-scrollbar-thumb { background: rgba(78,122,43,.35); border-radius: 10px; }
+  .chebs-scroll::-webkit-scrollbar-thumb:hover { background: rgba(78,122,43,.55); }
+  .chebs-scroll::-webkit-scrollbar-track { background: transparent; }
+
+  .chebs-table thead th { position: sticky; top: 0; z-index: 2; }
+}
+
+@layer utilities {
+  .chebs-full { width: 100% !important; max-width: none !important; }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+  .chebs-hidden { display: none; }
+}
