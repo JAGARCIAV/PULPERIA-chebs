@@ -100,8 +100,6 @@ $mesActualData = [
   'ganancia' => 0,
 ];
 
-
-
 foreach($resumenRows as $r){
   if(($r['mes'] ?? '') === $mesActual){
     $mesActualData = [
@@ -117,7 +115,6 @@ foreach($resumenRows as $r){
 /* ======================================================
    ✅ GANANCIA DIARIA (HOY)
    ====================================================== */
-// ✅ HOY en Bolivia (00:00:00 a 23:59:59)
 $hoy = date('Y-m-d');
 $inicioDia = $hoy . " 00:00:00";
 $finDia    = $hoy . " 23:59:59";
@@ -173,7 +170,6 @@ $diaData = [
   'ganancia_dia' => (float)($diaRow['ganancia_dia'] ?? 0),
 ];
 
-
 /* ======================================================
    Historial de movimientos
    ====================================================== */
@@ -212,7 +208,7 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
     </div>
 
     <div class="px-6 py-4">
-<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 
         <!-- Mes actual -->
         <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 relative overflow-hidden">
@@ -252,29 +248,27 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
           </div>
         </div>
 
-<!-- Ganancia diaria (HOY) -->
-<div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 relative overflow-hidden">
-  <div class="absolute left-0 top-0 bottom-0 w-2 <?= $diaData['ganancia_dia'] >= 0 ? 'bg-green-500/40' : 'bg-red-500/40' ?>"></div>
-  <div class="pl-3">
-    <div class="text-xs text-gray-500 font-bold">Ganancia (diaria)</div>
+        <!-- Ganancia diaria (HOY) -->
+        <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 relative overflow-hidden">
+          <div class="absolute left-0 top-0 bottom-0 w-2 <?= $diaData['ganancia_dia'] >= 0 ? 'bg-green-500/40' : 'bg-red-500/40' ?>"></div>
+          <div class="pl-3">
+            <div class="text-xs text-gray-500 font-bold">Ganancia (diaria)</div>
 
-    <div class="text-2xl font-black mt-1 <?= $diaData['ganancia_dia'] >= 0 ? 'text-green-700' : 'text-red-700' ?>">
-      Bs <?= number_format($diaData['ganancia_dia'], 2) ?>
-    </div>
+            <div class="text-2xl font-black mt-1 <?= $diaData['ganancia_dia'] >= 0 ? 'text-green-700' : 'text-red-700' ?>">
+              Bs <?= number_format($diaData['ganancia_dia'], 2) ?>
+            </div>
 
-    <div class="text-xs text-gray-500 mt-2">
-      Hoy: <?= htmlspecialchars($diaData['dia']) ?> · Vendido: Bs <?= number_format($diaData['total_vendido_dia'], 2) ?>
-    </div>
-  </div>
-</div>
-
-
+            <div class="text-xs text-gray-500 mt-2">
+              Hoy: <?= htmlspecialchars($diaData['dia']) ?> · Vendido: Bs <?= number_format($diaData['total_vendido_dia'], 2) ?>
+            </div>
+          </div>
+        </div>
 
       </div>
     </div>
   </div>
 
-  <!-- ✅ RESUMEN MENSUAL (más vivo) -->
+  <!-- ✅ RESUMEN MENSUAL -->
   <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden mb-6">
     <div class="px-6 py-4 border-b border-chebs-line bg-chebs-soft/50">
       <div class="flex items-center justify-between gap-4">
@@ -290,71 +284,68 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
       </div>
     </div>
 
-<div class="overflow-x-auto">
-  <table class="w-full text-sm table-fixed">
-    <colgroup>
-      <col class="w-[22%]">
-      <col class="w-[26%]">
-      <col class="w-[26%]">
-      <col class="w-[26%]">
-    </colgroup>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm table-fixed">
+        <colgroup>
+          <col class="w-[22%]">
+          <col class="w-[26%]">
+          <col class="w-[26%]">
+          <col class="w-[26%]">
+        </colgroup>
 
-    <thead class="bg-white">
-      <tr class="text-chebs-black border-b border-chebs-line">
-        <th class="px-4 py-3 font-black text-left">Mes</th>
-        <th class="px-4 py-3 font-black text-right">Total vendido</th>
-        <th class="px-4 py-3 font-black text-right">Total con costo</th>
-        <th class="px-4 py-3 font-black text-right">Ganancia</th>
-      </tr>
-    </thead>
-
-    <tbody class="divide-y divide-chebs-line">
-      <?php if(count($resumenRows) > 0): ?>
-        <?php $i=0; foreach($resumenRows as $r): $i++; ?>
-          <tr class="<?= ($i % 2 ? 'bg-chebs-soft/40' : 'bg-white') ?> hover:bg-chebs-soft/70 transition">
-            <td class="px-4 py-3 font-bold whitespace-nowrap">
-              <span class="inline-flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-chebs-green/70"></span>
-                <?= htmlspecialchars($r['mes']) ?>
-              </span>
-            </td>
-
-            <td class="px-4 py-3 text-right font-semibold tabular-nums whitespace-nowrap">
-              Bs <?= number_format((float)$r['total_vendido'],2) ?>
-            </td>
-
-            <td class="px-4 py-3 text-right text-gray-800 tabular-nums whitespace-nowrap">
-              Bs <?= number_format((float)$r['total_con_costo'],2) ?>
-            </td>
-
-            <td class="px-4 py-3 text-right font-black tabular-nums whitespace-nowrap <?= ((float)$r['ganancia'] >= 0) ? 'text-green-700' : 'text-red-700' ?>">
-              Bs <?= number_format((float)$r['ganancia'],2) ?>
-            </td>
+        <thead class="bg-white">
+          <tr class="text-chebs-black border-b border-chebs-line">
+            <th class="px-4 py-3 font-black text-left">Mes</th>
+            <th class="px-4 py-3 font-black text-right">Total vendido</th>
+            <th class="px-4 py-3 font-black text-right">Total con costo</th>
+            <th class="px-4 py-3 font-black text-right">Ganancia</th>
           </tr>
-        <?php endforeach; ?>
-      <?php else: ?>
-        <tr>
-          <td colspan="4" class="px-4 py-6 text-gray-600">No hay ventas registradas.</td>
-        </tr>
-      <?php endif; ?>
-    </tbody>
-  </table>
-  
-</div>
+        </thead>
 
+        <tbody class="divide-y divide-chebs-line">
+          <?php if(count($resumenRows) > 0): ?>
+            <?php $i=0; foreach($resumenRows as $r): $i++; ?>
+              <tr class="<?= ($i % 2 ? 'bg-chebs-soft/40' : 'bg-white') ?> hover:bg-chebs-soft/70 transition">
+                <td class="px-4 py-3 font-bold whitespace-nowrap">
+                  <span class="inline-flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-chebs-green/70"></span>
+                    <?= htmlspecialchars($r['mes']) ?>
+                  </span>
+                </td>
 
+                <td class="px-4 py-3 text-right font-semibold tabular-nums whitespace-nowrap">
+                  Bs <?= number_format((float)$r['total_vendido'],2) ?>
+                </td>
 
+                <td class="px-4 py-3 text-right text-gray-800 tabular-nums whitespace-nowrap">
+                  Bs <?= number_format((float)$r['total_con_costo'],2) ?>
+                </td>
 
+                <td class="px-4 py-3 text-right font-black tabular-nums whitespace-nowrap <?= ((float)$r['ganancia'] >= 0) ? 'text-green-700' : 'text-red-700' ?>">
+                  Bs <?= number_format((float)$r['ganancia'],2) ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <tr>
+              <td colspan="4" class="px-4 py-6 text-gray-600">No hay ventas registradas.</td>
+            </tr>
+          <?php endif; ?>
+        </tbody>
+      </table>
+    </div>
   </div>
 
-  <!-- Filtro (más pro, menos gris) -->
-  <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 mb-6 relative overflow-hidden">
+  <!-- ✅ FILTRO (✅ FIX: overflow-visible para que NO se corte el dropdown) -->
+  <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 mb-6 relative overflow-visible">
+    <!-- ✅ FIX: antes era overflow-hidden -->
     <div class="absolute left-0 top-0 bottom-0 w-2 bg-chebs-green/30"></div>
 
     <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4 md:items-center" onsubmit="return validarFiltro();">
 
       <!-- Autocomplete producto -->
-      <div class="md:col-span-2 relative pl-3">
+      <div class="md:col-span-2 relative pl-3 z-[9999]">
+        <!-- ✅ FIX: z alto para estar encima -->
         <label class="block text-sm font-black mb-2 text-chebs-black">Filtrar por producto</label>
 
         <input id="producto_buscar"
@@ -365,10 +356,8 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
                       focus:outline-none focus:ring-2 focus:ring-chebs-green/40
                       hover:border-chebs-green/40 transition">
 
-        <!-- este es el que se envía -->
         <input type="hidden" name="producto_id" id="producto_id_real" value="<?= $producto_id ? (int)$producto_id : '' ?>">
 
-        <!-- Fuente de datos -->
         <div class="hidden">
           <datalist id="lista_productos_mov">
             <?php
@@ -379,9 +368,12 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
           </datalist>
         </div>
 
-        <!-- Dropdown (con colores chebs, no gris muerto) -->
+        <!-- Dropdown -->
         <div id="auto_box"
-             class="hidden absolute left-0 right-0 mt-2 z-50 rounded-2xl border border-chebs-line bg-white shadow-soft overflow-hidden">
+             class="hidden absolute left-0 right-0 mt-2 z-[99999]
+                    rounded-2xl border border-chebs-line bg-white shadow-soft overflow-hidden">
+          <!-- ✅ FIX: z-[99999] para que no se meta detrás -->
+
           <div class="px-4 py-2 text-xs text-chebs-black bg-chebs-soft/60 border-b border-chebs-line flex items-center justify-between">
             <span class="font-bold">Resultados</span>
             <span class="hidden sm:inline text-gray-600">↑ ↓ · Enter</span>
@@ -419,7 +411,7 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
     </form>
   </div>
 
-  <!-- Tabla movimientos (más viva) -->
+  <!-- Tabla movimientos -->
   <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden">
     <div class="px-6 py-4 border-b border-chebs-line bg-chebs-soft/40">
       <h3 class="text-lg font-black text-chebs-black">Movimientos</h3>
@@ -509,7 +501,6 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
 </div>
 
 <style>
-  /* scrollbar pro (autocomplete) */
   #auto_list::-webkit-scrollbar { width: 10px; }
   #auto_list::-webkit-scrollbar-thumb { background: rgba(78,122,43,.35); border-radius: 10px; }
   #auto_list::-webkit-scrollbar-thumb:hover { background: rgba(78,122,43,.55); }
@@ -612,6 +603,7 @@ inputP.addEventListener('input', () => {
 });
 
 inputP.addEventListener('focus', () => {
+  filtrar(inputP.value);
   if(inputP.value.trim().length > 0 && autoItems.length > 0){
     abrirAuto();
     renderAuto();
@@ -678,10 +670,6 @@ function validarFiltro(){
   setError('');
   return true;
 }
-
-document.addEventListener('keydown', (e) => {
-  if(e.key === 'Escape') cerrarAuto();
-});
 </script>
 
 <?php include "../layout/footer.php"; ?>
