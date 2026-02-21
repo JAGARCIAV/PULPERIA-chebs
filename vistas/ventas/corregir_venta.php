@@ -166,7 +166,7 @@ if ($productos) {
             Anular venta
           </button>
 
-          <a href="/PULPERIA-CHEBS/vistas/ventas/historial.php"
+          <a href="/PULPERIA-CHEBS/vistas/ventas/venta.php"
              class="px-5 py-3 rounded-2xl border border-chebs-line font-black hover:bg-gray-50">
             Cancelar
           </a>
