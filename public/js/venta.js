@@ -409,35 +409,42 @@
     abrirModal("modalConfirmacion");
   }
 
-  async function ejecutarConfirmacionVenta() {
-    if (enProcesoConfirmacion) return;
-    enProcesoConfirmacion = true;
+async function ejecutarConfirmacionVenta() {
+  if (enProcesoConfirmacion) return;
+  enProcesoConfirmacion = true;
 
-    try {
-      if (modalExiste() && typeof cerrarModal === "function") cerrarModal("modalConfirmacion");
+  // ✅ Deshabilitar botones (blindaje)
+  const btnOkModal = document.getElementById("confirm_btn_ok");
+  if (btnConfirmar) btnConfirmar.disabled = true;
+  if (btnOkModal) btnOkModal.disabled = true;
 
-      const data = await fetchJSON(`${BASE_URL}/controladores/venta_confirmar.php`, { carrito });
+  try {
+    if (modalExiste() && typeof cerrarModal === "function") cerrarModal("modalConfirmacion");
 
-      if (!data || data.ok !== true) {
-        const msg = data?.msg || data?.error || "No se pudo registrar la venta";
-        if (typeof mostrarMensaje === "function") mostrarMensaje("❌ Error", msg);
-        else alert("❌ " + msg);
-        return;
-      }
+    const data = await fetchJSON(`${BASE_URL}/controladores/venta_confirmar.php`, { carrito });
 
-      carrito = [];
-      renderizarTabla();
-      limpiarFormulario();
-
-      if (typeof mostrarExitoAuto === "function") mostrarExitoAuto();
-      else {
-        alert("✅ VENTA EXITOSA");
-        location.reload();
-      }
-    } finally {
-      enProcesoConfirmacion = false;
+    if (!data || data.ok !== true) {
+      const msg = data?.msg || data?.error || "No se pudo registrar la venta";
+      if (typeof mostrarMensaje === "function") mostrarMensaje("❌ Error", msg);
+      else alert("❌ " + msg);
+      return;
     }
+
+    carrito = [];
+    renderizarTabla();
+    limpiarFormulario();
+
+    if (typeof mostrarExitoAuto === "function") mostrarExitoAuto();
+    else {
+      alert("✅ VENTA EXITOSA");
+      location.reload();
+    }
+  } finally {
+    enProcesoConfirmacion = false;
+    if (btnConfirmar) btnConfirmar.disabled = false;
+    if (btnOkModal) btnOkModal.disabled = false;
   }
+}
 
   // ✅ Click Confirmar
   if (btnConfirmar) {

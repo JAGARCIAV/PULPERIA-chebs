@@ -40,7 +40,6 @@ if (!is_array($detalle_ids) || count($detalle_ids) === 0) {
 $conexion->begin_transaction();
 
 try {
-
   autoDesactivarLotesSinStock($conexion);
 
   for ($i=0; $i<count($detalle_ids); $i++) {
@@ -80,6 +79,7 @@ try {
     }
 
     // ✅ Caso: cambiar producto
+    // Regla: cuando cambias producto, lo tratamos como "unidad" (sin presentaciones).
     if ($newProd > 0 && $newProd !== $origProd) {
 
       // 1) devolver TODO del producto original
@@ -88,7 +88,7 @@ try {
         if (!$okDev) throw new Exception("No se pudo devolver stock del producto original.");
       }
 
-      // 2) descontar stock del nuevo producto (como UNIDAD)
+      // 2) descontar stock del nuevo producto como unidad
       $unReNew = $newCant;
 
       $stock = obtenerStockDisponible($conexion, $newProd);
@@ -99,6 +99,7 @@ try {
       $okDesc = descontarStockFIFO($conexion, $newProd, $unReNew, $venta_id);
       if (!$okDesc) throw new Exception("No se pudo descontar stock del nuevo producto.");
 
+      // precio unidad del nuevo producto
       $precio = (float)obtenerPrecioProducto($conexion, $newProd);
       if ($precio <= 0) throw new Exception("El nuevo producto no tiene precio por unidad.");
 
@@ -111,8 +112,8 @@ try {
         $newCant,
         $precio,
         $subtotal,
-        null,
-        "unidad",
+        null,      // presentacion_id NULL
+        "unidad",  // tipo_venta unidad
         $unReNew
       );
 

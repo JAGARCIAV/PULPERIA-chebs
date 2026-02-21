@@ -20,39 +20,27 @@ if (!$data || !isset($data["carrito"]) || !is_array($data["carrito"]) || count($
 
 $carrito = $data["carrito"];
 
-/* =========================
-   ✅ CAMBIO: Limpieza global ANTES de vender
-   - desactiva lotes con 0
-   ========================= */
+// Limpieza global ANTES de vender
 autoDesactivarLotesSinStock($conexion);
 
 $conexion->begin_transaction();
 
 try {
-  // ✅ crea venta (debe verificar turno abierto dentro de tu modelo)
   $venta_id = crearVenta($conexion);
   if (!$venta_id) {
     throw new Exception("No hay turno abierto. Abra turno antes de vender.");
   }
 
-  /* =========================
-     ✅ CAMBIO: Pre-validación de stock (por producto)
-     - Evita que si el carrito tiene el mismo producto en 2 filas,
-       se valide una por una y luego falle en FIFO.
-     ========================= */
+  // ✅ Pre-validación acumulada por producto
   $reqPorProducto = [];
   foreach ($carrito as $item) {
     $pid = (int)($item["producto_id"] ?? 0);
-    if ($pid <= 0) throw new Exception("Datos inválidos en carrito");
+    if ($pid <= 0) throw new Exception("Datos inválidos en carrito (producto_id)");
 
     $unidadesReales = (int)($item["unidades_reales"] ?? 0);
     if ($unidadesReales <= 0) {
-      // fallback si por algo no vino unidades_reales
       $cant = (int)($item["cantidad"] ?? 0);
       if ($cant <= 0) throw new Exception("Cantidad inválida en carrito");
-
-      // si fuera paquete y no viene unidades_reales, igual lo recalculamos luego,
-      // aquí solo prevenimos 0
       $unidadesReales = $cant;
     }
 
@@ -60,7 +48,6 @@ try {
     $reqPorProducto[$pid] += $unidadesReales;
   }
 
-  // ✅ validar contra stock real por lotes (activo + no vencido)
   foreach ($reqPorProducto as $pid => $req) {
     $p = obtenerProductoPorId($conexion, (int)$pid);
     if (!$p) throw new Exception("Producto no existe (ID: $pid)");
@@ -71,13 +58,12 @@ try {
     }
   }
 
-  /* =========================
-     Procesar cada item del carrito
-     ========================= */
+  // Procesar items
   foreach ($carrito as $item) {
     $producto_id = (int)($item["producto_id"] ?? 0);
     $tipo = (($item["tipo"] ?? "unidad") === "paquete") ? "paquete" : "unidad";
     $cantidad = (int)($item["cantidad"] ?? 0);
+
     $presentacion_id = isset($item["presentacion_id"]) && $item["presentacion_id"] !== null
       ? (int)$item["presentacion_id"]
       : null;
@@ -122,25 +108,23 @@ try {
     } else {
       $precio = (float)($p["precio_unidad"] ?? 0);
       if ($precio <= 0) throw new Exception("El producto {$p['nombre']} no tiene precio por unidad.");
-
       $unidades_reales = $cantidad;
       $presentacion_id = null;
     }
 
-    // ✅ CAMBIO: no re-validamos stock aquí porque ya pre-validamos acumulado.
-    // Igual dejamos un check ultra seguro (opcional):
+    // Check extra
     $stockNow = obtenerStockDisponible($conexion, $producto_id);
     if ((int)$stockNow < (int)$unidades_reales) {
       throw new Exception("Stock insuficiente para {$p['nombre']} (disp: $stockNow, req: $unidades_reales)");
     }
 
-    // ✅ descontar FIFO SOLO lotes activos + no vencidos (y auto desactiva si llega a 0)
+    // ✅ Descontar FIFO (ya viene bloqueado por FOR UPDATE en el modelo)
     $ok = descontarStockFIFO($conexion, $producto_id, $unidades_reales, $venta_id);
     if (!$ok) throw new Exception("No se pudo descontar stock FIFO");
 
     $subtotal = round($precio * $cantidad, 2);
 
-    // ✅ guardar detalle con presentacion_id + unidades_reales
+    // Guardar detalle
     if ($presentacion_id === null) {
       $stmtD = $conexion->prepare("
         INSERT INTO detalle_venta
@@ -185,7 +169,7 @@ try {
 
   actualizarTotalVenta($conexion, $venta_id);
 
-  // ✅ CAMBIO: Limpieza final por si algún lote quedó 0 activo por edición previa
+  // Limpieza final
   autoDesactivarLotesSinStock($conexion);
 
   $conexion->commit();

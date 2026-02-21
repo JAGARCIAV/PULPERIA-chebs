@@ -78,11 +78,22 @@ $cssVer = file_exists($cssPathFs) ? filemtime($cssPathFs) : time();
               Lotes
             </a>
 
-            <a href="/PULPERIA-CHEBS/vistas/notificacion/notificacion.php"
-               class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
-              🔔 Notificaciones
-            </a>
+<a href="/PULPERIA-CHEBS/vistas/notificacion/notificacion.php"
+   id="nav_notif"
+   class="relative px-4 py-2 rounded-xl hover:bg-chebs-soft transition inline-flex items-center gap-2">
 
+  <span class="relative inline-flex items-center justify-center">
+    
+    <span id="nav_notif_badge"
+          class="hidden absolute -top-2 -right-2 min-w-[20px] h-[20px] px-1
+                 rounded-full bg-red-600 text-white text-[12px] font-black
+                 flex items-center justify-center leading-none">
+      0
+    </span>
+  </span>
+
+  <span>Notificaciones 🔔</span>
+</a>
             <a href="/PULPERIA-CHEBS/vistas/movimientos/historial.php"
                class="px-4 py-2 rounded-xl hover:bg-chebs-soft transition">
               Historial Inv.

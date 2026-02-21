@@ -117,7 +117,10 @@ foreach($resumenRows as $r){
 /* ======================================================
    ✅ GANANCIA DIARIA (HOY)
    ====================================================== */
-$hoy = date('Y-m-d'); // ejemplo: 2026-02-07
+// ✅ HOY en Bolivia (00:00:00 a 23:59:59)
+$hoy = date('Y-m-d');
+$inicioDia = $hoy . " 00:00:00";
+$finDia    = $hoy . " 23:59:59";
 
 $sqlDiario = "
 SELECT
@@ -144,20 +147,21 @@ SELECT
       ELSE 0
     END
   ) AS ganancia_dia
+
 FROM ventas v
 JOIN detalle_venta d ON d.venta_id = v.id
 JOIN productos p ON p.id = d.producto_id
 LEFT JOIN producto_presentaciones pp ON pp.id = d.presentacion_id
-WHERE DATE(v.fecha) = ?
+WHERE v.fecha BETWEEN ? AND ?
 $filtroSql
 ";
 
 $stmtDia = $conexion->prepare($sqlDiario);
 
 if ($producto_id) {
-  $stmtDia->bind_param("si", $hoy, $producto_id);
+  $stmtDia->bind_param("ssi", $inicioDia, $finDia, $producto_id);
 } else {
-  $stmtDia->bind_param("s", $hoy);
+  $stmtDia->bind_param("ss", $inicioDia, $finDia);
 }
 
 $stmtDia->execute();

@@ -4,14 +4,13 @@ require_role(['admin','empleado']);
 
 require_once __DIR__ . "/../config/conexion.php";
 
-// ✅ Solo lo necesario (sin redeclare)
 require_once __DIR__ . "/../modelos/venta_modelo.php";          // obtenerVentaPorId()
 require_once __DIR__ . "/../modelos/venta_corregir_modelo.php"; // marcarVentaAnulada()
 require_once __DIR__ . "/../modelos/lote_modelo.php";           // devolverStockCompletoVenta(), autoDesactivarLotesSinStock()
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-// ✅ Seguridad: solo POST
+// ✅ Solo POST
 if (($_SERVER["REQUEST_METHOD"] ?? "") !== "POST") {
   header("Location: /PULPERIA-CHEBS/vistas/ventas/historial.php?err=" . urlencode("Método no permitido"));
   exit;
@@ -37,17 +36,16 @@ if ((int)($venta["anulada"] ?? 0) === 1) {
 $conexion->begin_transaction();
 
 try {
-
   // ✅ Limpieza previa
   autoDesactivarLotesSinStock($conexion);
 
-  // ✅ DEVOLVER TODO el stock a los mismos lotes usados
+  // ✅ Devolver TODO el stock a los mismos lotes usados
   $ok = devolverStockCompletoVenta($conexion, $venta_id);
   if (!$ok) {
     throw new Exception("No se pudo devolver stock en anulación (historial de lotes insuficiente).");
   }
 
-  // ✅ Marcar como anulada y total=0
+  // ✅ Marcar venta anulada y total=0
   $ok2 = marcarVentaAnulada($conexion, $venta_id);
   if (!$ok2) {
     throw new Exception("No se pudo marcar la venta como anulada.");
@@ -57,7 +55,6 @@ try {
   autoDesactivarLotesSinStock($conexion);
 
   $conexion->commit();
-
   header("Location: /PULPERIA-CHEBS/vistas/ventas/corregir_venta.php?id=$venta_id&ok_anular=1");
   exit;
 

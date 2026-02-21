@@ -1,10 +1,10 @@
 <?php
 /* =========================
-   LOTE MODELO (COMPLETO) + CAMBIOS
+   LOTE MODELO (COMPLETO) + FIX CONCURRENCIA
    - ✅ Auto desactivar lotes sin stock
-   - ✅ Descontar FIFO: desactiva lote automáticamente al quedar en 0
-   - ✅ Notificaciones: obtener lotes vencidos activos
-   - ✅ Limpieza: eliminé duplicados (crearLote / desactivarLotes) para evitar bugs
+   - ✅ FIFO con bloqueo (FOR UPDATE) dentro de transacción
+   - ✅ Activo consistente (si stock > 0 => activo=1)
+   - ✅ Notificaciones: lotes vencidos activos
    - ✅ FIX FK: registrarMovimiento valida lote_id y existencia
    - ✅ FIX ID: guardarLote asegura insert_id > 0
    ========================= */
@@ -39,16 +39,14 @@ function guardarLote($conexion, $producto_id, $fecha_vencimiento, $cantidad) {
 
     $stmt->bind_param("isi", $producto_id, $fecha_vencimiento, $cantidad);
     $ok = $stmt->execute();
+    $stmt->close();
 
     if (!$ok) return false;
 
-    // ✅ asegurar ID real
     $lote_id = (int)$conexion->insert_id;
     if ($lote_id <= 0) return false;
 
-    // ✅ Limpieza inmediata
     autoDesactivarLotesSinStock($conexion);
-
     return $lote_id;
 }
 
@@ -61,7 +59,7 @@ function obtenerProductosSelect($conexion) {
 }
 
 /* =========================
-   ✅ Listar lotes (orden: vencidos arriba, menos stock primero)
+   ✅ Listar lotes
    ========================= */
 function obtenerLotes($conexion) {
     $sql = "
@@ -86,7 +84,6 @@ function obtenerLotes($conexion) {
 function obtenerStockDisponible($conexion, $producto_id) {
     $producto_id = (int)$producto_id;
 
-    // ✅ Limpieza por si hay lotes en 0 aún activos
     autoDesactivarLotesSinStock($conexion);
 
     $sql = "SELECT COALESCE(SUM(cantidad_unidades),0) AS total
@@ -99,12 +96,13 @@ function obtenerStockDisponible($conexion, $producto_id) {
     $stmt->bind_param("i", $producto_id);
     $stmt->execute();
     $res = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
 
     return (int)($res['total'] ?? 0);
 }
 
 /* =========================
-   ✅ NOTIF: obtener lotes vencidos activos (para popup)
+   ✅ NOTIF: lotes vencidos activos
    ========================= */
 function obtenerLotesVencidosActivos($conexion) {
     $sql = "
@@ -129,9 +127,11 @@ function obtenerLotesVencidosActivos($conexion) {
 }
 
 /* =========================
-   ✅ Descontar FIFO
+   ✅ Descontar FIFO (CON FIX DE CONCURRENCIA)
    - Solo lotes activos + NO vencidos
-   - ✅ Si lote queda en 0 => activo=0 automáticamente
+   - ✅ BLOQUEA filas (FOR UPDATE) si estás dentro de begin_transaction()
+   - ✅ Si stock final > 0 => activo=1
+   - ✅ Si stock final = 0 => activo=0
    ========================= */
 function descontarStockFIFO($conexion, $producto_id, $unidades_a_descontar, $venta_id) {
     $producto_id = (int)$producto_id;
@@ -140,21 +140,22 @@ function descontarStockFIFO($conexion, $producto_id, $unidades_a_descontar, $ven
     if ($producto_id <= 0) return false;
     if ($unidades_a_descontar <= 0) return true;
 
-    // ✅ Limpieza previa
     autoDesactivarLotesSinStock($conexion);
 
-    // Tomar lotes FIFO por vencimiento primero, luego por ingreso
+    // ✅ IMPORTANTE: FOR UPDATE (solo funciona bien dentro de una transacción)
     $sql = "SELECT id, cantidad_unidades
             FROM lotes
             WHERE producto_id = ?
               AND activo = 1
               AND cantidad_unidades > 0
               AND fecha_vencimiento >= CURDATE()
-            ORDER BY fecha_vencimiento ASC, fecha_ingreso ASC";
+            ORDER BY fecha_vencimiento ASC, fecha_ingreso ASC
+            FOR UPDATE";
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("i", $producto_id);
     $stmt->execute();
     $lotes = $stmt->get_result();
+    $stmt->close();
 
     $descontado_total = 0;
 
@@ -163,19 +164,25 @@ function descontarStockFIFO($conexion, $producto_id, $unidades_a_descontar, $ven
 
         $lote_id = (int)$row['id'];
         $disp    = (int)$row['cantidad_unidades'];
+        if ($disp <= 0) continue;
 
         $restar = min($disp, $unidades_a_descontar);
 
-        // ✅ CAMBIO: descuenta y si queda <= 0 desactiva el lote
+        // ✅ UPDATE seguro: calcula stock final y activo consistente
         $up = $conexion->prepare("
             UPDATE lotes
             SET cantidad_unidades = GREATEST(cantidad_unidades - ?, 0),
-                activo = CASE WHEN (cantidad_unidades - ?) <= 0 THEN 0 ELSE activo END
+                activo = CASE
+                    WHEN GREATEST(cantidad_unidades - ?, 0) = 0 THEN 0
+                    ELSE 1
+                END
             WHERE id = ?
         ");
         $up->bind_param("iii", $restar, $restar, $lote_id);
         $up->execute();
+        $up->close();
 
+        // ✅ Movimiento (tu sistema guarda salidas como NEGATIVAS)
         registrarMovimiento(
             $conexion,
             $producto_id,
@@ -189,28 +196,41 @@ function descontarStockFIFO($conexion, $producto_id, $unidades_a_descontar, $ven
         $descontado_total     += $restar;
     }
 
-    // ✅ actualizar contador rápido en productos.stock_actual (si lo estás usando en otros lados)
+    // ✅ contador rápido en productos.stock_actual
     if ($descontado_total > 0) {
         $sqlp = "UPDATE productos SET stock_actual = GREATEST(stock_actual - ?, 0) WHERE id = ?";
         $stmtp = $conexion->prepare($sqlp);
         $stmtp->bind_param("ii", $descontado_total, $producto_id);
         $stmtp->execute();
+        $stmtp->close();
     }
 
     // ✅ Limpieza final
     autoDesactivarLotesSinStock($conexion);
 
+    // ✅ Blindaje extra: si por algún error quedó un lote con stock>0 inactivo, lo reactivamos
+    // (esto NO debería pasar con FOR UPDATE, pero lo deja inpecable)
+    $fix = $conexion->prepare("
+        UPDATE lotes
+        SET activo = 1
+        WHERE producto_id = ?
+          AND cantidad_unidades > 0
+          AND fecha_vencimiento >= CURDATE()
+    ");
+    $fix->bind_param("i", $producto_id);
+    $fix->execute();
+    $fix->close();
+
     return $unidades_a_descontar <= 0;
 }
 
 /* =========================
-   ✅ Desactivar un lote
+   ✅ Desactivar un lote (manual)
    ========================= */
 function desactivarLote($conexion, $lote_id) {
     $lote_id = (int)$lote_id;
     if ($lote_id <= 0) return false;
 
-    // ✅ Si tiene unidades, registramos ajuste para auditoría
     $lote = obtenerLotePorId($conexion, $lote_id);
     if ($lote && (int)$lote['cantidad_unidades'] > 0) {
         registrarMovimiento(
@@ -229,9 +249,9 @@ function desactivarLote($conexion, $lote_id) {
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("i", $lote_id);
     $ok = $stmt->execute();
+    $stmt->close();
 
     autoDesactivarLotesSinStock($conexion);
-
     return $ok;
 }
 
@@ -245,7 +265,9 @@ function activarLote($conexion, $lote_id) {
     $sql = "UPDATE lotes SET activo = 1 WHERE id = ?";
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("i", $lote_id);
-    return $stmt->execute();
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
 }
 
 /* =========================
@@ -257,7 +279,9 @@ function obtenerLotePorId($conexion, $id) {
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("i", $id);
     $stmt->execute();
-    return $stmt->get_result()->fetch_assoc();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row;
 }
 
 function actualizarFechaLote($conexion, $id, $fecha_vencimiento) {
@@ -266,6 +290,7 @@ function actualizarFechaLote($conexion, $id, $fecha_vencimiento) {
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("si", $fecha_vencimiento, $id);
     $stmt->execute();
+    $stmt->close();
 }
 
 function actualizarCantidadLote($conexion, $id, $nueva_cantidad) {
@@ -274,11 +299,12 @@ function actualizarCantidadLote($conexion, $id, $nueva_cantidad) {
 
     $sql = "UPDATE lotes 
             SET cantidad_unidades = ?, 
-                activo = CASE WHEN ? <= 0 THEN 0 ELSE activo END
+                activo = CASE WHEN ? <= 0 THEN 0 ELSE 1 END
             WHERE id = ?";
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("iii", $nueva_cantidad, $nueva_cantidad, $id);
     $stmt->execute();
+    $stmt->close();
 
     autoDesactivarLotesSinStock($conexion);
 }
@@ -293,12 +319,10 @@ function registrarMovimiento($conexion, $producto_id, $lote_id, $tipo, $cantidad
     $cantidad    = (int)$cantidad;
     $motivo      = (string)$motivo;
 
-    // ✅ FIX FK: si no hay lote válido, no insertes
     if ($producto_id <= 0 || $lote_id <= 0) {
         return false;
     }
 
-    // ✅ confirmar existencia del lote
     $chk = $conexion->prepare("SELECT id FROM lotes WHERE id = ? LIMIT 1");
     if (!$chk) return false;
     $chk->bind_param("i", $lote_id);
@@ -317,11 +341,13 @@ function registrarMovimiento($conexion, $producto_id, $lote_id, $tipo, $cantidad
     if (!$stmt) return false;
 
     $stmt->bind_param("iisis", $producto_id, $lote_id, $tipo, $cantidad, $motivo);
-    return $stmt->execute();
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
 }
 
 /* =========================
-   ✅ DEVOLUCIONES
+   ✅ DEVOLUCIONES (igual que tenías)
    ========================= */
 function devolverStockPorVenta($conexion, $producto_id, $unidades_a_devolver, $venta_id, $motivoExtra = '') {
     $producto_id = (int)$producto_id;
@@ -345,6 +371,7 @@ function devolverStockPorVenta($conexion, $producto_id, $unidades_a_devolver, $v
     $stmt->bind_param("is", $producto_id, $mot);
     $stmt->execute();
     $res = $stmt->get_result();
+    $stmt->close();
 
     $restante = $unidades_a_devolver;
 
@@ -367,6 +394,7 @@ function devolverStockPorVenta($conexion, $producto_id, $unidades_a_devolver, $v
         ");
         $up->bind_param("ii", $sumar, $lote_id);
         $up->execute();
+        $up->close();
 
         $motivo = trim("Devolución Venta ID $venta_id " . $motivoExtra);
         registrarMovimiento($conexion, $producto_id, $lote_id, "entrada", $sumar, $motivo);
@@ -380,6 +408,7 @@ function devolverStockPorVenta($conexion, $producto_id, $unidades_a_devolver, $v
         $stmtp = $conexion->prepare($sqlp);
         $stmtp->bind_param("ii", $devuelto, $producto_id);
         $stmtp->execute();
+        $stmtp->close();
     }
 
     autoDesactivarLotesSinStock($conexion);
@@ -409,6 +438,7 @@ function devolverStockProductoDesdeVenta($conexion, $venta_id, $producto_id, $un
     $stmt->bind_param("iss", $producto_id, $m1, $m2);
     $stmt->execute();
     $res = $stmt->get_result();
+    $stmt->close();
 
     $devuelto_total = 0;
 
@@ -431,6 +461,7 @@ function devolverStockProductoDesdeVenta($conexion, $venta_id, $producto_id, $un
         ");
         $up->bind_param("ii", $a_devolver, $lote_id);
         $up->execute();
+        $up->close();
 
         registrarMovimiento(
             $conexion,
@@ -450,6 +481,7 @@ function devolverStockProductoDesdeVenta($conexion, $venta_id, $producto_id, $un
         $stmtp = $conexion->prepare($sqlp);
         $stmtp->bind_param("ii", $devuelto_total, $producto_id);
         $stmtp->execute();
+        $stmtp->close();
     }
 
     autoDesactivarLotesSinStock($conexion);
@@ -469,6 +501,7 @@ function devolverStockCompletoVenta($conexion, $venta_id) {
     $stmt->bind_param("i", $venta_id);
     $stmt->execute();
     $res = $stmt->get_result();
+    $stmt->close();
 
     while ($row = $res->fetch_assoc()) {
         $pid = (int)$row["producto_id"];
@@ -482,9 +515,7 @@ function devolverStockCompletoVenta($conexion, $venta_id) {
 }
 
 /* =========================
-   ✅ NUEVO: Corregir producto del lote
-   - Cambia producto_id del lote
-   - Registra auditoría (cantidad 0) con lote real
+   ✅ Corregir producto del lote (igual que tenías)
    ========================= */
 function corregirProductoDeLote($conexion, $lote_id, $nuevo_producto_id) {
     $lote_id = (int)$lote_id;
@@ -498,7 +529,6 @@ function corregirProductoDeLote($conexion, $lote_id, $nuevo_producto_id) {
     $producto_actual = (int)($lote['producto_id'] ?? 0);
     if ($producto_actual <= 0) return false;
 
-    // si es el mismo producto, no hacemos nada
     if ($producto_actual === $nuevo_producto_id) return true;
 
     $stmt = $conexion->prepare("UPDATE lotes SET producto_id = ? WHERE id = ? LIMIT 1");
@@ -509,7 +539,6 @@ function corregirProductoDeLote($conexion, $lote_id, $nuevo_producto_id) {
 
     if (!$ok) return false;
 
-    // Auditoría: dejamos un rastro (cantidad 0)
     registrarMovimiento(
         $conexion,
         $nuevo_producto_id,
