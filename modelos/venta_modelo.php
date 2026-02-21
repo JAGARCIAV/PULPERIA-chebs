@@ -16,11 +16,18 @@ function crearVenta($conexion) {
     $sql = "INSERT INTO ventas (fecha, total, turno_id)
             VALUES (NOW(), 0, ?)";
     $stmt = $conexion->prepare($sql);
+    if (!$stmt) return 0;
+
     $stmt->bind_param("i", $turno_id);
 
-    if (!$stmt->execute()) return 0;
+    if (!$stmt->execute()) {
+        $stmt->close();
+        return 0;
+    }
 
-    return (int)$conexion->insert_id;
+    $id = (int)$conexion->insert_id;
+    $stmt->close();
+    return $id;
 }
 
 /* =========================
@@ -44,9 +51,9 @@ function agregarDetalleVenta($conexion, $venta_id, $producto_id, $tipo_venta, $c
                 (venta_id, producto_id, presentacion_id, tipo_venta, cantidad, precio_unitario, subtotal, unidades_reales)
                 VALUES (?, ?, NULL, ?, ?, ?, ?, ?)";
         $stmt = $conexion->prepare($sql);
-        // i i s i d d i
         $stmt->bind_param("iisiddi", $venta_id, $producto_id, $tipo_venta, $cantidad, $precio_unitario, $subtotal, $unidades_reales);
         $stmt->execute();
+        $stmt->close();
         return;
     }
 
@@ -56,9 +63,9 @@ function agregarDetalleVenta($conexion, $venta_id, $producto_id, $tipo_venta, $c
             (venta_id, producto_id, presentacion_id, tipo_venta, cantidad, precio_unitario, subtotal, unidades_reales)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conexion->prepare($sql);
-    // i i i s i d d i
     $stmt->bind_param("iiisiddi", $venta_id, $producto_id, $presentacion_id, $tipo_venta, $cantidad, $precio_unitario, $subtotal, $unidades_reales);
     $stmt->execute();
+    $stmt->close();
 }
 
 /* =========================
@@ -72,6 +79,7 @@ function actualizarTotalVenta($conexion, $venta_id) {
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("ii", $venta_id, $venta_id);
     $stmt->execute();
+    $stmt->close();
 }
 
 function obtenerUltimasVentasDesde($conexion, $desde_id = 0, $limite = 10) {
@@ -88,7 +96,9 @@ function obtenerUltimasVentasDesde($conexion, $desde_id = 0, $limite = 10) {
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("ii", $desde_id, $limite);
     $stmt->execute();
-    return $stmt->get_result();
+    $res = $stmt->get_result();
+    $stmt->close();
+    return $res;
 }
 
 function obtenerDetalleVenta($conexion, $venta_id) {
@@ -102,7 +112,9 @@ function obtenerDetalleVenta($conexion, $venta_id) {
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("i", $venta_id);
     $stmt->execute();
-    return $stmt->get_result();
+    $res = $stmt->get_result();
+    $stmt->close();
+    return $res;
 }
 
 function obtenerTotalVentasHoy($conexion) {
@@ -120,8 +132,6 @@ function obtenerTotalVentasHoy($conexion) {
    ========================= */
 function obtenerVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo = null, $busqueda = null) {
 
-    // ✅ armamos un "turno" legible desde la hora de fecha
-    // (si tú tienes un campo real de turno en turnos, me dices y lo cambiamos a ese)
     $sql = "SELECT v.id, v.fecha, v.total,
                    v.turno_id,
                    u.nombre AS responsable,
@@ -143,7 +153,6 @@ function obtenerVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo =
         $types .= "s";
     }
 
-    // ✅ filtro por turno (mañana/tarde) usando la HORA de v.fecha
     if ($turno) {
         if ($turno === "mañana") {
             $sql .= " AND TIME(v.fecha) < '12:00:00'";
@@ -172,7 +181,9 @@ function obtenerVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo =
         $stmt->bind_param($types, ...$params);
     }
     $stmt->execute();
-    return $stmt->get_result();
+    $res = $stmt->get_result();
+    $stmt->close();
+    return $res;
 }
 
 /* =========================
@@ -186,7 +197,9 @@ function obtenerVentaPorId($conexion, $id) {
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("i", $id);
     $stmt->execute();
-    return $stmt->get_result()->fetch_assoc();
+    $res = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $res;
 }
 
 /* =========================
@@ -205,5 +218,7 @@ function corregirVenta($conexion, $venta_id) {
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("i", $venta_id);
     $stmt->execute();
-    return $stmt->get_result();
+    $res = $stmt->get_result();
+    $stmt->close();
+    return $res;
 }

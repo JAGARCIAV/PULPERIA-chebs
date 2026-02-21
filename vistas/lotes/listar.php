@@ -40,117 +40,117 @@ $lotes = obtenerLotes($conexion);
   </div>
 
   <!-- Tabla -->
-<div class="bg-white border border-green-100 rounded-3xl shadow-soft overflow-hidden">
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead class="bg-green-50">
-        <tr class="text-left text-gray-800">
-          <th class="px-4 py-3 font-black text-green-700">Producto</th>
-          <th class="px-4 py-3 font-black text-green-700">Vencimiento</th>
-          <th class="px-4 py-3 font-black text-green-700">Cantidad</th>
-          <th class="px-4 py-3 font-black text-green-700">Estado</th>
-          <th class="px-4 py-3 font-black text-right text-green-700">Acciones</th>
-        </tr>
-      </thead>
+  <div class="bg-white border border-green-100 rounded-3xl shadow-soft overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-green-50">
+          <tr class="text-left text-gray-800">
+            <th class="px-4 py-3 font-black text-green-700">Producto</th>
+            <th class="px-4 py-3 font-black text-green-700">Vencimiento</th>
+            <th class="px-4 py-3 font-black text-green-700">Cantidad</th>
+            <th class="px-4 py-3 font-black text-green-700">Estado</th>
+            <th class="px-4 py-3 font-black text-right text-green-700">Acciones</th>
+          </tr>
+        </thead>
 
-      <tbody id="tabla_body" class="divide-y divide-green-100">
-      <?php while($l = $lotes->fetch_assoc()) {
-        $fechaV = $l['fecha_vencimiento'] ?? '';
-        $vencido = false;
+        <tbody id="tabla_body" class="divide-y divide-green-100">
+        <?php while($l = $lotes->fetch_assoc()) {
+          $fechaV = $l['fecha_vencimiento'] ?? '';
+          $vencido = false;
 
-        if (!empty($fechaV) && $fechaV !== '0000-00-00') {
-          $vencido = (strtotime($fechaV) < strtotime(date('Y-m-d')));
-        }
-      ?>
-        <tr class="border-t border-green-100 hover:bg-green-50 transition <?= $vencido ? 'bg-red-50' : '' ?>">
+          if (!empty($fechaV) && $fechaV !== '0000-00-00') {
+            $vencido = (strtotime($fechaV) < strtotime(date('Y-m-d')));
+          }
+        ?>
+          <tr class="border-t border-green-100 hover:bg-green-50 transition <?= $vencido ? 'bg-red-50' : '' ?>">
 
-          <!-- Producto -->
-          <td class="px-4 py-3">
-            <div class="font-semibold text-chebs-black">
-              <?= htmlspecialchars($l['nombre']) ?>
-            </div>
-            <div class="text-xs text-gray-500">Lote #<?= (int)$l['id'] ?></div>
-          </td>
-
-          <!-- Vencimiento -->
-          <td class="px-4 py-3">
-            <?php if (!$fechaV || $fechaV === '0000-00-00'): ?>
-              <span class="text-xs font-bold text-gray-600 bg-gray-100 border border-gray-200 px-3 py-1 rounded-full">
-                Sin fecha
-              </span>
-            <?php else: ?>
-              <div class="flex items-center gap-2">
-                <span class="font-semibold"><?= htmlspecialchars($fechaV) ?></span>
-
-                <?php if ($vencido): ?>
-                  <span class="text-xs font-black text-red-800 bg-red-200 border border-red-300 px-3 py-1 rounded-full">
-                    Vencido
-                  </span>
-                <?php endif; ?>
+            <!-- Producto -->
+            <td class="px-4 py-3">
+              <div class="font-semibold text-chebs-black">
+                <?= htmlspecialchars($l['nombre']) ?>
               </div>
-            <?php endif; ?>
-          </td>
+              <div class="text-xs text-gray-500">Lote #<?= (int)$l['id'] ?></div>
+            </td>
 
-          <!-- Cantidad -->
-          <td class="px-4 py-3">
-            <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black bg-green-50 border border-green-100 text-green-800">
-              <?= (int)$l['cantidad_unidades'] ?>
-            </span>
-          </td>
-
-          <!-- Estado -->
-          <td class="px-4 py-3">
-            <?php if (!empty($l['activo'])): ?>
-              <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black bg-green-100 text-green-700 border border-green-200">
-                Activo
-              </span>
-            <?php else: ?>
-              <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black bg-gray-200 text-gray-700 border border-gray-300">
-                Inactivo
-              </span>
-            <?php endif; ?>
-          </td>
-
-          <!-- Acciones -->
-          <td class="px-4 py-3">
-            <div class="flex flex-wrap gap-2 justify-end">
-
-              <a href="editar.php?id=<?= (int)$l['id'] ?>"
-                 class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-green-100 bg-white
-                        hover:bg-green-50 font-bold text-sm transition">
-                ✏️ Editar
-              </a>
-
-              <a href="corregir_producto.php?id=<?= (int)$l['id'] ?>"
-                 class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-green-100 bg-white
-                        hover:bg-green-50 font-bold text-sm transition">
-                🔁 Corregir
-              </a>
-
-              <?php if (!empty($l['activo'])): ?>
-                <button type="button"
-                        class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-red-200 bg-red-50
-                               hover:bg-red-100 font-black text-sm text-red-700 transition"
-                        onclick="confirmarLink('<?= '../../controladores/desactivar_lote.php?id='.(int)$l['id'] ?>','Desactivar lote','¿Desactivar este lote?')">
-                  ⛔ Desactivar
-                </button>
+            <!-- Vencimiento -->
+            <td class="px-4 py-3">
+              <?php if (!$fechaV || $fechaV === '0000-00-00'): ?>
+                <span class="text-xs font-bold text-gray-600 bg-gray-100 border border-gray-200 px-3 py-1 rounded-full">
+                  Sin fecha
+                </span>
               <?php else: ?>
-                <span class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-gray-200 bg-gray-50
-                             font-bold text-sm text-gray-600">
-                  —
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold"><?= htmlspecialchars($fechaV) ?></span>
+
+                  <?php if ($vencido): ?>
+                    <span class="text-xs font-black text-red-800 bg-red-200 border border-red-300 px-3 py-1 rounded-full">
+                      Vencido
+                    </span>
+                  <?php endif; ?>
+                </div>
+              <?php endif; ?>
+            </td>
+
+            <!-- Cantidad -->
+            <td class="px-4 py-3">
+              <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black bg-green-50 border border-green-100 text-green-800">
+                <?= (int)$l['cantidad_unidades'] ?>
+              </span>
+            </td>
+
+            <!-- Estado -->
+            <td class="px-4 py-3">
+              <?php if (!empty($l['activo'])): ?>
+                <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black bg-green-100 text-green-700 border border-green-200">
+                  Activo
+                </span>
+              <?php else: ?>
+                <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black bg-gray-200 text-gray-700 border border-gray-300">
+                  Inactivo
                 </span>
               <?php endif; ?>
+            </td>
 
-            </div>
-          </td>
+            <!-- Acciones -->
+            <td class="px-4 py-3">
+              <div class="flex flex-wrap gap-2 justify-end">
 
-        </tr>
-      <?php } ?>
+                <a href="editar.php?id=<?= (int)$l['id'] ?>"
+                   class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-green-100 bg-white
+                          hover:bg-green-50 font-bold text-sm transition">
+                  ✏️ Editar
+                </a>
 
-      </tbody>
-    </table>
+                <a href="corregir_producto.php?id=<?= (int)$l['id'] ?>"
+                   class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-green-100 bg-white
+                          hover:bg-green-50 font-bold text-sm transition">
+                  🔁 Corregir
+                </a>
+
+                <?php if (!empty($l['activo'])): ?>
+                  <button type="button"
+                          class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-red-200 bg-red-50
+                                 hover:bg-red-100 font-black text-sm text-red-700 transition"
+                          onclick="confirmarLink('<?= '../../controladores/desactivar_lote.php?id='.(int)$l['id'] ?>','Desactivar lote','¿Desactivar este lote?')">
+                    ⛔ Desactivar
+                  </button>
+                <?php else: ?>
+                  <span class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-gray-200 bg-gray-50
+                               font-bold text-sm text-gray-600">
+                    —
+                  </span>
+                <?php endif; ?>
+
+              </div>
+            </td>
+
+          </tr>
+        <?php } ?>
+
+        </tbody>
+      </table>
+    </div>
   </div>
-</div>
 
 </div>
 
@@ -182,12 +182,12 @@ $lotes = obtenerLotes($conexion);
 </div>
 
 <script>
-// 🔍 Buscador
+// 🔍 Buscador (✅ mejora: siempre toma filas actuales)
 const buscador = document.getElementById("buscador");
-const filas = document.querySelectorAll("#tabla_body tr");
 
 buscador.addEventListener("input", () => {
   const q = buscador.value.toLowerCase();
+  const filas = document.querySelectorAll("#tabla_body tr"); // ✅ actualizado
   filas.forEach(tr => {
     const nombre = tr.children[0].innerText.toLowerCase();
     tr.style.display = nombre.includes(q) ? "" : "none";

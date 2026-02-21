@@ -1,10 +1,20 @@
 <?php
-require_once "../config/conexion.php";
-require_once "../modelos/lote_modelo.php";
+require_once __DIR__ . "/../config/auth.php";
+require_role(['admin']);
 
-$lote_id = $_GET['id'];
+require_once __DIR__ . "/../config/conexion.php";
+require_once __DIR__ . "/../modelos/lote_modelo.php";
 
-desactivarLotes($conexion, $lote_id);
+$lote_id = (int)($_GET['id'] ?? 0);
 
-header("Location: ../vistas/lotes/listar.php");
+if ($lote_id <= 0) {
+    header("Location: ../vistas/lotes/listar.php?err=id");
+    exit;
+}
+
+// ✅ usar la función correcta del modelo
+$ok = desactivarLote($conexion, $lote_id);
+
+header("Location: ../vistas/lotes/listar.php?" . ($ok ? "ok=1" : "err=desactivar"));
+exit;
 ?>

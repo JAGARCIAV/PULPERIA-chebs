@@ -1,27 +1,26 @@
 <?php
-require_once "../config/conexion.php";
-require_once "../modelos/lote_modelo.php";
+require_once __DIR__ . "/../config/auth.php";
+require_role(['admin']);
 
-$lote_id = $_POST['lote_id'];
-$nuevo_producto_id = $_POST['nuevo_producto_id'];
+require_once __DIR__ . "/../config/conexion.php";
+require_once __DIR__ . "/../modelos/lote_modelo.php";
 
-$lote = obtenerLotePorId($conexion, $lote_id);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: ../vistas/lotes/listar.php");
+    exit;
+}
 
-$producto_incorrecto = $lote['producto_id'];
-$cantidad = $lote['cantidad_unidades'];
-$fecha_vencimiento = $lote['fecha_vencimiento'];
+$lote_id = (int)($_POST['lote_id'] ?? 0);
+$nuevo_producto_id = (int)($_POST['nuevo_producto_id'] ?? 0);
 
-// 1️⃣ Ajuste salida del lote incorrecto
-registrarMovimiento($conexion, $producto_incorrecto, $lote_id, 'ajuste', -$cantidad, 'Corrección de producto');
+if ($lote_id <= 0 || $nuevo_producto_id <= 0) {
+    header("Location: ../vistas/lotes/listar.php?err=datos");
+    exit;
+}
 
-// 2️⃣ Dejar lote en 0 y desactivar
-$conexion->query("UPDATE lotes SET cantidad_unidades = 0, activo = FALSE WHERE id = $lote_id");
+// ✅ Cambia producto_id del MISMO lote (no crea lote nuevo, no rompe historial)
+$ok = corregirProductoDeLote($conexion, $lote_id, $nuevo_producto_id);
 
-// 3️⃣ Crear lote nuevo correcto
-$nuevo_lote_id = crearLote($conexion, $nuevo_producto_id, $fecha_vencimiento, $cantidad);
-
-// 4️⃣ Registrar entrada del nuevo lote
-registrarMovimiento($conexion, $nuevo_producto_id, $nuevo_lote_id, 'entrada', $cantidad, 'Corrección de producto');
-
-header("Location: ../vistas/lotes/listar.php");
+header("Location: ../vistas/lotes/listar.php?" . ($ok ? "ok=1" : "err=corregir"));
+exit;
 ?>
