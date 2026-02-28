@@ -221,3 +221,131 @@ function guardarPresentacionesProducto($conexion, $producto_id, $nombres, $unida
 
     $stmt->close();
 }
+
+/* =========================
+   ✅ ELIMINAR PRODUCTO + LOTES (seguro)
+   Tablas confirmadas:
+   - productos(id, imagen, activo, ...)
+   - lotes(id, producto_id, activo, ...)
+   - producto_presentaciones (opcional, si existe)
+   ========================= */
+function eliminarProductoConLotesSeguro(mysqli $conexion, int $producto_id): array {
+
+    // 1) Obtener imagen (para borrar del disco si se elimina real)
+    $imgRel = '';
+    $stmt = $conexion->prepare("SELECT imagen FROM productos WHERE id=? LIMIT 1");
+    if(!$stmt) return ['ok' => false, 'msg' => 'No se pudo preparar consulta'];
+    $stmt->bind_param("i", $producto_id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$row) {
+        return ['ok' => false, 'msg' => 'Producto no existe'];
+    }
+
+    $imgRel = trim((string)($row['imagen'] ?? ''));
+
+    // 2) Intento de borrado REAL (transacción)
+    $conexion->begin_transaction();
+
+    try {
+        // ✅ Si tienes presentaciones, las borramos primero (si no existe tabla, catch de abajo hará fallback)
+        $delPres = $conexion->prepare("DELETE FROM producto_presentaciones WHERE producto_id=?");
+        if ($delPres) {
+            $delPres->bind_param("i", $producto_id);
+            $delPres->execute();
+            $delPres->close();
+        }
+
+        // ✅ Borrar lotes (tu tabla existe y tiene producto_id)
+        $delL = $conexion->prepare("DELETE FROM lotes WHERE producto_id=?");
+        if(!$delL){
+            $conexion->rollback();
+            return ['ok' => false, 'msg' => 'No se pudo preparar delete lotes'];
+        }
+        $delL->bind_param("i", $producto_id);
+        $delL->execute();
+        $delL->close();
+
+        // ✅ Borrar producto
+        $delP = $conexion->prepare("DELETE FROM productos WHERE id=? LIMIT 1");
+        if(!$delP){
+            $conexion->rollback();
+            return ['ok' => false, 'msg' => 'No se pudo preparar delete producto'];
+        }
+        $delP->bind_param("i", $producto_id);
+        $delP->execute();
+        $aff = (int)$delP->affected_rows;
+        $delP->close();
+
+        if ($aff <= 0) {
+            $conexion->rollback();
+            return ['ok' => false, 'msg' => 'No se eliminó el producto'];
+        }
+
+        $conexion->commit();
+
+        // ✅ Si se eliminó real, borramos la imagen física SOLO si está en uploads/productos/
+        if ($imgRel !== '') {
+            $imgRelClean = ltrim($imgRel, '/');
+
+            if (strpos($imgRelClean, 'uploads/productos/') === 0) {
+                $rutaFs = __DIR__ . "/../" . $imgRelClean; // modelos -> ../uploads/...
+                if (is_file($rutaFs)) {
+                    @unlink($rutaFs);
+                }
+            }
+        }
+
+        return ['ok' => true, 'msg' => 'Producto eliminado (y lotes también)'];
+
+    } catch (Throwable $e) {
+        $conexion->rollback();
+
+        // 3) Fallback: desactivar producto + lotes para NO romper ventas/FKs
+        $up = $conexion->prepare("UPDATE productos SET activo=0 WHERE id=? LIMIT 1");
+        if ($up) {
+            $up->bind_param("i", $producto_id);
+            $up->execute();
+            $up->close();
+        }
+
+        // ✅ Tu tabla lotes tiene activo -> lo apagamos
+        $upL = $conexion->prepare("UPDATE lotes SET activo=0 WHERE producto_id=?");
+        if ($upL) {
+            $upL->bind_param("i", $producto_id);
+            $upL->execute();
+            $upL->close();
+        }
+
+        // ✅ Si existe producto_presentaciones y tiene activa, apagamos (si no existe, ignoramos)
+        try {
+            $upPres = $conexion->prepare("UPDATE producto_presentaciones SET activa=0 WHERE producto_id=?");
+            if ($upPres) {
+                $upPres->bind_param("i", $producto_id);
+                $upPres->execute();
+                $upPres->close();
+            }
+        } catch (Throwable $x) {}
+
+        return ['ok' => true, 'msg' => 'No se pudo borrar por relaciones (ventas). Producto y lotes desactivados.'];
+    }
+}
+
+function obtenerProductosConStock($conexion, $soloActivos = false) {
+    $where = $soloActivos ? "WHERE p.activo=1" : "";
+
+    $sql = "
+      SELECT
+        p.*,
+        COALESCE(SUM(CASE WHEN l.activo=1 THEN l.cantidad_unidades ELSE 0 END), 0) AS stock_total
+      FROM productos p
+      LEFT JOIN lotes l ON l.producto_id = p.id
+      $where
+      GROUP BY p.id
+      ORDER BY p.nombre ASC
+    ";
+
+    return $conexion->query($sql);
+}
