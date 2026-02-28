@@ -10,6 +10,8 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $id = (int)($_POST['id'] ?? 0);
 $nombre = trim($_POST['nombre'] ?? '');
+$nombre = preg_replace('/\s+/', ' ', $nombre); // ✅ quita dobles espacios (anti-trampa)
+
 $precio_unidad = (float)($_POST['precio_unidad'] ?? 0);
 $precio_paquete = (float)($_POST['precio_paquete'] ?? 0); // legacy
 $activo = (int)($_POST['activo'] ?? 1);
@@ -23,6 +25,30 @@ $imagenActual = trim((string)($_POST['imagen_actual'] ?? ''));
 
 if ($id <= 0 || $nombre === '' || $precio_unidad <= 0) {
     header("Location: ../vistas/productos/editar.php?id={$id}&error=datos_invalidos");
+    exit;
+}
+
+/* =========================================================
+   ✅ NUEVO: BLOQUEAR DUPLICADOS EN EDITAR (activo=1)
+   - Excluye el mismo ID
+   ========================================================= */
+$stmt = $conexion->prepare("
+  SELECT id, nombre
+  FROM productos
+  WHERE activo = 1
+    AND id <> ?
+    AND LOWER(TRIM(nombre)) = LOWER(TRIM(?))
+  LIMIT 1
+");
+$stmt->bind_param("is", $id, $nombre);
+$stmt->execute();
+$existe = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if ($existe) {
+    $idExist = (int)($existe['id'] ?? 0);
+    $nomExist = urlencode((string)($existe['nombre'] ?? $nombre));
+    header("Location: ../vistas/productos/editar.php?id={$id}&err=duplicado&id_existente={$idExist}&nombre={$nomExist}");
     exit;
 }
 
@@ -99,27 +125,20 @@ try {
 
     /* =========================================================
        ✅ SUBIR IMAGEN (OPCIONAL) Y GUARDAR EN BD
-       - NO toca modelo, solo hace UPDATE directo
-       - Si no subes nada, mantiene imagenActual
        ========================================================= */
 
     $nuevaImagenPath = null;
 
     if (isset($_FILES['imagen']) && is_array($_FILES['imagen']) && ($_FILES['imagen']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
 
-        if (($_FILES['imagen']['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
-            // Si quieres manejar errores específicos:
-            // throw new Exception("Error al subir imagen");
-        } else {
+        if (($_FILES['imagen']['error'] ?? UPLOAD_ERR_OK) === UPLOAD_ERR_OK) {
 
             $tmp  = $_FILES['imagen']['tmp_name'] ?? '';
             $name = $_FILES['imagen']['name'] ?? '';
             $size = (int)($_FILES['imagen']['size'] ?? 0);
 
             // límite opcional: 5MB
-            if ($size > 5 * 1024 * 1024) {
-                // throw new Exception("Imagen muy pesada");
-            } else {
+            if ($size <= 5 * 1024 * 1024) {
 
                 $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
                 $permitidas = ['jpg','jpeg','png','webp'];
@@ -165,7 +184,6 @@ try {
 
 } catch (Throwable $e) {
     $conexion->rollback();
-    // Error bonito (si el CHECK de BD bloquea o cualquier otro)
     header("Location: ../vistas/productos/editar.php?id={$id}&error=sql");
     exit;
 }

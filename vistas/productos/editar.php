@@ -54,6 +54,65 @@ if ($img_db !== '') {
 }
 ?>
 
+<!-- ✅ MODAL: PRODUCTO DUPLICADO (pegar aquí) -->
+<?php if(($_GET['err'] ?? '') === 'duplicado'): 
+  $idExist = (int)($_GET['id_existente'] ?? 0);
+  $nomExist = trim((string)($_GET['nombre'] ?? ''));
+?>
+<div id="modalDuplicado" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-soft border border-chebs-line animate-fadeIn">
+
+    <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-red-100 mb-4">
+      <span class="text-3xl">⚠️</span>
+    </div>
+
+    <h2 class="text-xl font-black text-center text-chebs-black mb-2">
+      Producto ya existe
+    </h2>
+
+    <p class="text-center text-gray-600 mb-6">
+      Ya existe otro producto activo con ese nombre.
+      <?php if($nomExist !== ''): ?>
+        <br><span class="font-black text-chebs-black"><?= htmlspecialchars($nomExist) ?></span>
+      <?php endif; ?>
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <?php if($idExist > 0): ?>
+      <a href="editar.php?id=<?= $idExist ?>"
+         class="px-4 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition text-center">
+        ✏️ Ir al existente
+      </a>
+      <?php endif; ?>
+
+      <button type="button" onclick="cerrarDuplicado()"
+        class="px-4 py-3 rounded-2xl bg-gray-900 text-white font-black hover:bg-black transition">
+        Entendido
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function cerrarDuplicado(){
+  const m = document.getElementById('modalDuplicado');
+  if(m) m.remove();
+}
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') cerrarDuplicado(); });
+</script>
+
+<style>
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-fadeIn{ animation: fadeIn .18s ease-out; }
+</style>
+<?php endif; ?>
+<!-- ✅ /MODAL -->
+
+
 <div class="max-w-7xl mx-auto px-4 py-6">
 
   <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden">
@@ -166,58 +225,48 @@ if ($img_db !== '') {
             </div>
 
           </div>
-<!-- ✅ Calculadora -->
-<div class="rounded-2xl border border-chebs-line p-4 bg-chebs-soft/40">
 
-  <div class="font-black text-chebs-black mb-1">
-    Calculadora de costo por unidad
-  </div>
+          <!-- ✅ Calculadora -->
+          <div class="rounded-2xl border border-chebs-line p-4 bg-chebs-soft/40">
+            <div class="font-black text-chebs-black mb-1">Calculadora de costo por unidad</div>
 
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-bold mb-1">Total unidades</label>
+                <input id="calc_unidades" type="number" min="1" step="1"
+                  class="w-full px-3 py-2 rounded-xl bg-pink-50 border-2 border-pink-300
+                         outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500"
+                  placeholder="Ej: 18">
+              </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-bold mb-1">Total pagado (Bs)</label>
+                <input id="calc_total" type="number" min="0" step="0.01"
+                  class="w-full px-3 py-2 rounded-xl bg-green-50 border-2 border-green-300
+                         outline-none focus:ring-4 focus:ring-green-200 focus:border-green-500"
+                  placeholder="Ej: 54.00">
+              </div>
 
-    <div>
-      <label class="block text-xs font-bold mb-1">Total unidades</label>
-      <input id="calc_unidades" type="number" min="1" step="1"
-        class="w-full px-3 py-2 rounded-xl bg-pink-50 border-2 border-pink-300
-               outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500"
-        placeholder="Ej: 18">
-    </div>
+              <div>
+                <label class="block text-xs font-bold mb-1">Costo por unidad (resultado)</label>
+                <input id="calc_result" type="text" readonly
+                  class="w-full rounded-xl bg-white border border-chebs-line px-3 py-2 font-black text-chebs-black"
+                  placeholder="—">
+              </div>
+            </div>
 
-    <div>
-      <label class="block text-xs font-bold mb-1">Total pagado (Bs)</label>
-      <input id="calc_total" type="number" min="0" step="0.01"
-        class="w-full px-3 py-2 rounded-xl bg-green-50 border-2 border-green-300
-               outline-none focus:ring-4 focus:ring-green-200 focus:border-green-500"
-        placeholder="Ej: 54.00">
-    </div>
+            <div class="mt-3 flex flex-col sm:flex-row gap-2">
+              <button type="button" id="btn_aplicar_costo"
+                class="px-4 py-2 rounded-xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition">
+                Aplicar al precio
+              </button>
 
-    <div>
-      <label class="block text-xs font-bold mb-1">
-        Costo por unidad (resultado)
-      </label>
-      <input id="calc_result" type="text" readonly
-        class="w-full rounded-xl bg-white border border-chebs-line px-3 py-2 font-black text-chebs-black"
-        placeholder="—">
-    </div>
-
-  </div>
-
-  <div class="mt-3 flex flex-col sm:flex-row gap-2">
-    <button type="button" id="btn_aplicar_costo"
-      class="px-4 py-2 rounded-xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition">
-      Aplicar al precio
-    </button>
-
-    <button type="button" id="btn_limpiar_calc"
-      class="px-4 py-2 rounded-xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition">
-      Limpiar
-    </button>
-
-
-  </div>
-
-</div>
+              <button type="button" id="btn_limpiar_calc"
+                class="px-4 py-2 rounded-xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition">
+                Limpiar
+              </button>
+            </div>
+          </div>
 
           <!-- ✅ Estado -->
           <div>
@@ -254,23 +303,21 @@ if ($img_db !== '') {
              ========================= -->
         <div class="space-y-4 lg:sticky lg:top-6 self-start">
 
-<!-- ✅ IMAGEN DEL PRODUCTO (solo UI) -->
-<div class="rounded-2xl border-2 border-chebs-green/30 p-4 bg-chebs-green/10">
-  <div class="flex items-start justify-between gap-3">
-    <div>
-      <div class="font-black text-chebs-green">Imagen del producto</div>
-      <div class="text-xs text-chebs-green/80">
-        Puedes subir una nueva imagen. Si no subes nada, se mantiene la actual.
-      </div>
-    </div>
+          <!-- ✅ IMAGEN DEL PRODUCTO (solo UI) -->
+          <div class="rounded-2xl border-2 border-chebs-green/30 p-4 bg-chebs-green/10">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="font-black text-chebs-green">Imagen del producto</div>
+                <div class="text-xs text-chebs-green/80">
+                  Puedes subir una nueva imagen. Si no subes nada, se mantiene la actual.
+                </div>
+              </div>
 
-    <span class="text-[11px] font-black text-chebs-green bg-white/70 border border-chebs-green/30 px-2 py-1 rounded-xl">
-      opcional
-    </span>
-  </div>
+              <span class="text-[11px] font-black text-chebs-green bg-white/70 border border-chebs-green/30 px-2 py-1 rounded-xl">
+                opcional
+              </span>
+            </div>
 
-
-            <!-- ✅ Guardamos la ruta actual en hidden (por si tu backend ya lo usa) -->
             <input type="hidden" name="imagen_actual" value="<?= htmlspecialchars($img_db) ?>">
 
             <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
@@ -297,7 +344,6 @@ if ($img_db !== '') {
                     <?php } ?>
                   </div>
                 </div>
-
               </div>
 
               <div>
@@ -323,7 +369,6 @@ if ($img_db !== '') {
                 </div>
               </div>
             </div>
-
           </div>
 
           <!-- ✅ Presentaciones -->
@@ -331,18 +376,16 @@ if ($img_db !== '') {
             <div class="flex items-center justify-between gap-3 mb-3">
               <div>
                 <div class="font-black text-chebs-black">Venta de paquetes</div>
-
               </div>
-                            <span class="text-[11px] font-black text-gray-600 bg-chebs-soft/60 border border-chebs-line px-2 py-1 rounded-xl">
+
+              <span class="text-[11px] font-black text-gray-600 bg-chebs-soft/60 border border-chebs-line px-2 py-1 rounded-xl">
                 opcional
               </span>
-<button type="button" id="btn_add_pres"
-  class="px-4 py-2 rounded-xl bg-orange-400 text-black font-black
-         hover:bg-orange-500 transition">
-  + Agregar venta por paquete
-  
-</button>
 
+              <button type="button" id="btn_add_pres"
+                class="px-4 py-2 rounded-xl bg-orange-400 text-black font-black hover:bg-orange-500 transition">
+                + Agregar venta por paquete
+              </button>
             </div>
 
             <div class="overflow-x-auto rounded-xl border border-chebs-line">
@@ -393,24 +436,23 @@ if ($img_db !== '') {
             </div>
           </div>
         </div>
-          <!-- Botones desktop (siempre visibles) -->
-          <div class="hidden lg:flex flex-col sm:flex-row gap-3 pt-2">
-            <button type="submit"
-                    class="flex-1 px-6 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition shadow-soft">
-              💾 Guardar cambios
-            </button>
 
+        <!-- Botones desktop -->
+        <div class="hidden lg:flex flex-col sm:flex-row gap-3 pt-2">
+          <button type="submit"
+                  class="flex-1 px-6 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition shadow-soft">
+            💾 Guardar cambios
+          </button>
+        </div>
 
-          </div>
-                      <a href="listar.php"
-               class="flex-1 px-6 py-3 rounded-2xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition text-center">
-              ← Volver
-            </a>
+        <a href="listar.php"
+           class="flex-1 px-6 py-3 rounded-2xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition text-center">
+          ← Volver
+        </a>
+
       </form>
-
     </div>
   </div>
-
 </div>
 
 <script>

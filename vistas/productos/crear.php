@@ -8,7 +8,6 @@ include "../layout/header.php";
 <?php if(isset($_GET['creado']) && isset($_GET['id'])): ?>
 <div id="modalLote" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
   <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-soft border border-chebs-line">
-
     <h2 class="text-xl font-black mb-3">Producto guardado 🎉</h2>
     <p class="text-gray-600 mb-6">
       ¿Quieres crear el lote inicial para este producto?
@@ -25,18 +24,93 @@ include "../layout/header.php";
         Solo guardar
       </a>
     </div>
-
   </div>
 </div>
 <?php endif; ?>
 
-<!-- ✅ Antes: max-w-3xl (angosto). Ahora: max-w-7xl y menos padding vertical -->
+
+<?php if(($_GET['err'] ?? '') === 'duplicado'): 
+  $idExist = (int)($_GET['id_existente'] ?? 0);
+  $nomExist = trim((string)($_GET['nombre'] ?? ''));
+?>
+<div id="modalDuplicado" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-soft border border-chebs-line animate-fadeIn">
+
+    <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-red-100 mb-4">
+      <span class="text-3xl">⚠️</span>
+    </div>
+
+    <h2 class="text-xl font-black text-center text-chebs-black mb-2">
+      Producto ya existe
+    </h2>
+
+    <p class="text-center text-gray-600 mb-6">
+      Ya existe un producto activo con ese nombre.
+      <?php if($nomExist !== ''): ?>
+        <br><span class="font-black text-chebs-black"><?= htmlspecialchars($nomExist) ?></span>
+      <?php endif; ?>
+    </p>
+
+    <!-- ✅ CAMBIO: SOLO 2 BOTONES -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+
+      <button type="button" onclick="aceptarYRenombrar()"
+        class="px-4 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition text-center">
+        ✅ Aceptar (poner otro nombre)
+      </button>
+
+      <a href="listar.php"
+         class="px-4 py-3 rounded-2xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition text-center">
+        📋 Volver a lista
+      </a>
+
+    </div>
+
+    <?php if($idExist > 0): ?>
+      <div class="mt-3 text-center text-xs text-gray-500">
+        (Opcional) Ya existe con ID #<?= (int)$idExist ?>. Puedes editarlo desde la lista.
+      </div>
+    <?php endif; ?>
+
+  </div>
+</div>
+
+<script>
+function cerrarDuplicado(){
+  const m = document.getElementById('modalDuplicado');
+  if(m) m.remove();
+}
+
+function aceptarYRenombrar(){
+  cerrarDuplicado();
+
+  // ✅ enfocar el input del nombre para cambiarlo rápido
+  const inputNombre = document.querySelector('input[name="nombre"]');
+  if(inputNombre){
+    inputNombre.focus();
+    inputNombre.select();
+  }
+}
+
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape') cerrarDuplicado();
+});
+</script>
+
+<style>
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-fadeIn{ animation: fadeIn .18s ease-out; }
+</style>
+<?php endif; ?>
+
+
 <div class="max-w-7xl mx-auto px-4 py-6">
 
-  <!-- ✅ Tarjeta grande -->
   <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden">
 
-    <!-- Header -->
     <div class="px-6 py-5 border-b border-chebs-line bg-chebs-soft/30">
       <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
         <div>
@@ -55,17 +129,14 @@ include "../layout/header.php";
 
     <div class="p-6">
 
-      <!-- ✅ Mensaje bonito si el controlador redirige con error -->
       <?php if(($_GET['error'] ?? '') === 'costo_mayor'): ?>
         <div class="p-4 mb-4 rounded-2xl bg-red-100 border border-red-300 text-red-800 font-bold">
           ⚠ El costo mayorista no puede ser mayor que el precio de venta.
         </div>
       <?php endif; ?>
 
-      <!-- ✅ Mensaje de validación JS -->
       <div id="form_error" class="hidden p-4 mb-4 rounded-2xl bg-red-100 border border-red-300 text-red-800 font-bold"></div>
 
-      <!-- ✅ Form en 2 columnas en pantallas grandes -->
       <form id="form_producto"
             action="../../controladores/producto_controlador.php"
             method="POST"
@@ -73,12 +144,8 @@ include "../layout/header.php";
             class="grid grid-cols-1 lg:grid-cols-2 gap-6"
             onsubmit="return validarPrecioCosto();">
 
-        <!-- =========================
-             COLUMNA IZQUIERDA
-             ========================= -->
         <div class="space-y-4">
 
-          <!-- Nombre -->
           <div>
             <label class="block text-sm font-bold mb-1">Nombre del producto</label>
             <input type="text" name="nombre" required
@@ -87,108 +154,96 @@ include "../layout/header.php";
               placeholder="Ej: Cigarro, Coca 2L retornable">
           </div>
 
-<!-- ✅ PRECIOS: venta + costo -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-  <!-- Precio unidad (venta) -->
-  <div>
-    <label class="block text-sm font-bold mb-2 text-chebs-black">Precio unidad (venta)</label>
+            <div>
+              <label class="block text-sm font-bold mb-2 text-chebs-black">Precio unidad (venta)</label>
 
-    <div class="relative">
-      <span class="absolute left-3 top-1/2 -translate-y-1/2 font-black text-gray-800 bg-white/70 px-2 rounded-lg">
-        Bs
-      </span>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 font-black text-gray-800 bg-white/70 px-2 rounded-lg">
+                  Bs
+                </span>
 
-      <input id="precio_unidad"
-             type="number"
-             step="0.01"
-             min="0"
-             name="precio_unidad"
-             required
-             class="w-full pl-14 px-4 py-3 rounded-2xl bg-pink-50 border-2 border-pink-300
-                    outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500"
-             placeholder="0.00">
-    </div>
-  </div>
+                <input id="precio_unidad"
+                       type="number"
+                       step="0.01"
+                       min="0"
+                       name="precio_unidad"
+                       required
+                       class="w-full pl-14 px-4 py-3 rounded-2xl bg-pink-50 border-2 border-pink-300
+                              outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500"
+                       placeholder="0.00">
+              </div>
+            </div>
 
-  <!-- Precio mayorista (costo) unidad -->
-  <div>
-    <label class="block text-sm font-bold mb-2 text-chebs-black">
-      Precio mayorista (costo) unidad <span class="text-gray-500 font-semibold">(opcional)</span>
-    </label>
+            <div>
+              <label class="block text-sm font-bold mb-2 text-chebs-black">
+                Precio mayorista (costo) unidad <span class="text-gray-500 font-semibold">(opcional)</span>
+              </label>
 
-    <div class="relative">
-      <span class="absolute left-3 top-1/2 -translate-y-1/2 font-black text-gray-800 bg-white/70 px-2 rounded-lg">
-        Bs
-      </span>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 font-black text-gray-800 bg-white/70 px-2 rounded-lg">
+                  Bs
+                </span>
 
-      <input id="costo_unidad"
-             type="number"
-             step="0.01"
-             min="0"
-             name="costo_unidad"
-             class="w-full pl-14 px-4 py-3 rounded-2xl bg-white border-2 border-chebs-line
-                    outline-none focus:ring-4 focus:ring-chebs-soft focus:border-chebs-green"
-             placeholder="Ej: 0.80">
-    </div>
+                <input id="costo_unidad"
+                       type="number"
+                       step="0.01"
+                       min="0"
+                       name="costo_unidad"
+                       class="w-full pl-14 px-4 py-3 rounded-2xl bg-white border-2 border-chebs-line
+                              outline-none focus:ring-4 focus:ring-chebs-soft focus:border-chebs-green"
+                       placeholder="Ej: 0.80">
+              </div>
 
-    <div class="text-xs text-gray-500 mt-2">
-      Se usa para calcular ganancia en reportes.
-    </div>
-  </div>
+              <div class="text-xs text-gray-500 mt-2">
+                Se usa para calcular ganancia en reportes.
+              </div>
+            </div>
 
-</div>
+          </div>
 
-
-          <!-- ✅ Panelcito: Calculadora de costo por unidad -->
           <div class="mt-2 rounded-2xl border border-chebs-line p-4 bg-chebs-soft/40">
             <div class="font-black text-chebs-black mb-1">Calculadora de costo por unidad</div>
 
-
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-<div>
-  <label class="block text-xs font-bold mb-1">Total unidades</label>
-  <input id="calc_unidades" type="number" min="1" step="1"
-    class="w-full px-3 py-2 rounded-xl bg-pink-50 border-2 border-pink-300
-           outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500"
-    placeholder="Ej: 18">
-</div>
+              <div>
+                <label class="block text-xs font-bold mb-1">Total unidades</label>
+                <input id="calc_unidades" type="number" min="1" step="1"
+                  class="w-full px-3 py-2 rounded-xl bg-pink-50 border-2 border-pink-300
+                         outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500"
+                  placeholder="Ej: 18">
+              </div>
 
+              <div>
+                <label class="block text-xs font-bold mb-1">Total pagado (Bs)</label>
+                <input id="calc_total" type="number" min="0" step="0.01"
+                  class="w-full px-3 py-2 rounded-xl bg-green-50 border-2 border-green-300
+                         outline-none focus:ring-4 focus:ring-green-200 focus:border-green-500"
+                  placeholder="Ej: 54.00">
+              </div>
 
-<div>
-  <label class="block text-xs font-bold mb-1">Total pagado (Bs)</label>
-  <input id="calc_total" type="number" min="0" step="0.01"
-    class="w-full px-3 py-2 rounded-xl bg-green-50 border-2 border-green-300
-           outline-none focus:ring-4 focus:ring-green-200 focus:border-green-500"
-    placeholder="Ej: 54.00">
-</div>
-
-
-<div>
-  <label class="block text-xs font-bold mb-1">Costo por unidad (resultado)</label>
-  <input id="calc_result" type="text" readonly
-    class="w-full rounded-xl bg-white border border-chebs-line px-3 py-2 font-black text-chebs-black"
-    placeholder="—">
-</div>
-
+              <div>
+                <label class="block text-xs font-bold mb-1">Costo por unidad (resultado)</label>
+                <input id="calc_result" type="text" readonly
+                  class="w-full rounded-xl bg-white border border-chebs-line px-3 py-2 font-black text-chebs-black"
+                  placeholder="—">
+              </div>
             </div>
 
             <div class="mt-3 flex flex-col sm:flex-row gap-2">
               <button type="button" id="btn_aplicar_costo"
                 class="px-4 py-2 rounded-xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition">
-                Aplicar al precio 
+                Aplicar al precio
               </button>
 
               <button type="button" id="btn_limpiar_calc"
                 class="px-4 py-2 rounded-xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition">
                 Limpiar
               </button>
-
-
             </div>
           </div>
 
-          <!-- ✅ Botones (en móviles quedan aquí; en desktop también los repetimos a la derecha sticky) -->
           <div class="flex flex-col sm:flex-row gap-3 pt-2 lg:hidden">
             <button type="submit"
               class="flex-1 inline-flex items-center justify-center px-5 py-2 rounded-xl
@@ -205,86 +260,77 @@ include "../layout/header.php";
 
         </div>
 
-        <!-- =========================
-             COLUMNA DERECHA
-             ========================= -->
         <div class="space-y-4 lg:sticky lg:top-6 self-start">
 
-<!-- ✅ IMAGEN DEL PRODUCTO (solo UI) -->
-<div class="rounded-2xl border-2 border-chebs-green/30 p-4 bg-chebs-green/10">
-  <div class="flex items-start justify-between gap-3">
-    <div>
-      <div class="font-black text-chebs-green">Imagen del producto</div>
-      <div class="text-xs text-chebs-green/80">
-        Sube una foto (JPG/PNG/WebP). Recomendado: cuadrada.
-      </div>
-    </div>
+          <div class="rounded-2xl border-2 border-chebs-green/30 p-4 bg-chebs-green/10">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="font-black text-chebs-green">Imagen del producto</div>
+                <div class="text-xs text-chebs-green/80">
+                  Sube una foto (JPG/PNG/WebP). Recomendado: cuadrada.
+                </div>
+              </div>
 
-    <span class="text-[11px] font-black text-chebs-green bg-white/70 border border-chebs-green/30 px-2 py-1 rounded-xl">
-      opcional
-    </span>
-  </div>
+              <span class="text-[11px] font-black text-chebs-green bg-white/70 border border-chebs-green/30 px-2 py-1 rounded-xl">
+                opcional
+              </span>
+            </div>
 
-  <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-    <div>
-      <label class="block text-xs font-bold mb-2 text-chebs-green">Archivo</label>
-      <input id="imagen_producto"
-             type="file"
-             name="imagen"
-             accept="image/*"
-             class="w-full rounded-2xl bg-white border-2 border-chebs-green/30 px-4 py-3
-                    outline-none focus:ring-4 focus:ring-chebs-green/20 focus:border-chebs-green">
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              <div>
+                <label class="block text-xs font-bold mb-2 text-chebs-green">Archivo</label>
+                <input id="imagen_producto"
+                       type="file"
+                       name="imagen"
+                       accept="image/*"
+                       class="w-full rounded-2xl bg-white border-2 border-chebs-green/30 px-4 py-3
+                              outline-none focus:ring-4 focus:ring-chebs-green/20 focus:border-chebs-green">
 
-      <div class="mt-2 flex gap-2">
-        <button type="button" id="btn_quitar_img"
-          class="px-4 py-2 rounded-xl border border-chebs-green/30 bg-white font-black hover:bg-chebs-green/10 transition">
-          Quitar
-        </button>
+                <div class="mt-2 flex gap-2">
+                  <button type="button" id="btn_quitar_img"
+                    class="px-4 py-2 rounded-xl border border-chebs-green/30 bg-white font-black hover:bg-chebs-green/10 transition">
+                    Quitar
+                  </button>
 
-        <div class="text-xs text-chebs-green/80 self-center" id="img_hint">
-          Sin imagen seleccionada
-        </div>
-      </div>
-    </div>
+                  <div class="text-xs text-chebs-green/80 self-center" id="img_hint">
+                    Sin imagen seleccionada
+                  </div>
+                </div>
+              </div>
 
-    <div>
-      <label class="block text-xs font-bold mb-2 text-chebs-green">Vista previa</label>
+              <div>
+                <label class="block text-xs font-bold mb-2 text-chebs-green">Vista previa</label>
 
-      <div class="rounded-2xl border border-chebs-green/30 bg-white p-3">
-        <div class="w-full aspect-square rounded-2xl bg-white border border-chebs-green/20 overflow-hidden flex items-center justify-center">
-          <img id="img_preview"
-               src=""
-               alt=""
-               class="hidden w-full h-full object-cover">
+                <div class="rounded-2xl border border-chebs-green/30 bg-white p-3">
+                  <div class="w-full aspect-square rounded-2xl bg-white border border-chebs-green/20 overflow-hidden flex items-center justify-center">
+                    <img id="img_preview"
+                         src=""
+                         alt=""
+                         class="hidden w-full h-full object-cover">
 
-          <div id="img_placeholder" class="text-center px-4">
-            <div class="text-4xl">🧃</div>
-            <div class="text-xs text-chebs-green font-bold mt-2">
-              Aún sin imagen
+                    <div id="img_placeholder" class="text-center px-4">
+                      <div class="text-4xl">🧃</div>
+                      <div class="text-xs text-chebs-green font-bold mt-2">
+                        Aún sin imagen
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-    </div>
-  </div>
-</div>
-
-
-          <!-- ✅ Presentaciones -->
           <div class="rounded-2xl border border-chebs-line p-4 bg-white">
             <div class="flex items-center justify-between gap-3 mb-3">
               <div>
                 <div class="font-black text-chebs-black">Venta por paquetes</div>
-
               </div>
 
-<button type="button" id="btn_add_pres"
-  class="px-4 py-2 rounded-xl bg-orange-400 text-black font-black
-         hover:bg-orange-500 transition">
-  + Agregar venta por paquete
-</button>
-
+              <button type="button" id="btn_add_pres"
+                class="px-4 py-2 rounded-xl bg-orange-400 text-black font-black hover:bg-orange-500 transition">
+                + Agregar venta por paquete
+              </button>
             </div>
 
             <div class="overflow-x-auto rounded-xl border border-chebs-line">
@@ -307,24 +353,22 @@ include "../layout/header.php";
             </div>
           </div>
 
-          <!-- ✅ Botones en desktop (siempre visibles por sticky) -->
-
-
         </div>
-                  <div class="hidden lg:flex flex-col sm:flex-row gap-3 pt-2">
-            <button type="submit"
-              class="flex-1 inline-flex items-center justify-center px-5 py-3 rounded-2xl
-                     bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition shadow-soft">
-              💾 Guardar
-            </button>
 
+        <div class="hidden lg:flex flex-col sm:flex-row gap-3 pt-2">
+          <button type="submit"
+            class="flex-1 inline-flex items-center justify-center px-5 py-3 rounded-2xl
+                   bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition shadow-soft">
+            💾 Guardar
+          </button>
+        </div>
 
-          </div>
-            <a href="listar.php"
-              class="flex-1 inline-flex items-center justify-center px-5 py-3 rounded-2xl
-                     border border-chebs-line bg-white font-black hover:bg-chebs-soft transition">
-              ← Volver
-            </a>
+        <a href="listar.php"
+          class="flex-1 inline-flex items-center justify-center px-5 py-3 rounded-2xl
+                 border border-chebs-line bg-white font-black hover:bg-chebs-soft transition">
+          ← Volver
+        </a>
+
       </form>
 
     </div>
@@ -381,7 +425,6 @@ include "../layout/header.php";
 </script>
 
 <script>
-/* ✅ Preview imagen (solo UI, no toca backend) */
 (function(){
   const input = document.getElementById('imagen_producto');
   const img   = document.getElementById('img_preview');
@@ -408,7 +451,11 @@ include "../layout/header.php";
     const ok = /^image\//.test(file.type || '');
     if(!ok){
       limpiar();
-      alert('Selecciona un archivo de imagen (JPG/PNG/WebP).');
+      const el = document.getElementById('form_error');
+      if(el){
+        el.textContent = '⚠ Selecciona un archivo de imagen (JPG/PNG/WebP).';
+        el.classList.remove('hidden');
+      }
       return;
     }
 
@@ -424,7 +471,6 @@ include "../layout/header.php";
 </script>
 
 <script>
-/* ✅ Calculadora costo por unidad -> llena costo_unidad */
 (function(){
   function toNum(v){
     const n = parseFloat(String(v ?? '').replace(',', '.'));
@@ -460,7 +506,7 @@ include "../layout/header.php";
   btnAplicar.addEventListener('click', ()=>{
     recalcular();
     if(outResult.value){
-      costoUnidad.value = outResult.value; // sigue editable
+      costoUnidad.value = outResult.value;
       costoUnidad.dispatchEvent(new Event('input', { bubbles: true }));
     }
   });
@@ -475,7 +521,6 @@ include "../layout/header.php";
 </script>
 
 <script>
-/* ✅ Validaciones: costo <= precio (unidad y packs) */
 function showFormError(msg){
   const el = document.getElementById('form_error');
   if(!el) return;
@@ -523,7 +568,7 @@ function validarPrecioCosto(){
     if(!Number.isFinite(pCosto) && Number.isFinite(costoUnidad) && Number.isFinite(unidades) && Number.isFinite(pVenta)){
       const costoDerivado = costoUnidad * unidades;
       if(costoDerivado > pVenta){
-        showFormError(`⚠ En la presentación #${idx+1}, el costo derivado (costo_unidad × unidades = ${costoDerivado.toFixed(2)}) sería mayor que el precio del pack. Ajusta el precio del pack o el costo.`);
+        showFormError(`⚠ En la presentación #${idx+1}, el costo derivado (costo_unidad × unidades = ${costoDerivado.toFixed(2)}) sería mayor que el precio del pack.`);
         tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return false;
       }
