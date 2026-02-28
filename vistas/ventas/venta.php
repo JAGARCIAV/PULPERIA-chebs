@@ -211,7 +211,7 @@ if ($turnoAbierto) {
 
 .chebs-auto-imgbox{
   width: 100%;
-  aspect-ratio: 1 / 1;   /* ✅ SIEMPRE CUADRADA */
+  aspect-ratio: 4 / 3;   /* ✅ SIEMPRE CUADRADA  TAMAÑO*/
   background: #fff;
   display: flex;
   align-items: center;
