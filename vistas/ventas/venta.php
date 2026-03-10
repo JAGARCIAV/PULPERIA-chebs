@@ -24,12 +24,14 @@ $productos = obtenerProductosVendibles($conexion);
 
 $totalHoy  = obtenerTotalVentasHoy($conexion);
 
-// ✅ Historial desde marca del turno
+// ✅ Historial desde marca del turno — FIX #6: pasa turno_id para filtrar correctamente
 $desde = 0;
+$turnoIdActual = 0;
 if ($turnoAbierto) {
   $desde = (int)($turnoAbierto["historial_desde_venta_id"] ?? 0);
+  $turnoIdActual = (int)($turnoAbierto["id"] ?? 0);
 }
-$ultimasVentas = obtenerUltimasVentasDesde($conexion, $desde, 10);
+$ultimasVentas = obtenerUltimasVentasDesde($conexion, $desde, 10, $turnoIdActual);
 
 // ✅ Total vendido en turno
 $totalTurno = 0;

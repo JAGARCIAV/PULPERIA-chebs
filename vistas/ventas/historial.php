@@ -343,16 +343,8 @@ while($row = $ventasRs->fetch_assoc()){
 </div>
 
 <script>
-function abrirModalGeneral(){
-  document.getElementById('modalGeneral').classList.remove('hidden');
-}
-function cerrarModalGeneral(){
-  document.getElementById('modalGeneral').classList.add('hidden');
-  document.getElementById('modalContenido').innerHTML = '';
-}
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') cerrarModalGeneral();
-});
+// ✅ FIX #2: Eliminado script inline duplicado. Las funciones abrirModalGeneral/cerrarModalGeneral
+// ahora viven solo en ventas_historial.js, unificadas con classList (Tailwind).
 </script>
 
 <script src="../../public/js/ventas_historial.js"></script>

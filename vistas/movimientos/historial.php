@@ -72,7 +72,7 @@ FROM ventas v
 JOIN detalle_venta d ON d.venta_id = v.id
 JOIN productos p ON p.id = d.producto_id
 LEFT JOIN producto_presentaciones pp ON pp.id = d.presentacion_id
-WHERE 1=1
+WHERE v.anulada = 0
 $filtroSql
 GROUP BY DATE_FORMAT(v.fecha, '%Y-%m')
 ORDER BY mes DESC
@@ -150,6 +150,7 @@ JOIN detalle_venta d ON d.venta_id = v.id
 JOIN productos p ON p.id = d.producto_id
 LEFT JOIN producto_presentaciones pp ON pp.id = d.presentacion_id
 WHERE v.fecha BETWEEN ? AND ?
+  AND v.anulada = 0
 $filtroSql
 ";
 

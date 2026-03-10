@@ -1,5 +1,3 @@
-
-
 <?php
 require_once __DIR__ . "/../config/auth.php";
 require_role(['admin','empleado']);
@@ -9,7 +7,10 @@ require_once __DIR__ . "/../modelos/turno_modelo.php";
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-$turnoId = (int)($_SESSION['turno_id'] ?? ($_POST['turno_id'] ?? 0));
+// ✅ FIX: leer turno de BD, no del POST (evita que alguien cierre turno ajeno)
+$turnoObj = obtenerTurnoAbiertoHoy($conexion);
+$turnoId  = $turnoObj ? (int)$turnoObj['id'] : 0;
+
 if ($turnoId <= 0) {
     header("Location: /PULPERIA-CHEBS/vistas/ventas/venta.php?err=no_turno");
     exit;
@@ -31,7 +32,7 @@ if (!$res["ok"]) {
 
 $_SESSION['cierre_resumen'] = $res['resumen'];
 
-// limpiar turno actual
+// limpiar turno de sesión
 unset($_SESSION['turno_id']);
 
 header("Location: /PULPERIA-CHEBS/vistas/ventas/venta.php?turno_cerrado=1");

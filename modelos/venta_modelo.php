@@ -3,7 +3,6 @@ require_once __DIR__ . "/turno_modelo.php";
 
 /* =========================================================
    ✅ VENTA MODELO (LIMPIO)
-   - NO incluye helpers de corregir/anular (eso va en venta_corregir_modelo.php)
    ========================================================= */
 
 function crearVenta($conexion) {
@@ -30,10 +29,6 @@ function crearVenta($conexion) {
     return $id;
 }
 
-/* =========================
-   ✅ Agregar detalle venta
-   (con presentacion_id y unidades_reales)
-   ========================= */
 function agregarDetalleVenta($conexion, $venta_id, $producto_id, $tipo_venta, $cantidad, $precio_unitario, $subtotal, $presentacion_id = null, $unidades_reales = null) {
 
     $venta_id    = (int)$venta_id;
@@ -68,9 +63,6 @@ function agregarDetalleVenta($conexion, $venta_id, $producto_id, $tipo_venta, $c
     $stmt->close();
 }
 
-/* =========================
-   Total venta desde detalle
-   ========================= */
 function actualizarTotalVenta($conexion, $venta_id) {
     $venta_id = (int)$venta_id;
     $sql = "UPDATE ventas
@@ -82,19 +74,34 @@ function actualizarTotalVenta($conexion, $venta_id) {
     $stmt->close();
 }
 
-function obtenerUltimasVentasDesde($conexion, $desde_id = 0, $limite = 10) {
+function obtenerUltimasVentasDesde($conexion, $desde_id = 0, $limite = 10, $turno_id = 0) {
     $desde_id = (int)$desde_id;
     $limite   = (int)$limite;
+    $turno_id = (int)$turno_id;
 
-    $sql = "SELECT id, fecha, total
-            FROM ventas
-            WHERE DATE(fecha)=CURDATE()
-              AND anulada = 0
-              AND id > ?
-            ORDER BY id DESC
-            LIMIT ?";
-    $stmt = $conexion->prepare($sql);
-    $stmt->bind_param("ii", $desde_id, $limite);
+    // ✅ FIX: filtra por turno_id para no mezclar ventas de otros turnos del mismo día
+    if ($turno_id > 0) {
+        $sql = "SELECT id, fecha, total
+                FROM ventas
+                WHERE turno_id = ?
+                  AND anulada = 0
+                  AND id > ?
+                ORDER BY id DESC
+                LIMIT ?";
+        $stmt = $conexion->prepare($sql);
+        $stmt->bind_param("iii", $turno_id, $desde_id, $limite);
+    } else {
+        $sql = "SELECT id, fecha, total
+                FROM ventas
+                WHERE DATE(fecha)=CURDATE()
+                  AND anulada = 0
+                  AND id > ?
+                ORDER BY id DESC
+                LIMIT ?";
+        $stmt = $conexion->prepare($sql);
+        $stmt->bind_param("ii", $desde_id, $limite);
+    }
+
     $stmt->execute();
     $res = $stmt->get_result();
     $stmt->close();
@@ -127,9 +134,6 @@ function obtenerTotalVentasHoy($conexion) {
     return (float)($row["total_hoy"] ?? 0);
 }
 
-/* =========================
-   ✅ Ventas filtradas
-   ========================= */
 function obtenerVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo = null, $busqueda = null) {
 
     $sql = "SELECT v.id, v.fecha, v.total,
@@ -186,9 +190,6 @@ function obtenerVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo =
     return $res;
 }
 
-/* =========================
-   Venta por ID (incluye anulada)
-   ========================= */
 function obtenerVentaPorId($conexion, $id) {
     $id = (int)$id;
     $sql = "SELECT id, fecha, total, turno_id, anulada
@@ -202,9 +203,6 @@ function obtenerVentaPorId($conexion, $id) {
     return $res;
 }
 
-/* =========================
-   Detalle para corregir (campos completos)
-   ========================= */
 function corregirVenta($conexion, $venta_id) {
     $venta_id = (int)$venta_id;
 
