@@ -96,6 +96,40 @@ function actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paq
    ========================= */
 function obtenerProductosVendibles($conexion) {
 
+    // ✅ FIX CRÍTICO: antes solo buscaba productos con activo=1.
+    // BUG: si el fallback de "eliminar" desactivaba el producto (activo=0)
+    // pero el usuario después agregaba un lote nuevo, el producto quedaba
+    // invisible en caja para siempre aunque tuviera stock real.
+    //
+    // SOLUCIÓN en 3 pasos:
+    // 1) Reactivar lotes apagados que tienen stock vigente
+    // 2) Reactivar productos apagados que tienen lotes activos con stock
+    // 3) Filtrar y devolver solo los que tienen stock real
+
+    // PASO 1: reactivar lotes apagados con stock vigente (una sola query global)
+    $conexion->query("
+        UPDATE lotes
+        SET activo = 1
+        WHERE activo = 0
+          AND cantidad_unidades > 0
+          AND fecha_vencimiento >= CURDATE()
+    ");
+
+    // PASO 2: reactivar productos con activo=0 que tienen lotes activos con stock
+    $conexion->query("
+        UPDATE productos p
+        SET p.activo = 1
+        WHERE p.activo = 0
+          AND EXISTS (
+              SELECT 1 FROM lotes l
+              WHERE l.producto_id = p.id
+                AND l.activo = 1
+                AND l.cantidad_unidades > 0
+                AND l.fecha_vencimiento >= CURDATE()
+          )
+    ");
+
+    // PASO 3: buscar productos activos y filtrar por stock real
     $res = $conexion->query("SELECT id FROM productos WHERE activo=1 ORDER BY nombre ASC");
     if (!$res) return $conexion->query("SELECT * FROM productos WHERE 1=0");
 
@@ -104,28 +138,10 @@ function obtenerProductosVendibles($conexion) {
     while ($r = $res->fetch_assoc()) {
         $pid = (int)$r["id"];
 
-        // ✅ Reparar lotes “apagados con stock” (esto corrige tu caso del cigarro)
-        // Solo NO vencidos y con stock > 0.
-        $fix = $conexion->prepare("
-            UPDATE lotes
-            SET activo = 1
-            WHERE producto_id = ?
-              AND activo = 0
-              AND cantidad_unidades > 0
-              AND fecha_vencimiento >= CURDATE()
-        ");
-        if ($fix) {
-            $fix->bind_param("i", $pid);
-            $fix->execute();
-            $fix->close();
-        }
-
-        // ✅ Filtrar por stock disponible real (requiere lote_modelo incluido donde se llame)
         if (function_exists('obtenerStockDisponible')) {
             $stock = (int) obtenerStockDisponible($conexion, $pid);
             if ($stock > 0) $ids[] = $pid;
         } else {
-            // si no existe la función, por seguridad NO filtramos
             $ids[] = $pid;
         }
     }
@@ -231,10 +247,9 @@ function guardarPresentacionesProducto($conexion, $producto_id, $nombres, $unida
    ========================= */
 function eliminarProductoConLotesSeguro(mysqli $conexion, int $producto_id): array {
 
-    // 1) Obtener imagen (para borrar del disco si se elimina real)
-    $imgRel = '';
+    // 1) Obtener datos del producto (imagen + si tiene ventas asociadas)
     $stmt = $conexion->prepare("SELECT imagen FROM productos WHERE id=? LIMIT 1");
-    if(!$stmt) return ['ok' => false, 'msg' => 'No se pudo preparar consulta'];
+    if (!$stmt) return ['ok' => false, 'msg' => 'No se pudo preparar consulta'];
     $stmt->bind_param("i", $producto_id);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
@@ -246,11 +261,46 @@ function eliminarProductoConLotesSeguro(mysqli $conexion, int $producto_id): arr
 
     $imgRel = trim((string)($row['imagen'] ?? ''));
 
-    // 2) Intento de borrado REAL (transacción)
+    // 2) Verificar si el producto tiene ventas asociadas ANTES de intentar borrar
+    // Si tiene ventas no podemos borrarlo, solo ocultarlo (activo=0)
+    // pero NO tocamos los lotes para no perder stock
+    $chkVenta = $conexion->prepare("
+        SELECT COUNT(*) AS cnt
+        FROM detalle_venta dv
+        WHERE dv.producto_id = ?
+        LIMIT 1
+    ");
+    $tieneVentas = false;
+    if ($chkVenta) {
+        $chkVenta->bind_param("i", $producto_id);
+        $chkVenta->execute();
+        $resChk = $chkVenta->get_result()->fetch_assoc();
+        $chkVenta->close();
+        $tieneVentas = ((int)($resChk['cnt'] ?? 0)) > 0;
+    }
+
+    // 3) Si tiene ventas: solo desactivar el PRODUCTO, NO tocar los lotes
+    // Esto evita el bug donde el fallback apagaba lotes con stock real
+    if ($tieneVentas) {
+        $up = $conexion->prepare("UPDATE productos SET activo=0 WHERE id=? LIMIT 1");
+        if ($up) {
+            $up->bind_param("i", $producto_id);
+            $up->execute();
+            $up->close();
+        }
+        // NO desactivamos lotes — si tiene ventas, probablemente tiene historial
+        // y los lotes son datos reales de stock que NO deben perderse
+        return [
+            'ok'  => true,
+            'msg' => 'El producto tiene ventas registradas y no puede borrarse. Fue desactivado (oculto) para no romper el historial. Sus lotes NO fueron tocados.'
+        ];
+    }
+
+    // 4) Sin ventas: intentar borrado REAL en transacción
     $conexion->begin_transaction();
 
     try {
-        // ✅ Si tienes presentaciones, las borramos primero (si no existe tabla, catch de abajo hará fallback)
+        // Borrar presentaciones si existen
         $delPres = $conexion->prepare("DELETE FROM producto_presentaciones WHERE producto_id=?");
         if ($delPres) {
             $delPres->bind_param("i", $producto_id);
@@ -258,9 +308,9 @@ function eliminarProductoConLotesSeguro(mysqli $conexion, int $producto_id): arr
             $delPres->close();
         }
 
-        // ✅ Borrar lotes (tu tabla existe y tiene producto_id)
+        // Borrar lotes
         $delL = $conexion->prepare("DELETE FROM lotes WHERE producto_id=?");
-        if(!$delL){
+        if (!$delL) {
             $conexion->rollback();
             return ['ok' => false, 'msg' => 'No se pudo preparar delete lotes'];
         }
@@ -268,9 +318,9 @@ function eliminarProductoConLotesSeguro(mysqli $conexion, int $producto_id): arr
         $delL->execute();
         $delL->close();
 
-        // ✅ Borrar producto
+        // Borrar producto
         $delP = $conexion->prepare("DELETE FROM productos WHERE id=? LIMIT 1");
-        if(!$delP){
+        if (!$delP) {
             $conexion->rollback();
             return ['ok' => false, 'msg' => 'No se pudo preparar delete producto'];
         }
@@ -286,24 +336,24 @@ function eliminarProductoConLotesSeguro(mysqli $conexion, int $producto_id): arr
 
         $conexion->commit();
 
-        // ✅ Si se eliminó real, borramos la imagen física SOLO si está en uploads/productos/
+        // Borrar imagen física si está en uploads/productos/
         if ($imgRel !== '') {
             $imgRelClean = ltrim($imgRel, '/');
-
             if (strpos($imgRelClean, 'uploads/productos/') === 0) {
-                $rutaFs = __DIR__ . "/../" . $imgRelClean; // modelos -> ../uploads/...
+                $rutaFs = __DIR__ . "/../" . $imgRelClean;
                 if (is_file($rutaFs)) {
                     @unlink($rutaFs);
                 }
             }
         }
 
-        return ['ok' => true, 'msg' => 'Producto eliminado (y lotes también)'];
+        return ['ok' => true, 'msg' => 'Producto eliminado correctamente (y sus lotes también).'];
 
     } catch (Throwable $e) {
         $conexion->rollback();
 
-        // 3) Fallback: desactivar producto + lotes para NO romper ventas/FKs
+        // Fallback de último recurso: si por alguna FK inesperada falló,
+        // solo desactivar el producto, NUNCA los lotes
         $up = $conexion->prepare("UPDATE productos SET activo=0 WHERE id=? LIMIT 1");
         if ($up) {
             $up->bind_param("i", $producto_id);
@@ -311,29 +361,19 @@ function eliminarProductoConLotesSeguro(mysqli $conexion, int $producto_id): arr
             $up->close();
         }
 
-        // ✅ Tu tabla lotes tiene activo -> lo apagamos
-        $upL = $conexion->prepare("UPDATE lotes SET activo=0 WHERE producto_id=?");
-        if ($upL) {
-            $upL->bind_param("i", $producto_id);
-            $upL->execute();
-            $upL->close();
-        }
-
-        // ✅ Si existe producto_presentaciones y tiene activa, apagamos (si no existe, ignoramos)
-        try {
-            $upPres = $conexion->prepare("UPDATE producto_presentaciones SET activa=0 WHERE producto_id=?");
-            if ($upPres) {
-                $upPres->bind_param("i", $producto_id);
-                $upPres->execute();
-                $upPres->close();
-            }
-        } catch (Throwable $x) {}
-
-        return ['ok' => true, 'msg' => 'No se pudo borrar por relaciones (ventas). Producto y lotes desactivados.'];
+        return [
+            'ok'  => true,
+            'msg' => 'No se pudo eliminar por restricciones de la base de datos. Producto desactivado. Los lotes conservan su stock.'
+        ];
     }
 }
 
-function obtenerProductosConStock($conexion, $soloActivos = false) {
+function obtenerProductosConStock($conexion, $soloActivos = true) {
+    // ✅ FIX: default cambiado a true.
+    // Antes era false, entonces listar.php (que llama sin parámetro) mostraba
+    // también productos con activo=0 — incluyendo el producto 499 que quedó
+    // desactivado por el fallback de eliminar. Ahora el default es true y
+    // listar.php solo ve productos activos, igual que caja.
     $where = $soloActivos ? "WHERE p.activo=1" : "";
 
     $sql = "
