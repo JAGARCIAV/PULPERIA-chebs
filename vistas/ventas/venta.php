@@ -258,6 +258,41 @@ if ($turnoAbierto) {
     font-weight: 900;
     color: #dc2626;
   }
+
+  /* ✅ PRECIO EN TARJETA DEL AUTOCOMPLETE */
+  .chebs-auto-price {
+    margin-top: 7px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    background: #000;
+    border-radius: 8px;
+    padding: 4px 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+    line-height: 1;
+    color: #fff;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+  }
+  .chebs-auto-price .ap-bs {
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .chebs-auto-price .ap-num {
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  /* ✅ ANIMACIÓN DE ENTRADA PARA EL PRECIO */
+  #precio_box[style*="block"] {
+    animation: precioEntrada .18s cubic-bezier(.22,1.5,.36,1) both;
+  }
+  @keyframes precioEntrada {
+    from { opacity:0; transform: scale(.85) translateY(4px); }
+    to   { opacity:1; transform: scale(1)  translateY(0); }
+  }
 </style>
 
 <!-- ✅ WRAPPER FULL ANCHO -->
@@ -334,10 +369,12 @@ if ($turnoAbierto) {
           }
 
           $productosArr[] = [
-            'id'      => (int)$p['id'],
-            'nombre'  => (string)$p['nombre'],
-            'imagen'  => $img,
-            'img_url' => $img_url,
+            'id'           => (int)$p['id'],
+            'nombre'       => (string)$p['nombre'],
+            'imagen'       => $img,
+            'img_url'      => $img_url,
+            'precio_unidad'=> (float)($p['precio_unidad'] ?? 0),
+            'precio_paquete'=> (float)($p['precio_paquete'] ?? 0),
           ];
         }
       }
@@ -423,6 +460,18 @@ if ($turnoAbierto) {
   <!-- FILA 2 -->
   <div class="md:col-span-12">
     <div id="stock_info" class="mt-2 text-xs text-gray-600 min-h-[18px]"></div>
+
+    <!-- ✅ CAJA NEGRA DE PRECIO — aparece al seleccionar producto -->
+    <div id="precio_box" style="display:none; margin-top:12px;">
+      <div style="display:inline-flex; flex-direction:column; align-items:flex-start;">
+        <span style="font-size:10px; font-weight:900; color:#9ca3af; letter-spacing:.1em; text-transform:uppercase; line-height:1; margin-bottom:4px;">Precio</span>
+        <div style="background:#000; border-radius:16px; padding:10px 22px; display:inline-flex; align-items:baseline; gap:6px; box-shadow:0 4px 18px rgba(0,0,0,0.45);">
+          <span style="color:#fff; font-weight:900; font-size:1rem; line-height:1;">Bs</span>
+          <span id="precio_valor" style="color:#fff; font-weight:900; font-size:2.6rem; line-height:1; font-variant-numeric:tabular-nums;">0.00</span>
+          <span id="precio_tipo" style="color:#9ca3af; font-weight:700; font-size:.75rem; line-height:1; margin-left:2px;">(unidad)</span>
+        </div>
+      </div>
+    </div>
 
     <div id="presentacion_box" class="hidden mt-3">
   <label for="presentacion_select" class="block text-xs font-black text-pink-600 mb-2 leading-none">
@@ -1116,7 +1165,9 @@ const autoEmpty= document.getElementById('auto_empty');
 const dataOptions = (window.__CHEBS_PRODUCTOS__ || []).map(p => ({
   label: p.nombre,
   id: p.id,
-  imagen: p.img_url || ''
+  imagen: p.img_url || '',
+  precio_unidad: parseFloat(p.precio_unidad || 0),
+  precio_paquete: parseFloat(p.precio_paquete || 0)
 }));
 
 let autoIndex = -1;
@@ -1154,10 +1205,15 @@ function renderAuto(){
       ? `<img src="${img}" alt="" loading="lazy">`
       : `<div style="font-size:40px;opacity:.6">🧃</div>`;
 
+    const precioCard = it.precio_unidad > 0
+      ? `<div class="chebs-auto-price"><span class="ap-bs">Bs</span><span class="ap-num">${Number(it.precio_unidad).toFixed(2)}</span></div>`
+      : '';
+
     card.innerHTML = `
       <div class="chebs-auto-imgbox">${imgHtml}</div>
       <div class="chebs-auto-info">
         <div class="chebs-auto-title">${tituloHtml}</div>
+        ${precioCard}
       </div>
     `;
 
@@ -1201,6 +1257,21 @@ async function seleccionarItem(idx){
   inputProducto.value = it.label;
   hiddenId.value = it.id;
   cerrarAuto();
+
+  // ✅ Mostrar caja negra de precio inmediatamente con el dato local
+  const precioBox  = document.getElementById('precio_box');
+  const precioVal  = document.getElementById('precio_valor');
+  const precioTipo = document.getElementById('precio_tipo');
+  if (precioBox && precioVal) {
+    const pu = parseFloat(it.precio_unidad || 0);
+    if (pu > 0) {
+      precioVal.textContent = pu.toFixed(2);
+      if (precioTipo) precioTipo.textContent = '(unidad)';
+      precioBox.style.display = 'block';
+    } else {
+      precioBox.style.display = 'none';
+    }
+  }
 
   try{
     const s = await fetch(`${"/PULPERIA-CHEBS"}/controladores/stock_fetch.php`, {
@@ -1248,6 +1319,11 @@ function filtrar(q){
 inputProducto.addEventListener('input', () => {
   hiddenId.value = '';
   stockInfo.textContent = '';
+
+  // ✅ Ocultar precio cuando el usuario modifica el buscador
+  const pb = document.getElementById('precio_box');
+  if (pb) pb.style.display = 'none';
+
   filtrar(inputProducto.value);
 
   if (inputProducto.value.trim().length > 0) {
