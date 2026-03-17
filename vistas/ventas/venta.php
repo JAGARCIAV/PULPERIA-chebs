@@ -18,9 +18,8 @@ $userId = (int)($_SESSION['user']['id'] ?? 0);
 // ✅ Turno abierto primero
 $turnoAbierto = obtenerTurnoAbiertoHoy($conexion);
 
-// ✅ Datos base
+// ✅ Datos base (Carga masiva eliminada)
 autoDesactivarLotesSinStock($conexion);
-$productos = obtenerProductosVendibles($conexion);
 
 $totalHoy  = obtenerTotalVentasHoy($conexion);
 
@@ -344,41 +343,7 @@ if ($turnoAbierto) {
 </label>
 
 
-    <?php
-      // ✅ IMPORTANTE: convertimos el resultset a array UNA SOLA VEZ
-      // para que NO se “consuma” y el autocomplete siempre tenga datos.
-      $productosArr = [];
-
-      // ✅ base URL del proyecto (para que las imágenes siempre apunten bien)
-      $base = '/PULPERIA-CHEBS/';
-
-      if ($productos) {
-        $productos->data_seek(0);
-        while($p = $productos->fetch_assoc()){
-
-          $img = (string)($p['imagen'] ?? '');
-          $img = trim($img);
-
-          $img_url = '';
-          if ($img !== '') {
-            if ($img[0] === '/') {
-              $img_url = $img;
-            } else {
-              $img_url = $base . ltrim($img, './');
-            }
-          }
-
-          $productosArr[] = [
-            'id'           => (int)$p['id'],
-            'nombre'       => (string)$p['nombre'],
-            'imagen'       => $img,
-            'img_url'      => $img_url,
-            'precio_unidad'=> (float)($p['precio_unidad'] ?? 0),
-            'precio_paquete'=> (float)($p['precio_paquete'] ?? 0),
-          ];
-        }
-      }
-    ?>
+    <!-- Autocomplete AJAX -->
 
     <!-- ✅ Wrapper relative SOLO para input + dropdown -->
     <div class="relative z-50">
@@ -389,16 +354,7 @@ if ($turnoAbierto) {
             class="w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 text-gray-800 placeholder-pink-400
                   outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 text-[16px] font-semibold">
 
-      <!-- Fuente de datos (se deja, pero el JS ya NO depende de esto) -->
-      <div class="hidden">
-        <datalist id="lista_productos">
-          <?php foreach($productosArr as $p) { ?>
-            <option value="<?= htmlspecialchars($p['nombre']) ?>" data-id="<?= (int)$p['id'] ?>"></option>
-          <?php } ?>
-        </datalist>
-      </div>
-
-      <!-- ✅ Autocomplete (NO se pierde) -->
+      <!-- ✅ Autocomplete AJAX -->
       <div id="auto_box"
           class="hidden absolute left-0 right-0 top-full mt-2 z-[999]
                 rounded-2xl bg-white overflow-hidden border-2 border-pink-400
@@ -418,10 +374,7 @@ if ($turnoAbierto) {
 
     <input type="hidden" id="producto_id">
 
-    <!-- ✅ PASAMOS LISTA A JS (esto evita que desaparezcan los elementos) -->
-    <script>
-      window.__CHEBS_PRODUCTOS__ = <?= json_encode($productosArr, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
-    </script>
+<!-- Fin bloque buscador -->
   </div>
 
   <!-- Cantidad -->
@@ -1162,14 +1115,7 @@ const autoBox  = document.getElementById('auto_box');
 const autoList = document.getElementById('auto_list');
 const autoEmpty= document.getElementById('auto_empty');
 
-const dataOptions = (window.__CHEBS_PRODUCTOS__ || []).map(p => ({
-  label: p.nombre,
-  id: p.id,
-  imagen: p.img_url || '',
-  precio_unidad: parseFloat(p.precio_unidad || 0),
-  precio_paquete: parseFloat(p.precio_paquete || 0)
-}));
-
+// Variables de estado del autocomplete AJAX
 let autoIndex = -1;
 let autoItems = [];
 
@@ -1256,6 +1202,7 @@ async function seleccionarItem(idx){
 
   inputProducto.value = it.label;
   hiddenId.value = it.id;
+  hiddenId.dataset.img = it.imagen; // ✅ Persistencia para el carrito
   cerrarAuto();
 
   // ✅ Mostrar caja negra de precio inmediatamente con el dato local
@@ -1305,17 +1252,9 @@ async function seleccionarItem(idx){
   }
 }
 
-function filtrar(q){
-  const t = q.trim().toLowerCase();
-  if(t.length === 0){ autoItems = []; return; }
+// Filtrado vía AJAX habilitado
 
-  autoItems = dataOptions
-    .filter(x => x.label.toLowerCase().includes(t))
-    .slice(0, 14);
-
-  autoIndex = autoItems.length ? 0 : -1;
-}
-
+let searchTimer;
 inputProducto.addEventListener('input', () => {
   hiddenId.value = '';
   stockInfo.textContent = '';
@@ -1324,25 +1263,20 @@ inputProducto.addEventListener('input', () => {
   const pb = document.getElementById('precio_box');
   if (pb) pb.style.display = 'none';
 
-  filtrar(inputProducto.value);
+  clearTimeout(searchTimer);
+  const q = inputProducto.value.trim();
+  if (q.length < 2) { cerrarAuto(); return; }
 
-  if (inputProducto.value.trim().length > 0) {
+  searchTimer = setTimeout(async () => {
+    const res = await fetch(`../../controladores/producto_buscador_ajax.php?q=${encodeURIComponent(q)}`);
+    autoItems = await res.json();
+    autoIndex = autoItems.length ? 0 : -1;
     abrirAuto();
     renderAuto();
-    ajustarAltoAuto();
-  } else {
-    cerrarAuto();
-  }
+  }, 200);
 });
 
-inputProducto.addEventListener('focus', () => {
-  filtrar(inputProducto.value);
-  if (inputProducto.value.trim().length > 0 && autoItems.length > 0) {
-    abrirAuto();
-    renderAuto();
-    ajustarAltoAuto();
-  }
-});
+// Autocomplete AJAX gestionado por el listener de input
 
 window.addEventListener('resize', ajustarAltoAutoDebounced);
 

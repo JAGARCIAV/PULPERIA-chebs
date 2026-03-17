@@ -90,68 +90,51 @@ function actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paq
     return $ok;
 }
 
-/* =========================
-   ✅ CAMBIO: SOLO VENDIBLES (con stock real por lotes)
-   + ✅ Reparación: reactivar lotes con stock>0 que quedaron inactivos (no vencidos)
-   ========================= */
-function obtenerProductosVendibles($conexion) {
+/* =========================================================
+   REGLA ÚNICA DE PRODUCTO VENDIBLE (PURA LECTURA)
+   - Producto activo
+   - Lote activo y con unidades
+   - Fecha de vencimiento válida (>= hoy)
+   ========================================================= */
+function obtenerProductosVendibles($conexion, $termino = '', $limite = null) {
+    $params = [];
+    $types = "";
+    $where = " WHERE p.activo = 1 AND l.activo = 1 AND l.cantidad_unidades > 0 AND l.fecha_vencimiento >= CURDATE() ";
 
-    // ✅ FIX CRÍTICO: antes solo buscaba productos con activo=1.
-    // BUG: si el fallback de "eliminar" desactivaba el producto (activo=0)
-    // pero el usuario después agregaba un lote nuevo, el producto quedaba
-    // invisible en caja para siempre aunque tuviera stock real.
-    //
-    // SOLUCIÓN en 3 pasos:
-    // 1) Reactivar lotes apagados que tienen stock vigente
-    // 2) Reactivar productos apagados que tienen lotes activos con stock
-    // 3) Filtrar y devolver solo los que tienen stock real
-
-    // PASO 1: reactivar lotes apagados con stock vigente (una sola query global)
-    $conexion->query("
-        UPDATE lotes
-        SET activo = 1
-        WHERE activo = 0
-          AND cantidad_unidades > 0
-          AND fecha_vencimiento >= CURDATE()
-    ");
-
-    // PASO 2: reactivar productos con activo=0 que tienen lotes activos con stock
-    $conexion->query("
-        UPDATE productos p
-        SET p.activo = 1
-        WHERE p.activo = 0
-          AND EXISTS (
-              SELECT 1 FROM lotes l
-              WHERE l.producto_id = p.id
-                AND l.activo = 1
-                AND l.cantidad_unidades > 0
-                AND l.fecha_vencimiento >= CURDATE()
-          )
-    ");
-
-    // PASO 3: buscar productos activos y filtrar por stock real
-    $res = $conexion->query("SELECT id FROM productos WHERE activo=1 ORDER BY nombre ASC");
-    if (!$res) return $conexion->query("SELECT * FROM productos WHERE 1=0");
-
-    $ids = [];
-
-    while ($r = $res->fetch_assoc()) {
-        $pid = (int)$r["id"];
-
-        if (function_exists('obtenerStockDisponible')) {
-            $stock = (int) obtenerStockDisponible($conexion, $pid);
-            if ($stock > 0) $ids[] = $pid;
-        } else {
-            $ids[] = $pid;
-        }
+    if ($termino !== '') {
+        $where .= " AND p.nombre LIKE ? ";
+        $params[] = "%$termino%";
+        $types .= "s";
     }
 
-    if (count($ids) === 0) {
-        return $conexion->query("SELECT * FROM productos WHERE 1=0");
+    $limitSql = "";
+    if ($limite !== null) {
+        $limitSql = " LIMIT ? ";
+        $params[] = (int)$limite;
+        $types .= "i";
     }
 
-    $in = implode(',', array_map('intval', $ids));
-    return $conexion->query("SELECT * FROM productos WHERE id IN ($in) ORDER BY nombre ASC");
+    $sql = "
+        SELECT 
+            p.id, p.nombre, p.imagen, p.precio_unidad,
+            SUM(l.cantidad_unidades) AS stock_total
+        FROM productos p
+        INNER JOIN lotes l ON l.producto_id = p.id
+        $where
+        GROUP BY p.id
+        HAVING stock_total > 0
+        ORDER BY p.nombre ASC
+        $limitSql
+    ";
+
+    $stmt = $conexion->prepare($sql);
+    if ($params) {
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        return $stmt->get_result();
+    }
+    
+    return $conexion->query($sql);
 }
 
 /* =========================
