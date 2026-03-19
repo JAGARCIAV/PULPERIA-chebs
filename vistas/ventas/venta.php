@@ -723,6 +723,7 @@ if ($turnoAbierto) {
       </div>
 
       <form action="../../controladores/turno_abrir.php" method="POST" onsubmit="return validarAbrirTurno();">
+        <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
         <div class="px-6 py-5 space-y-2">
           <div class="text-xs text-gray-500">(Cuenta el dinero físico antes de empezar)</div>
 
@@ -763,6 +764,7 @@ if ($turnoAbierto) {
       </div>
 
       <form action="../../controladores/turno_cerrar.php" method="POST" onsubmit="return abrirConfirmacion('confirmCerrarTurno');">
+        <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
         <div class="px-6 py-5 space-y-3">
           <input type="hidden" name="turno_id" value="<?= $turnoAbierto ? (int)$turnoAbierto["id"] : 0 ?>">
 

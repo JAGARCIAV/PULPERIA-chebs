@@ -7,6 +7,12 @@ require_once __DIR__ . "/../modelos/turno_modelo.php";
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
+// ✅ Validación CSRF Amigable (Ruta Relativa)
+if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+    header("Location: ../vistas/ventas/venta.php?turno_err=" . urlencode("Sesión de seguridad inválida. Intente de nuevo."));
+    exit;
+}
+
 $efectivoInicial = (float)($_POST['monto_inicial'] ?? 0);
 if ($efectivoInicial < 0) $efectivoInicial = 0;
 

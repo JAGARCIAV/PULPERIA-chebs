@@ -48,6 +48,7 @@ $esCaja = $actCaja;
   <meta charset="utf-8">
   <title>Pulpería Chebs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="<?= get_csrf_token() ?>">
 
   <link rel="icon" type="image/png" href="/PULPERIA-CHEBS/public/img/logo.png">
 

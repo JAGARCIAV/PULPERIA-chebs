@@ -3,6 +3,20 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// --- Lógica de Timeout (Fase 2C.1) ---
+$timeout_segundos = 1800; // 30 minutos
+
+if (isset($_SESSION['user'])) {
+    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $timeout_segundos)) {
+        // Sesión expirada
+        session_unset();
+        session_destroy();
+        header("Location: /PULPERIA-CHEBS/vistas/login.php?err=sesion_expirada");
+        exit;
+    }
+    $_SESSION['last_activity'] = time(); // Actualiza la marca de tiempo
+}
+
 function require_login() {
     if (empty($_SESSION['user'])) {
         header("Location: /PULPERIA-CHEBS/vistas/login.php");
@@ -19,4 +33,16 @@ function require_role(array $roles = []) {
         echo "403 - No autorizado";
         exit;
     }
+}
+
+function get_csrf_token() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function validate_csrf_token($token) {
+    if (empty($_SESSION['csrf_token']) || empty($token)) return false;
+    return hash_equals($_SESSION['csrf_token'], $token);
 }

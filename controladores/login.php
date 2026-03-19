@@ -30,11 +30,13 @@ if (!$u || (int)$u['activo'] !== 1 || !password_verify($password, $u['password_h
 session_regenerate_id(true);
 
 $_SESSION['user'] = [
-    'id'      => (int)$u['id'],
+    'id'      => $u['id'],
     'nombre'  => $u['nombre'],
     'usuario' => $u['usuario'],
     'rol'     => $u['rol'],
 ];
+
+$_SESSION['last_activity'] = time(); // Inicializar marca de tiempo (Fase 2C.1)
 
 if ($u['rol'] === 'admin') {
     header("Location: /PULPERIA-CHEBS/index.php");

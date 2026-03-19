@@ -1,0 +1,14 @@
+[FASE 2C.0 / PHP-B] - 17/03/2026
+- DB: Agregadas columnas referencia_id y referencia_tipo a movimientos_inventario.
+- DB: Creado índice idx_mov_referencia para auditoría rápida.
+- PHP: Actualizada registrarMovimiento() para soportar metadatos opcionales.
+- PHP: Actualizada descontarStockFIFO() para vincular ventas con movimientos.
+- PHP: Implementado 'Pre-flight Check' de base de datos en config/conexion.php.
+- UI: Creada vista vistas/layout/error_db.php para notificar actualizaciones pendientes.
+- TEST: Realizar una venta y verificar tabla movimientos_inventario.
+
+[FASE 2C.1 / MIGRATIONS] - 17/03/2026
+- DB: Definido estándar oficial de Migrations para control de versiones de base de datos.
+- DB: Creada estructura DB/migrations/ con scripts upgrade_v2, rollback_v2 y check_version.
+- DB: Implementada lógica de idempotencia universal (sin dependencia de ADD COLUMN IF NOT EXISTS).
+- DB: Implementado sistema schema_version para trazabilidad de parches aplicados.

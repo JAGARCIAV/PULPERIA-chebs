@@ -1,7 +1,7 @@
 <?php
 // ✅ FIX: Agregado auth — antes no tenía protección de sesión
 require_once __DIR__ . "/../config/auth.php";
-require_role(['admin','empleado']);
+require_role(['admin']);
 
 require_once "../config/conexion.php";
 require_once "../modelos/turno_modelo.php";

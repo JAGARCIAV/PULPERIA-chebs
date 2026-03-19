@@ -8,6 +8,15 @@ require_once __DIR__ . "/../modelos/lote_modelo.php";
 require_once __DIR__ . "/../modelos/venta_modelo.php";
 
 header("Content-Type: application/json; charset=utf-8");
+
+// ✅ Validación CSRF
+$token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+if (!validate_csrf_token($token)) {
+    http_response_code(403);
+    echo json_encode(["ok" => false, "msg" => "Error de seguridad (CSRF). Recargue la página."]);
+    exit;
+}
+
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $raw  = file_get_contents("php://input");
@@ -20,6 +29,11 @@ if (!$data || !isset($data["carrito"]) || !is_array($data["carrito"]) || count($
 
 $carrito = $data["carrito"];
 
+// 1. Ordenar carrito por ID de producto (Mitigación de Deadlocks)
+usort($carrito, function($a, $b) {
+    return (int)($a["producto_id"] ?? 0) - (int)($b["producto_id"] ?? 0);
+});
+
 // Limpieza global ANTES de vender
 autoDesactivarLotesSinStock($conexion);
 
@@ -29,33 +43,6 @@ try {
   $venta_id = crearVenta($conexion);
   if (!$venta_id) {
     throw new Exception("No hay turno abierto. Abra turno antes de vender.");
-  }
-
-  // ✅ Pre-validación acumulada por producto
-  $reqPorProducto = [];
-  foreach ($carrito as $item) {
-    $pid = (int)($item["producto_id"] ?? 0);
-    if ($pid <= 0) throw new Exception("Datos inválidos en carrito (producto_id)");
-
-    $unidadesReales = (int)($item["unidades_reales"] ?? 0);
-    if ($unidadesReales <= 0) {
-      $cant = (int)($item["cantidad"] ?? 0);
-      if ($cant <= 0) throw new Exception("Cantidad inválida en carrito");
-      $unidadesReales = $cant;
-    }
-
-    if (!isset($reqPorProducto[$pid])) $reqPorProducto[$pid] = 0;
-    $reqPorProducto[$pid] += $unidadesReales;
-  }
-
-  foreach ($reqPorProducto as $pid => $req) {
-    $p = obtenerProductoPorId($conexion, (int)$pid);
-    if (!$p) throw new Exception("Producto no existe (ID: $pid)");
-
-    $stock = obtenerStockDisponible($conexion, (int)$pid);
-    if ((int)$stock < (int)$req) {
-      throw new Exception("Stock insuficiente para {$p['nombre']} (disp: $stock, req: $req)");
-    }
   }
 
   // Procesar items
@@ -112,15 +99,13 @@ try {
       $presentacion_id = null;
     }
 
-    // Check extra
-    $stockNow = obtenerStockDisponible($conexion, $producto_id);
-    if ((int)$stockNow < (int)$unidades_reales) {
-      throw new Exception("Stock insuficiente para {$p['nombre']} (disp: $stockNow, req: $unidades_reales)");
-    }
-
-    // ✅ Descontar FIFO (ya viene bloqueado por FOR UPDATE en el modelo)
+    // ✅ DESCONTAR FIFO (Bloqueo y validación atómica dentro de la transacción)
     $ok = descontarStockFIFO($conexion, $producto_id, $unidades_reales, $venta_id);
-    if (!$ok) throw new Exception("No se pudo descontar stock FIFO");
+    if (!$ok) {
+        // Obtenemos el stock real para un mensaje de error preciso
+        $stockDisp = obtenerStockDisponible($conexion, $producto_id);
+        throw new Exception("Stock insuficiente para {$p['nombre']} (disponible: $stockDisp, requerido: $unidades_reales)");
+    }
 
     $subtotal = round($precio * $cantidad, 2);
 

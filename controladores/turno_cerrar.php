@@ -7,6 +7,12 @@ require_once __DIR__ . "/../modelos/turno_modelo.php";
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
+// ✅ Validación CSRF Amigable (Ruta Relativa)
+if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+    header("Location: ../vistas/ventas/venta.php?turno_err=" . urlencode("Sesión de seguridad inválida. Intente de nuevo."));
+    exit;
+}
+
 // ✅ FIX: leer turno de BD, no del POST (evita que alguien cierre turno ajeno)
 $turnoObj = obtenerTurnoAbiertoHoy($conexion);
 $turnoId  = $turnoObj ? (int)$turnoObj['id'] : 0;

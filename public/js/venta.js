@@ -70,11 +70,15 @@
   }
 
   async function fetchJSON(url, payload) {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
     let res;
     try {
       res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": token
+        },
         body: JSON.stringify(payload)
       });
     } catch (err) {
