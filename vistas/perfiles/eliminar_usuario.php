@@ -9,6 +9,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   exit;
 }
 
+// ✅ CSRF
+if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+  http_response_code(403);
+  header("Location: /PULPERIA-CHEBS/vistas/perfiles/perfiles_usuarios.php?err=" . urlencode("Error de seguridad. Recarga la página."));
+  exit;
+}
+
 $id = (int)($_POST['id'] ?? 0);
 if ($id <= 0) {
   header("Location: /PULPERIA-CHEBS/vistas/perfiles/perfiles_usuarios.php?err=idelim");

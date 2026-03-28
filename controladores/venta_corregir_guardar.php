@@ -10,6 +10,16 @@ require_once __DIR__ . "/../modelos/producto_modelo.php";
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
+// ✅ CSRF
+if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+    http_response_code(403);
+    header("Location: /PULPERIA-CHEBS/vistas/ventas/historial.php?err=" . urlencode("Error de seguridad. Recarga la página."));
+    exit;
+}
+
+$userId = (int)($_SESSION['user']['id'] ?? 0);
+$rol    = (string)($_SESSION['user']['rol'] ?? '');
+
 $venta_id = isset($_POST["venta_id"]) ? (int)$_POST["venta_id"] : 0;
 if ($venta_id <= 0) {
   header("Location: /PULPERIA-CHEBS/vistas/ventas/historial.php?err=" . urlencode("ID inválido"));
@@ -25,6 +35,13 @@ if (!$venta) {
 if ((int)($venta["anulada"] ?? 0) === 1) {
   header("Location: /PULPERIA-CHEBS/vistas/ventas/corregir_venta.php?id=$venta_id&err=" . urlencode("La venta está anulada."));
   exit;
+}
+
+// ✅ Control de permisos (turno, propiedad, ventana de tiempo)
+$permiso = validarPermisoEdicionVenta($conexion, $venta, $userId, $rol);
+if (!$permiso['ok']) {
+    header("Location: /PULPERIA-CHEBS/vistas/ventas/corregir_venta.php?id=$venta_id&err=" . urlencode($permiso['msg']));
+    exit;
 }
 
 $detalle_ids = $_POST["detalle_id"] ?? [];
@@ -169,7 +186,10 @@ try {
 
   $conexion->commit();
 
-  header("Location: /PULPERIA-CHEBS/vistas/ventas/corregir_venta.php?id=$venta_id&ok=1");
+  // ✅ Auditoría fuera de la transacción (no bloquea si falla)
+  registrarAuditoriaCorreccion($conexion, $venta_id, $userId);
+
+  header("Location: /PULPERIA-CHEBS/vistas/ventas/venta.php?corregir_ok=1");
   exit;
 
 } catch (Throwable $e) {

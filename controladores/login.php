@@ -1,7 +1,21 @@
 <?php
+// ✅ Endurecer cookie de sesión (antes de session_start en conexion.php y de session_regenerate_id)
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Strict');
+
 require_once __DIR__ . "/../config/conexion.php";
 
 if (session_status() === PHP_SESSION_NONE) session_start();
+
+// ✅ Rate limiting: bloqueo por sesión tras 5 intentos fallidos
+const LOGIN_MAX_INTENTOS = 5;
+const LOGIN_BLOQUEO_SEG  = 300; // 5 minutos
+
+if (!empty($_SESSION['login_bloqueado_hasta']) && time() < (int)$_SESSION['login_bloqueado_hasta']) {
+    $restantes = (int)$_SESSION['login_bloqueado_hasta'] - time();
+    header("Location: /PULPERIA-CHEBS/vistas/login.php?err=bloqueado&seg=" . $restantes);
+    exit;
+}
 
 $usuario  = trim($_POST['usuario'] ?? '');
 $password = $_POST['password'] ?? '';
@@ -23,10 +37,20 @@ $res = $stmt->get_result();
 $u = $res->fetch_assoc();
 
 if (!$u || (int)$u['activo'] !== 1 || !password_verify($password, $u['password_hash'])) {
+    $_SESSION['login_intentos'] = (int)($_SESSION['login_intentos'] ?? 0) + 1;
+
+    if ((int)$_SESSION['login_intentos'] >= LOGIN_MAX_INTENTOS) {
+        $_SESSION['login_bloqueado_hasta'] = time() + LOGIN_BLOQUEO_SEG;
+        unset($_SESSION['login_intentos']);
+        header("Location: /PULPERIA-CHEBS/vistas/login.php?err=bloqueado&seg=" . LOGIN_BLOQUEO_SEG);
+        exit;
+    }
+
     header("Location: /PULPERIA-CHEBS/vistas/login.php?err=1");
     exit;
 }
 
+unset($_SESSION['login_intentos'], $_SESSION['login_bloqueado_hasta']);
 session_regenerate_id(true);
 
 $_SESSION['user'] = [

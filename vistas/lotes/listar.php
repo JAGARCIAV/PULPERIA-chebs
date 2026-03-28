@@ -165,7 +165,7 @@ $lotes = obtenerLotes($conexion);
                   <button type="button"
                           class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-red-200 bg-red-50
                                  hover:bg-red-100 font-black text-sm text-red-700 transition"
-                          onclick="confirmarLink('<?= '../../controladores/desactivar_lote.php?id='.(int)$l['id'] ?>','Desactivar lote','¿Desactivar este lote?')">
+                          onclick="confirmarDesactivar(<?= (int)$l['id'] ?>,'Lote #<?= (int)$l['id'] ?>')">
                     ⛔ Desactivar
                   </button>
                 <?php else: ?>
@@ -205,29 +205,34 @@ $lotes = obtenerLotes($conexion);
           Cancelar
         </button>
 
-        <a id="confirm_link"
-           href="#"
-           class="px-5 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition">
+        <button type="button" id="confirm_btn"
+                onclick="document.getElementById('form_desactivar').submit()"
+                class="px-5 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark transition">
           Sí, continuar
-        </a>
+        </button>
       </div>
     </div>
   </div>
 </div>
 
-<script>
-// ✅ Modal Confirmación para links
-function confirmarLink(url, titulo, texto){
-  document.getElementById('confirm_titulo').textContent = titulo || 'Confirmar';
-  document.getElementById('confirm_texto').textContent = texto || '¿Estás seguro?';
-  document.getElementById('confirm_link').setAttribute('href', url);
+<!-- ✅ Form POST para desactivar lote (CSRF protegido) -->
+<form id="form_desactivar" method="POST" action="../../controladores/desactivar_lote.php">
+  <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+  <input type="hidden" name="id" id="desactivar_lote_id" value="">
+</form>
 
+<script>
+// ✅ Confirmar desactivación de lote (POST + CSRF)
+function confirmarDesactivar(loteId, nombreLote) {
+  document.getElementById('confirm_titulo').textContent = 'Desactivar lote';
+  document.getElementById('confirm_texto').textContent = '¿Desactivar ' + (nombreLote || 'este lote') + '? Esta acción se puede reactivar desde el modelo.';
+  document.getElementById('desactivar_lote_id').value = loteId;
   document.getElementById('modalConfirmacion').classList.remove('hidden');
 }
 
 function cerrarConfirm(){
   document.getElementById('modalConfirmacion').classList.add('hidden');
-  document.getElementById('confirm_link').setAttribute('href', '#');
+  document.getElementById('desactivar_lote_id').value = '';
 }
 
 // ESC cierra modal

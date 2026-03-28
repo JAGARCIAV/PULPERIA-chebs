@@ -1,4 +1,13 @@
 <?php
+// ✅ Headers de seguridad HTTP
+header('X-Frame-Options: DENY');
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: same-origin');
+
+// ✅ Endurecer cookie de sesión (debe ir antes de session_start)
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Strict');
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

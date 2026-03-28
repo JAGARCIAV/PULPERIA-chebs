@@ -152,17 +152,17 @@
           </td>
 
           <!-- Cantidad -->
-          <td class="px-4 py-3 text-lg font-black text-chebs-black">
+          <td class="px-4 py-3 text-lg font-semibold text-chebs-black text-center">
             ${item.cantidad}
           </td>
 
           <!-- Precio -->
-          <td class="px-4 py-3 text-lg font-bold text-chebs-black">
+          <td class="px-4 py-3 text-lg font-bold text-chebs-black text-right tabular-nums">
             ${Number(item.precio).toFixed(2)}
           </td>
 
           <!-- Subtotal -->
-          <td class="px-4 py-3 text-xl font-black text-chebs-green">
+          <td class="px-4 py-3 text-xl font-black text-green-600 text-right tabular-nums">
             ${Number(subtotal).toFixed(2)}
           </td>
 

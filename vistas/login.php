@@ -1,4 +1,13 @@
 <?php
+// ✅ Headers de seguridad HTTP
+header('X-Frame-Options: DENY');
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: same-origin');
+
+// ✅ Endurecer cookie de sesión (debe ir antes de session_start)
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Strict');
+
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 if (!empty($_SESSION['user'])) {
@@ -6,7 +15,8 @@ if (!empty($_SESSION['user'])) {
     exit;
 }
 
-$error = $_GET['err'] ?? null;
+$error    = $_GET['err'] ?? null;
+$seg_bloqueo = ($error === 'bloqueado') ? max(0, (int)($_GET['seg'] ?? 300)) : 0;
 ?>
 <!doctype html>
 <html lang="es">
@@ -76,7 +86,15 @@ $error = $_GET['err'] ?? null;
 
       <!-- Body -->
       <div class="p-5">
-        <?php if ($error): ?>
+        <?php if ($error === 'bloqueado'): ?>
+          <div class="mb-4 p-3 rounded-xl bg-orange-50 border border-orange-300 text-orange-800 text-sm font-semibold">
+            🔒 Demasiados intentos fallidos. Espera
+            <?= $seg_bloqueo >= 60
+                ? ceil($seg_bloqueo / 60) . ' minuto(s)'
+                : $seg_bloqueo . ' segundo(s)' ?>
+            antes de intentar de nuevo.
+          </div>
+        <?php elseif ($error): ?>
           <div class="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
             ❌ Usuario o contraseña incorrectos
           </div>

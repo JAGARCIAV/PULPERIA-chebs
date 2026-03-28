@@ -74,6 +74,11 @@ if ($turnoAbierto) {
   .chebs-table thead th{ position: sticky; top: 0; z-index: 2; }
   .tabular-nums{ font-variant-numeric: tabular-nums; }
 
+  /* Ocultar spinner nativo en inputs de cantidad con botones +/- */
+  .qty-stepper-input::-webkit-outer-spin-button,
+  .qty-stepper-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .qty-stepper-input { -moz-appearance: textfield; }
+
   /* Modales */
   .chebs-hidden { display:none; }
 
@@ -384,9 +389,22 @@ if ($turnoAbierto) {
 </label>
 
 
-    <input type="number" id="cantidad" min="1" value="1"
-          class="w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 text-gray-800
-                 outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 text-[16px] font-semibold">
+    <div class="flex items-center w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300
+                focus-within:ring-4 focus-within:ring-pink-200 focus-within:border-pink-500 overflow-hidden">
+      <button type="button"
+              onclick="const el=document.getElementById('cantidad'); el.value=Math.max(1,parseInt(el.value||1,10)-1);"
+              class="w-10 shrink-0 h-full flex items-center justify-center
+                     text-pink-500 font-black text-2xl leading-none
+                     hover:bg-pink-100 active:bg-pink-200 transition-colors select-none">−</button>
+      <input type="number" id="cantidad" min="1" value="1"
+             class="qty-stepper-input flex-1 min-w-0 h-full bg-transparent text-center text-gray-800
+                    text-[16px] font-semibold outline-none">
+      <button type="button"
+              onclick="const el=document.getElementById('cantidad'); el.value=parseInt(el.value||0,10)+1;"
+              class="w-10 shrink-0 h-full flex items-center justify-center
+                     text-pink-500 font-black text-2xl leading-none
+                     hover:bg-pink-100 active:bg-pink-200 transition-colors select-none">+</button>
+    </div>
   </div>
 
   <!-- Botón agregar -->
@@ -479,7 +497,7 @@ if ($turnoAbierto) {
                 <thead class="bg-chebs-soft/60 text-chebs-black">
                   <tr>
                     <th class="text-left font-black px-4 py-3">Producto</th>
-                    <th class="text-right font-black px-4 py-3">Cant.</th>
+                    <th class="text-center font-black px-4 py-3">Cant.</th>
                     <th class="text-right font-black px-4 py-3">Precio</th>
                     <th class="text-right font-black px-4 py-3">Subtotal</th>
                     <th class="text-center font-black px-2 py-3">
@@ -578,6 +596,11 @@ if ($turnoAbierto) {
             <?php if (isset($_GET["ret_ok"])) { ?>
               <div class="text-sm font-semibold text-chebs-green bg-chebs-green/10 border border-chebs-green/20 px-4 py-3 rounded-2xl">
                 ✅ Retiro registrado.
+              </div>
+            <?php } ?>
+            <?php if (isset($_GET["corregir_ok"])) { ?>
+              <div class="text-sm font-semibold text-chebs-green bg-chebs-green/10 border border-chebs-green/20 px-4 py-3 rounded-2xl">
+                ✅ Venta corregida y stock ajustado.
               </div>
             <?php } ?>
             <?php if (isset($_GET["ret_err"])) { ?>

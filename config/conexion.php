@@ -1,4 +1,17 @@
 <?php
+// ✅ Producción: ocultar errores al usuario, registrar internamente
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+ini_set('log_errors', '1');
+error_reporting(E_ALL);
+
+$_chebs_log_dir = __DIR__ . '/../logs';
+if (!is_dir($_chebs_log_dir)) {
+    @mkdir($_chebs_log_dir, 0755, true);
+}
+ini_set('error_log', $_chebs_log_dir . '/php_errors.log');
+unset($_chebs_log_dir);
+
 // ✅ Zona horaria PHP (Bolivia)
 date_default_timezone_set('America/La_Paz');
 

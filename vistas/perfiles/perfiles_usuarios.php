@@ -418,6 +418,7 @@ while($u = $qAll->fetch_assoc()){
             <!-- Eliminar -->
             <form action="/PULPERIA-CHEBS/vistas/perfiles/eliminar_usuario.php" method="POST"
                   onsubmit="return confirm('¿Seguro que deseas eliminar este usuario? (Se desactivará)');">
+              <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
               <input type="hidden" name="id" value="<?= (int)$e['id'] ?>">
               <button type="submit"
                       class="px-4 py-2 rounded-xl bg-red-50 text-red-700 border border-red-200 font-black hover:bg-red-100 transition">

@@ -91,7 +91,7 @@ function obtenerStockDisponible($conexion, $producto_id) {
             WHERE producto_id = ?
               AND activo = 1
               AND cantidad_unidades > 0
-              AND fecha_vencimiento >= CURDATE()";
+              AND (fecha_vencimiento IS NULL OR fecha_vencimiento = '0000-00-00' OR fecha_vencimiento >= CURDATE())";
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("i", $producto_id);
     $stmt->execute();
@@ -148,7 +148,7 @@ function descontarStockFIFO($conexion, $producto_id, $unidades_a_descontar, $ven
             WHERE producto_id = ?
               AND activo = 1
               AND cantidad_unidades > 0
-              AND fecha_vencimiento >= CURDATE()
+              AND (fecha_vencimiento IS NULL OR fecha_vencimiento = '0000-00-00' OR fecha_vencimiento >= CURDATE())
             ORDER BY fecha_vencimiento ASC, fecha_ingreso ASC
             FOR UPDATE";
     $stmt = $conexion->prepare($sql);
@@ -230,14 +230,25 @@ function desactivarLote($conexion, $lote_id) {
 
     $lote = obtenerLotePorId($conexion, $lote_id);
     if ($lote && (int)$lote['cantidad_unidades'] > 0) {
+        $cant_lote  = (int)$lote['cantidad_unidades'];
+        $prod_id    = (int)$lote['producto_id'];
+
         registrarMovimiento(
             $conexion,
-            (int)$lote['producto_id'],
+            $prod_id,
             $lote_id,
             'ajuste',
-            -((int)$lote['cantidad_unidades']),
+            -$cant_lote,
             'Desactivación de lote'
         );
+
+        // ✅ Sincronizar productos.stock_actual (GREATEST evita negativos)
+        $stmtp = $conexion->prepare(
+            "UPDATE productos SET stock_actual = GREATEST(stock_actual - ?, 0) WHERE id = ?"
+        );
+        $stmtp->bind_param("ii", $cant_lote, $prod_id);
+        $stmtp->execute();
+        $stmtp->close();
     }
 
     $sql = "UPDATE lotes 
@@ -291,17 +302,37 @@ function actualizarFechaLote($conexion, $id, $fecha_vencimiento) {
 }
 
 function actualizarCantidadLote($conexion, $id, $nueva_cantidad) {
-    $id = (int)$id;
+    $id             = (int)$id;
     $nueva_cantidad = (int)$nueva_cantidad;
 
-    $sql = "UPDATE lotes 
-            SET cantidad_unidades = ?, 
+    // ✅ Leer estado actual para calcular diferencia
+    $lote_actual = obtenerLotePorId($conexion, $id);
+    $cant_anterior = $lote_actual ? (int)$lote_actual['cantidad_unidades'] : 0;
+    $prod_id       = $lote_actual ? (int)$lote_actual['producto_id']       : 0;
+
+    $sql = "UPDATE lotes
+            SET cantidad_unidades = ?,
                 activo = CASE WHEN ? <= 0 THEN 0 ELSE 1 END
             WHERE id = ?";
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("iii", $nueva_cantidad, $nueva_cantidad, $id);
     $stmt->execute();
     $stmt->close();
+
+    // ✅ Registrar movimiento y sincronizar stock_actual solo si hubo cambio real
+    $diff = $nueva_cantidad - $cant_anterior;
+    if ($diff !== 0 && $prod_id > 0) {
+        $tipo   = $diff > 0 ? 'entrada' : 'ajuste';
+        registrarMovimiento($conexion, $prod_id, $id, $tipo, $diff, 'Corrección de cantidad lote');
+
+        // GREATEST evita negativos si stock_actual ya estaba desincrónizado
+        $stmtp = $conexion->prepare(
+            "UPDATE productos SET stock_actual = GREATEST(stock_actual + ?, 0) WHERE id = ?"
+        );
+        $stmtp->bind_param("ii", $diff, $prod_id);
+        $stmtp->execute();
+        $stmtp->close();
+    }
 
     autoDesactivarLotesSinStock($conexion);
 }
@@ -454,10 +485,11 @@ function devolverStockProductoDesdeVenta($conexion, $venta_id, $producto_id, $un
         $a_devolver = min($salio, $unidades_restantes);
 
         // ✅ PROTECCIÓN: Solo reactivamos (activo=1) si el lote NO ha vencido
+        // Lotes sin fecha (NULL o '0000-00-00') se consideran válidos (sin vencimiento)
         $up = $conexion->prepare("
             UPDATE lotes
             SET cantidad_unidades = cantidad_unidades + ?,
-                activo = IF(fecha_vencimiento >= CURDATE(), 1, 0)
+                activo = IF(fecha_vencimiento IS NULL OR fecha_vencimiento = '0000-00-00' OR fecha_vencimiento >= CURDATE(), 1, 0)
             WHERE id = ?
         ");
         $up->bind_param("ii", $a_devolver, $lote_id);
@@ -534,6 +566,8 @@ function corregirProductoDeLote($conexion, $lote_id, $nuevo_producto_id) {
 
     if ($producto_actual === $nuevo_producto_id) return true;
 
+    $cant = (int)$lote['cantidad_unidades'];
+
     $stmt = $conexion->prepare("UPDATE lotes SET producto_id = ? WHERE id = ? LIMIT 1");
     if (!$stmt) return false;
     $stmt->bind_param("ii", $nuevo_producto_id, $lote_id);
@@ -542,12 +576,32 @@ function corregirProductoDeLote($conexion, $lote_id, $nuevo_producto_id) {
 
     if (!$ok) return false;
 
+    // ✅ Sincronizar stock_actual de ambos productos si el lote tenía unidades
+    if ($cant > 0) {
+        // Producto anterior: restar (GREATEST evita negativos)
+        $stmtA = $conexion->prepare(
+            "UPDATE productos SET stock_actual = GREATEST(stock_actual - ?, 0) WHERE id = ?"
+        );
+        $stmtA->bind_param("ii", $cant, $producto_actual);
+        $stmtA->execute();
+        $stmtA->close();
+
+        // Producto nuevo: sumar
+        $stmtB = $conexion->prepare(
+            "UPDATE productos SET stock_actual = stock_actual + ? WHERE id = ?"
+        );
+        $stmtB->bind_param("ii", $cant, $nuevo_producto_id);
+        $stmtB->execute();
+        $stmtB->close();
+    }
+
+    // ✅ Movimiento con cantidad real (antes era 0)
     registrarMovimiento(
         $conexion,
         $nuevo_producto_id,
         $lote_id,
         'ajuste',
-        0,
+        $cant,
         "Corrección: lote movido de producto $producto_actual a $nuevo_producto_id"
     );
 
