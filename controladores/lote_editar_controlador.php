@@ -10,6 +10,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+    http_response_code(403);
+    header("Location: ../vistas/lotes/listar.php?err=seguridad");
+    exit;
+}
+
 $lote_id = (int)($_POST['lote_id'] ?? 0);
 $fecha_vencimiento = trim((string)($_POST['fecha_vencimiento'] ?? ''));
 $nueva_cantidad = (int)($_POST['cantidad_unidades'] ?? -1);
@@ -62,26 +68,8 @@ try {
             exit;
         }
 
-        // ✅ 1) actualizar lote (tu modelo desactiva si queda 0)
+        // ✅ actualizarCantidadLote registra el movimiento y sincroniza stock_actual internamente
         actualizarCantidadLote($conexion, $lote_id, $nueva_cantidad);
-
-        // ✅ 2) registrar movimiento consistente con tu sistema:
-        // entrada = positivo, salida = negativo
-        $tipo = ($diferencia > 0) ? 'entrada' : 'salida';
-        $cantidad_mov = ($diferencia > 0) ? $diferencia : -abs($diferencia);
-
-        $okMov = registrarMovimiento(
-            $conexion,
-            $producto_id,
-            $lote_id,
-            $tipo,
-            $cantidad_mov,
-            "Ajuste: " . $motivo
-        );
-
-        if (!$okMov) {
-            throw new Exception("No se pudo registrar el movimiento.");
-        }
     }
 
     $conexion->commit();

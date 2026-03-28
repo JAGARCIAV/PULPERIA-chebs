@@ -1,0 +1,8 @@
+# Credenciales locales — nunca subir al repositorio
+config/db_config.php
+
+# Logs generados en runtime
+logs/
+
+# Uploads de usuarios
+uploads/

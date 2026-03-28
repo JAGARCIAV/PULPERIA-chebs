@@ -375,74 +375,8 @@ function registrarMovimiento($conexion, $producto_id, $lote_id, $tipo, $cantidad
 }
 
 /* =========================
-   ✅ DEVOLUCIONES (igual que tenías)
+   ✅ DEVOLUCIONES
    ========================= */
-function devolverStockPorVenta($conexion, $producto_id, $unidades_a_devolver, $venta_id, $motivoExtra = '') {
-    $producto_id = (int)$producto_id;
-    $unidades_a_devolver = (int)$unidades_a_devolver;
-    $venta_id = (int)$venta_id;
-
-    if ($producto_id <= 0) return false;
-    if ($unidades_a_devolver <= 0) return true;
-
-    $mot = 'Venta ID ' . $venta_id;
-
-    $sql = "
-      SELECT id, lote_id, cantidad
-      FROM movimientos_inventario
-      WHERE producto_id = ?
-        AND tipo = 'salida'
-        AND motivo = ?
-      ORDER BY id DESC
-    ";
-    $stmt = $conexion->prepare($sql);
-    $stmt->bind_param("is", $producto_id, $mot);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $stmt->close();
-
-    $restante = $unidades_a_devolver;
-
-    while ($row = $res->fetch_assoc()) {
-        if ($restante <= 0) break;
-
-        $lote_id = (int)$row["lote_id"];
-        $cantMov = (int)$row["cantidad"];
-        $usado = abs($cantMov);
-
-        if ($usado <= 0 || $lote_id <= 0) continue;
-
-        $sumar = min($usado, $restante);
-
-        $up = $conexion->prepare("
-          UPDATE lotes
-          SET cantidad_unidades = cantidad_unidades + ?,
-              activo = 1
-          WHERE id = ?
-        ");
-        $up->bind_param("ii", $sumar, $lote_id);
-        $up->execute();
-        $up->close();
-
-        $motivo = trim("Devolución Venta ID $venta_id " . $motivoExtra);
-        registrarMovimiento($conexion, $producto_id, $lote_id, "entrada", $sumar, $motivo);
-
-        $restante -= $sumar;
-    }
-
-    $devuelto = $unidades_a_devolver - $restante;
-    if ($devuelto > 0) {
-        $sqlp = "UPDATE productos SET stock_actual = stock_actual + ? WHERE id = ?";
-        $stmtp = $conexion->prepare($sqlp);
-        $stmtp->bind_param("ii", $devuelto, $producto_id);
-        $stmtp->execute();
-        $stmtp->close();
-    }
-
-    autoDesactivarLotesSinStock($conexion);
-    return $restante <= 0;
-}
-
 function devolverStockProductoDesdeVenta($conexion, $venta_id, $producto_id, $unidades_devolver) {
     $venta_id = (int)$venta_id;
     $producto_id = (int)$producto_id;

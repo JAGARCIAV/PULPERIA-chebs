@@ -5,6 +5,17 @@ require_role(['admin','empleado']);
 require_once "../config/conexion.php";
 require_once "../modelos/producto_modelo.php";
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: ../vistas/productos/crear.php");
+    exit;
+}
+
+if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+    http_response_code(403);
+    header("Location: ../vistas/productos/crear.php?error=seguridad");
+    exit;
+}
+
 $nombre = trim($_POST['nombre'] ?? '');
 $nombre = preg_replace('/\s+/', ' ', $nombre); // ✅ quita dobles espacios (anti-trampa)
 $descripcion = trim($_POST['descripcion'] ?? '');

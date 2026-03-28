@@ -15,9 +15,39 @@ unset($_chebs_log_dir);
 // ✅ Zona horaria PHP (Bolivia)
 date_default_timezone_set('America/La_Paz');
 
-$conexion = new mysqli("localhost", "root", "", "tienda", 3306);
+// ✅ Credenciales desde archivo externo (no hardcodeadas)
+$_db_cfg = __DIR__ . '/db_config.php';
+if (!file_exists($_db_cfg)) {
+    error_log("CHEBS: db_config.php no encontrado en " . __DIR__);
+    $is_ajax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+               || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+    if ($is_ajax) {
+        header('Content-Type: application/json');
+        http_response_code(503);
+        echo json_encode(["ok" => false, "msg" => "Error de configuración del servidor."]);
+    } else {
+        http_response_code(503);
+        echo "<h2>Configuración incompleta</h2><p>Copia <code>config/db_config.example.php</code> como <code>config/db_config.php</code> y completa tus credenciales.</p>";
+    }
+    exit;
+}
+require_once $_db_cfg;
+unset($_db_cfg);
+
+$conexion = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT);
 if ($conexion->connect_error) {
-    die("Error de conexión: " . $conexion->connect_error);
+    error_log("CHEBS: Error de conexión MySQLi — " . $conexion->connect_error);
+    $is_ajax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+               || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+    if ($is_ajax) {
+        header('Content-Type: application/json');
+        http_response_code(503);
+        echo json_encode(["ok" => false, "msg" => "No se pudo conectar a la base de datos."]);
+    } else {
+        http_response_code(503);
+        echo "<h2>No se pudo conectar a la base de datos</h2><p>Verifica que MySQL esté activo y que las credenciales en <code>config/db_config.php</code> sean correctas.</p>";
+    }
+    exit;
 }
 
 // ✅ charset seguro

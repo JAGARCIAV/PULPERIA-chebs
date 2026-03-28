@@ -65,6 +65,7 @@ $productos = $conexion->query("SELECT id, nombre FROM productos");
             onsubmit="return validarCambio();">
 
         <input type="hidden" name="lote_id" value="<?= (int)$lote['id'] ?>">
+        <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
 
         <!-- Nuevo producto (autocomplete) -->
         <div class="relative">

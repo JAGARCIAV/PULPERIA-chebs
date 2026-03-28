@@ -65,6 +65,7 @@ if ($lote && !empty($lote['producto_id'])) {
     <form action="../../controladores/lote_editar_controlador.php" method="POST" class="px-8 py-8 space-y-6">
 
       <input type="hidden" name="lote_id" value="<?= (int)$lote['id'] ?>">
+      <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
 
       <!-- Info -->
       <div class="grid sm:grid-cols-2 gap-4">

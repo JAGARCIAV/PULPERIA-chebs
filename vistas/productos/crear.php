@@ -144,6 +144,8 @@ document.addEventListener('keydown', (e)=>{
             class="grid grid-cols-1 lg:grid-cols-2 gap-6"
             onsubmit="return validarPrecioCosto();">
 
+        <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+
         <div class="space-y-4">
 
           <div>

@@ -15,7 +15,8 @@ $fecha_vencimiento = trim((string)($_POST['fecha_vencimiento'] ?? ''));
 $cantidad          = (int)($_POST['cantidad'] ?? 0);
 
 if ($producto_id <= 0 || $cantidad <= 0 || $fecha_vencimiento === '') {
-    die("Datos inválidos. Revisa producto, fecha y cantidad.");
+    header("Location: ../vistas/lotes/listar.php?err=datos");
+    exit;
 }
 
 // ✅ Transacción (para que no quede lote sin movimiento)
@@ -43,6 +44,15 @@ try {
         throw new Exception("Lote creado (ID $lote_id) pero no se pudo registrar el movimiento.");
     }
 
+    // ✅ Sincronizar productos.stock_actual con la cantidad inicial del lote
+    $stmtp = $conexion->prepare("UPDATE productos SET stock_actual = stock_actual + ? WHERE id = ?");
+    if (!$stmtp) {
+        throw new Exception("No se pudo preparar la actualización de stock del producto.");
+    }
+    $stmtp->bind_param("ii", $cantidad, $producto_id);
+    $stmtp->execute();
+    $stmtp->close();
+
     $conexion->commit();
 
     header("Location: ../vistas/lotes/listar.php?ok=1");
@@ -50,6 +60,7 @@ try {
 
 } catch (Throwable $e) {
     $conexion->rollback();
-    die($e->getMessage());
+    header("Location: ../vistas/lotes/listar.php?err=guardar");
+    exit;
 }
 ?>

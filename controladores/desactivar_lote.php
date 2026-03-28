@@ -18,6 +18,8 @@ if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
     exit;
 }
 
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
 $lote_id = (int)($_POST['id'] ?? 0);
 
 if ($lote_id <= 0) {
@@ -25,9 +27,19 @@ if ($lote_id <= 0) {
     exit;
 }
 
-// ✅ usar la función correcta del modelo
-$ok = desactivarLote($conexion, $lote_id);
+$conexion->begin_transaction();
 
-header("Location: ../vistas/lotes/listar.php?" . ($ok ? "ok=1" : "err=desactivar"));
-exit;
+try {
+    $ok = desactivarLote($conexion, $lote_id);
+    if (!$ok) {
+        throw new Exception("No se pudo desactivar el lote.");
+    }
+    $conexion->commit();
+    header("Location: ../vistas/lotes/listar.php?ok=1");
+    exit;
+} catch (Throwable $e) {
+    $conexion->rollback();
+    header("Location: ../vistas/lotes/listar.php?err=desactivar");
+    exit;
+}
 ?>
