@@ -5,12 +5,26 @@ require_role(['admin','empleado']);
 require_once __DIR__ . "/../config/conexion.php";
 require_once __DIR__ . "/../modelos/producto_modelo.php";
 
-// ✅ Para que mysqli lance excepciones y no falle “silencioso”
+// Solo POST
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: ../vistas/productos/listar.php');
+    exit;
+}
+
+// ✅ Para que mysqli lance excepciones y no falle "silencioso"
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
+// ✅ CSRF
+if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+    http_response_code(403);
+    $back_id = (int)($_POST['id'] ?? 0);
+    header('Location: ../vistas/productos/editar.php?id=' . $back_id . '&error=seguridad');
+    exit;
+}
 
 $id = (int)($_POST['id'] ?? 0);
 $nombre = trim($_POST['nombre'] ?? '');
-$nombre = preg_replace('/\s+/', ' ', $nombre); // ✅ quita dobles espacios (anti-trampa)
+$nombre = preg_replace('/\s+/', ' ', $nombre); // quita dobles espacios (anti-trampa)
 
 $precio_unidad = (float)($_POST['precio_unidad'] ?? 0);
 $precio_paquete = (float)($_POST['precio_paquete'] ?? 0); // legacy
@@ -20,11 +34,21 @@ $activo = (int)($_POST['activo'] ?? 1);
 $costo_unidad_raw = trim((string)($_POST['costo_unidad'] ?? ''));
 $costo_unidad = ($costo_unidad_raw === '' ? null : (float)$costo_unidad_raw);
 
+// ✅ barcode: vacio -> NULL (nunca guardar '' en columna UNIQUE)
+$barcode_raw = trim($_POST['barcode'] ?? '');
+$barcode = ($barcode_raw !== '' ? $barcode_raw : null);
+
 // ✅ imagen actual desde el form (hidden)
 $imagenActual = trim((string)($_POST['imagen_actual'] ?? ''));
 
 if ($id <= 0 || $nombre === '' || $precio_unidad <= 0) {
-    header("Location: ../vistas/productos/editar.php?id={$id}&error=datos_invalidos");
+    header('Location: ../vistas/productos/editar.php?id=' . $id . '&error=datos_invalidos');
+    exit;
+}
+
+// ✅ barcode: validar longitud
+if ($barcode !== null && mb_strlen($barcode) > 50) {
+    header('Location: ../vistas/productos/editar.php?id=' . $id . '&error=barcode_largo');
     exit;
 }
 
@@ -48,17 +72,32 @@ $stmt->close();
 if ($existe) {
     $idExist = (int)($existe['id'] ?? 0);
     $nomExist = urlencode((string)($existe['nombre'] ?? $nombre));
-    header("Location: ../vistas/productos/editar.php?id={$id}&err=duplicado&id_existente={$idExist}&nombre={$nomExist}");
+    header('Location: ../vistas/productos/editar.php?id=' . $id . '&err=duplicado&id_existente=' . $idExist . '&nombre=' . $nomExist);
     exit;
 }
 
+// ✅ barcode: verificar que no este ya asignado a OTRO producto
+if ($barcode !== null) {
+    $stmt_bc = $conexion->prepare('SELECT id FROM productos WHERE barcode = ? AND id <> ? LIMIT 1');
+    if ($stmt_bc) {
+        $stmt_bc->bind_param('si', $barcode, $id);
+        $stmt_bc->execute();
+        $dup_bc = $stmt_bc->get_result()->fetch_assoc();
+        $stmt_bc->close();
+        if ($dup_bc) {
+            header('Location: ../vistas/productos/editar.php?id=' . $id . '&error=barcode_duplicado');
+            exit;
+        }
+    }
+}
+
 /* =========================================================
-   ✅ VALIDACIÓN BACKEND (unidad + packs)
+   ✅ VALIDACION BACKEND (unidad + packs)
    ========================================================= */
 
 // 1) costo_unidad no puede ser mayor que precio_unidad
 if ($costo_unidad !== null && $costo_unidad > $precio_unidad) {
-    header("Location: ../vistas/productos/editar.php?id={$id}&error=costo_mayor");
+    header('Location: ../vistas/productos/editar.php?id=' . $id . '&error=costo_mayor');
     exit;
 }
 
@@ -88,35 +127,35 @@ for ($i = 0; $i < $max; $i++) {
     $c = ($c_raw === '' ? null : (float)$c_raw);
 
     if ($u <= 0 || $p < 0) {
-        header("Location: ../vistas/productos/editar.php?id={$id}&error=pres_invalida");
+        header('Location: ../vistas/productos/editar.php?id=' . $id . '&error=pres_invalida');
         exit;
     }
 
     if ($c !== null && $c > $p) {
-        header("Location: ../vistas/productos/editar.php?id={$id}&error=pres_costo_mayor&idx=" . ($i+1));
+        header('Location: ../vistas/productos/editar.php?id=' . $id . '&error=pres_costo_mayor&idx=' . ($i+1));
         exit;
     }
 
     if ($c === null && $costo_unidad !== null) {
         $costo_derivado = $costo_unidad * $u;
         if ($costo_derivado > $p) {
-            header("Location: ../vistas/productos/editar.php?id={$id}&error=pres_derivado_mayor&idx=" . ($i+1));
+            header('Location: ../vistas/productos/editar.php?id=' . $id . '&error=pres_derivado_mayor&idx=' . ($i+1));
             exit;
         }
     }
 }
 
 /* =========================================================
-   ✅ GUARDAR (transacción)
+   ✅ GUARDAR (transaccion)
    ========================================================= */
 
 $conexion->begin_transaction();
 
 try {
-    // 1) Actualizar producto base (incluye costo_unidad)
-    $ok = actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paquete, $activo, $costo_unidad);
+    // 1) Actualizar producto base (incluye costo_unidad y barcode)
+    $ok = actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paquete, $activo, $costo_unidad, $barcode);
     if (!$ok) {
-        throw new Exception("No se pudo actualizar producto");
+        throw new Exception('No se pudo actualizar producto');
     }
 
     // 2) Reemplazar presentaciones: borrar y volver a insertar
@@ -137,7 +176,7 @@ try {
             $name = $_FILES['imagen']['name'] ?? '';
             $size = (int)($_FILES['imagen']['size'] ?? 0);
 
-            // límite opcional: 5MB
+            // limite opcional: 5MB
             if ($size <= 5 * 1024 * 1024) {
 
                 $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
@@ -157,14 +196,14 @@ try {
                         $nuevaImagenPath = 'uploads/productos/' . $nuevoNombre;
 
                         // Update en BD
-                        $stmt = $conexion->prepare("UPDATE productos SET imagen = ? WHERE id = ?");
+                        $stmt = $conexion->prepare('UPDATE productos SET imagen = ? WHERE id = ?');
                         if ($stmt) {
-                            $stmt->bind_param("si", $nuevaImagenPath, $id);
+                            $stmt->bind_param('si', $nuevaImagenPath, $id);
                             $stmt->execute();
                             $stmt->close();
                         }
 
-                        // (opcional) borrar la anterior si era local
+                        // borrar la anterior si era local
                         if ($imagenActual !== '' && strpos($imagenActual, 'uploads/productos/') === 0) {
                             $old = __DIR__ . '/../' . $imagenActual;
                             if (is_file($old)) {
@@ -179,11 +218,11 @@ try {
 
     $conexion->commit();
 
-    header("Location: ../vistas/productos/editar.php?id={$id}&ok=1");
+    header('Location: ../vistas/productos/editar.php?id=' . $id . '&ok=1');
     exit;
 
 } catch (Throwable $e) {
     $conexion->rollback();
-    header("Location: ../vistas/productos/editar.php?id={$id}&error=sql");
+    header('Location: ../vistas/productos/editar.php?id=' . $id . '&error=sql');
     exit;
 }

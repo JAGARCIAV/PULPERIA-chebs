@@ -158,6 +158,18 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') cerrarDuplicado
         <div class="mt-4 rounded-2xl bg-red-100 border border-red-200 px-4 py-3 text-sm font-semibold text-red-700">
           ⚠ No se pudo guardar. Revisa precios/costos (la base de datos bloqueó la operación).
         </div>
+      <?php } elseif(($_GET['error'] ?? '') === 'barcode_duplicado'){ ?>
+        <div class="mt-4 rounded-2xl bg-red-100 border border-red-200 px-4 py-3 text-sm font-semibold text-red-700">
+          ⚠ Ese codigo de barras ya esta asignado a otro producto.
+        </div>
+      <?php } elseif(($_GET['error'] ?? '') === 'barcode_largo'){ ?>
+        <div class="mt-4 rounded-2xl bg-red-100 border border-red-200 px-4 py-3 text-sm font-semibold text-red-700">
+          ⚠ El codigo de barras es demasiado largo (max 50 caracteres).
+        </div>
+      <?php } elseif(($_GET['error'] ?? '') === 'seguridad'){ ?>
+        <div class="mt-4 rounded-2xl bg-red-100 border border-red-200 px-4 py-3 text-sm font-semibold text-red-700">
+          ⚠ Token de seguridad invalido. Recarga la pagina e intenta de nuevo.
+        </div>
       <?php } ?>
     </div>
 
@@ -175,6 +187,7 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') cerrarDuplicado
             onsubmit="return validarPrecioCosto();">
 
         <input type="hidden" name="id" value="<?= (int)$producto['id'] ?>">
+        <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
 
         <!-- =========================
              COLUMNA IZQUIERDA
@@ -189,6 +202,29 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') cerrarDuplicado
                    required
                    class="w-full px-4 py-3 rounded-2xl bg-pink-50 border-2 border-pink-300
                           outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500">
+          </div>
+
+          <div>
+            <label class="block text-sm font-bold mb-2 text-chebs-black">
+              Codigo de barras
+              <span class="text-gray-500 font-semibold">(opcional)</span>
+            </label>
+            <input type="text" name="barcode" id="input_barcode"
+              maxlength="50"
+              autocomplete="off"
+              value="<?= htmlspecialchars($producto['barcode'] ?? '') ?>"
+              class="w-full px-4 py-3 rounded-2xl bg-white border-2 border-chebs-line
+                     outline-none focus:ring-4 focus:ring-chebs-soft focus:border-chebs-green font-mono"
+              placeholder="Escanea o escribe el codigo">
+            <?php if(!empty($producto['barcode'])): ?>
+              <div class="text-xs text-chebs-green font-semibold mt-1">
+                Codigo actual: <?= htmlspecialchars($producto['barcode']) ?>
+              </div>
+            <?php else: ?>
+              <div class="text-xs text-gray-500 mt-1">
+                Sin codigo asignado. Puedes escanearlo con el lector apuntando aqui.
+              </div>
+            <?php endif; ?>
           </div>
 
           <!-- ✅ PRECIOS -->

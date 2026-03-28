@@ -289,14 +289,6 @@ if ($turnoAbierto) {
     line-height: 1;
   }
 
-  /* ✅ ANIMACIÓN DE ENTRADA PARA EL PRECIO */
-  #precio_box[style*="block"] {
-    animation: precioEntrada .18s cubic-bezier(.22,1.5,.36,1) both;
-  }
-  @keyframes precioEntrada {
-    from { opacity:0; transform: scale(.85) translateY(4px); }
-    to   { opacity:1; transform: scale(1)  translateY(0); }
-  }
 </style>
 
 <!-- ✅ WRAPPER FULL ANCHO -->
@@ -355,6 +347,7 @@ if ($turnoAbierto) {
       <input id="producto_nombre" type="text" name="producto_nombre"
             placeholder="Escribe el nombre del producto…"
             autocomplete="off"
+            autofocus
             required
             class="w-full h-[52px] rounded-2xl bg-pink-50 border-2 border-pink-300 px-4 text-gray-800 placeholder-pink-400
                   outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500 text-[16px] font-semibold">
@@ -432,17 +425,7 @@ if ($turnoAbierto) {
   <div class="md:col-span-12">
     <div id="stock_info" class="mt-2 text-xs text-gray-600 min-h-[18px]"></div>
 
-    <!-- ✅ CAJA NEGRA DE PRECIO — aparece al seleccionar producto -->
-    <div id="precio_box" style="display:none; margin-top:12px;">
-      <div style="display:inline-flex; flex-direction:column; align-items:flex-start;">
-        <span style="font-size:10px; font-weight:900; color:#9ca3af; letter-spacing:.1em; text-transform:uppercase; line-height:1; margin-bottom:4px;">Precio</span>
-        <div style="background:#000; border-radius:16px; padding:10px 22px; display:inline-flex; align-items:baseline; gap:6px; box-shadow:0 4px 18px rgba(0,0,0,0.45);">
-          <span style="color:#fff; font-weight:900; font-size:1rem; line-height:1;">Bs</span>
-          <span id="precio_valor" style="color:#fff; font-weight:900; font-size:2.6rem; line-height:1; font-variant-numeric:tabular-nums;">0.00</span>
-          <span id="precio_tipo" style="color:#9ca3af; font-weight:700; font-size:.75rem; line-height:1; margin-left:2px;">(unidad)</span>
-        </div>
-      </div>
-    </div>
+    <div id="barcode_msg" class="hidden mt-2 px-4 py-2 rounded-2xl text-sm font-bold"></div>
 
     <div id="presentacion_box" class="hidden mt-3">
   <label for="presentacion_select" class="block text-xs font-black text-pink-600 mb-2 leading-none">
@@ -966,6 +949,58 @@ if ($turnoAbierto) {
   </div>
 </div>
 
+<!-- MODAL: SELECCION DE PRESENTACION (barcode) -->
+<div id="modalPresentacion" class="chebs-hidden fixed inset-0 z-[9999]">
+  <div class="absolute inset-0 bg-black/60" style="backdrop-filter:blur(3px);" onclick="cerrarModalPresentacion()"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="w-full max-w-[400px] rounded-3xl bg-white overflow-hidden"
+         style="box-shadow:0 24px 64px rgba(0,0,0,0.35),0 0 0 1px rgba(0,0,0,0.07);">
+
+      <!-- Cabecera -->
+      <div class="px-6 pt-6 pb-5 border-b border-chebs-line" style="background:linear-gradient(160deg,#eef5e7 0%,#fff 100%);">
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-black tracking-widest uppercase mb-3"
+              style="background:rgba(78,122,43,0.10);border-color:rgba(78,122,43,0.22);color:#4e7a2b;">
+          Presentacion
+        </span>
+        <h3 class="text-xl font-black text-chebs-black leading-tight" id="modal_pres_nombre"
+            style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">Producto</h3>
+        <p class="text-xs text-gray-500 mt-1.5 font-semibold">Selecciona como vender este producto</p>
+      </div>
+
+      <!-- Lista de opciones -->
+      <div class="px-5 py-4">
+        <div id="modal_pres_lista" class="space-y-2"></div>
+      </div>
+
+      <!-- Pie: hints de teclado -->
+      <div class="px-5 py-3 border-t border-chebs-line" style="background:#f9fafb;">
+        <div class="flex items-center justify-center gap-3 flex-wrap">
+          <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
+            <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">1&ndash;9</kbd>
+            seleccionar
+          </span>
+          <span class="text-gray-300 text-xs select-none">&middot;</span>
+          <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
+            <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">&uarr;&darr;</kbd>
+            navegar
+          </span>
+          <span class="text-gray-300 text-xs select-none">&middot;</span>
+          <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
+            <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">Enter</kbd>
+            confirmar
+          </span>
+          <span class="text-gray-300 text-xs select-none">&middot;</span>
+          <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
+            <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">Esc</kbd>
+            cancelar
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <script>
 function abrirModal(id){
   document.getElementById(id).classList.remove('chebs-hidden');
@@ -977,7 +1012,7 @@ function cerrarModal(id){
 // ESC para cerrar
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    ['modalAbrirTurno','modalCerrarTurno','modalRetiro','modalConfirmacion'].forEach(id=>{
+    ['modalAbrirTurno','modalCerrarTurno','modalRetiro','modalConfirmacion','modalPresentacion'].forEach(id=>{
       const el = document.getElementById(id);
       if (el && !el.classList.contains('chebs-hidden')) el.classList.add('chebs-hidden');
     });
@@ -1230,21 +1265,6 @@ async function seleccionarItem(idx){
   hiddenId.dataset.img = it.imagen; // ✅ Persistencia para el carrito
   cerrarAuto();
 
-  // ✅ Mostrar caja negra de precio inmediatamente con el dato local
-  const precioBox  = document.getElementById('precio_box');
-  const precioVal  = document.getElementById('precio_valor');
-  const precioTipo = document.getElementById('precio_tipo');
-  if (precioBox && precioVal) {
-    const pu = parseFloat(it.precio_unidad || 0);
-    if (pu > 0) {
-      precioVal.textContent = pu.toFixed(2);
-      if (precioTipo) precioTipo.textContent = '(unidad)';
-      precioBox.style.display = 'block';
-    } else {
-      precioBox.style.display = 'none';
-    }
-  }
-
   try{
     const s = await fetch(`${"/PULPERIA-CHEBS"}/controladores/stock_fetch.php`, {
       method: "POST",
@@ -1284,10 +1304,6 @@ inputProducto.addEventListener('input', () => {
   hiddenId.value = '';
   stockInfo.textContent = '';
 
-  // ✅ Ocultar precio cuando el usuario modifica el buscador
-  const pb = document.getElementById('precio_box');
-  if (pb) pb.style.display = 'none';
-
   clearTimeout(searchTimer);
   const q = inputProducto.value.trim();
   if (q.length < 2) { cerrarAuto(); return; }
@@ -1305,30 +1321,253 @@ inputProducto.addEventListener('input', () => {
 
 window.addEventListener('resize', ajustarAltoAutoDebounced);
 
-inputProducto.addEventListener('keydown', (e) => {
-  if (autoBox.classList.contains('hidden')) return;
+// =========================================================================
+// BARCODE SCANNER: deteccion en Enter cuando el dropdown esta cerrado
+// =========================================================================
 
+let barcodeEnProceso = false;
+
+function mostrarToastBarcode(msg, tipo) {
+  const el = document.getElementById('barcode_msg');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = tipo === 'ok'
+    ? 'mt-2 px-4 py-2 rounded-2xl text-sm font-bold bg-chebs-green/10 border border-chebs-green/30 text-chebs-green'
+    : 'mt-2 px-4 py-2 rounded-2xl text-sm font-bold bg-red-100 border border-red-300 text-red-700';
+  clearTimeout(el._timer);
+  el._timer = setTimeout(function() {
+    el.className = 'hidden mt-2 px-4 py-2 rounded-2xl text-sm font-bold';
+    el.textContent = '';
+  }, 2500);
+}
+
+async function buscarPorBarcode(codigo) {
+  if (barcodeEnProceso) return;
+  barcodeEnProceso = true;
+  try {
+    const res = await fetch(
+      '/PULPERIA-CHEBS/controladores/producto_buscar_venta_ajax.php?q=' + encodeURIComponent(codigo)
+    );
+    const data = await res.json();
+
+    if (data.modo === 'barcode') {
+      const it = data.resultado;
+      // Poblar igual que seleccionarItem() — sin el stock fetch adicional
+      inputProducto.value = it.label;
+      hiddenId.value = it.id;
+      hiddenId.dataset.img = it.imagen;
+      cerrarAuto();
+      // Stock info
+      if (stockInfo) {
+        stockInfo.classList.remove('stock-zero');
+        stockInfo.classList.add('text-xs', 'text-gray-600');
+        stockInfo.textContent = 'Stock disponible: ' + it.stock_total;
+      }
+      // Con presentaciones: modal; sin ellas: agregar directo
+      if (it.presentaciones && it.presentaciones.length > 0) {
+        abrirModalPresentacion(it);
+      } else if (typeof agregarDesdeFormulario === 'function') {
+        agregarDesdeFormulario();
+      }
+    } else if (data.modo === 'barcode_sin_stock') {
+      const nombre = (data.resultado && data.resultado.label) ? data.resultado.label : codigo;
+      mostrarToastBarcode('Sin stock: ' + nombre, 'error');
+      inputProducto.value = '';
+    } else {
+      mostrarToastBarcode('Codigo no registrado. Busca por nombre.', 'error');
+      inputProducto.value = '';
+    }
+  } catch (err) {
+    mostrarToastBarcode('Error al verificar codigo. Intenta de nuevo.', 'error');
+  } finally {
+    barcodeEnProceso = false;
+    inputProducto.focus();
+  }
+}
+
+// =========================================================================
+// MODAL DE PRESENTACIONES (barcode con packs)
+// =========================================================================
+
+var _mpIT  = null;
+var _mpOps = [];
+var _mpIdx = 0;
+
+function abrirModalPresentacion(it) {
+  _mpIT  = it;
+  _mpIdx = 0;
+
+  document.getElementById('modal_pres_nombre').textContent = it.label;
+
+  _mpOps = [{ nombre: 'Unidad', unidades: 1, precio: it.precio_unidad }];
+  it.presentaciones.forEach(function(p) {
+    _mpOps.push({ nombre: p.nombre, unidades: p.unidades, precio: p.precio_venta });
+  });
+
+  _renderModalPres();
+  abrirModal('modalPresentacion');
+
+  // Mover foco al primer boton — evita que activeElement siga en producto_nombre
+  setTimeout(function() {
+    var first = document.querySelector('#modal_pres_lista button');
+    if (first) first.focus();
+  }, 30);
+}
+
+function _renderModalPres() {
+  var lista = document.getElementById('modal_pres_lista');
+  if (!lista) return;
+  lista.innerHTML = '';
+  _mpOps.forEach(function(op, idx) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    var isActive = (idx === _mpIdx);
+    // Activo: fondo verde solido, texto blanco, sombra
+    // Inactivo: borde fino, hover rosa
+    if (isActive) {
+      btn.className = 'w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 text-left transition-all';
+      btn.style.cssText = 'border-color:#4e7a2b;background:#4e7a2b;color:#fff;box-shadow:0 4px 14px rgba(78,122,43,0.40);';
+    } else {
+      btn.className = 'w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 text-left transition-all hover:border-pink-300 hover:bg-pink-50';
+      btn.style.cssText = 'border-color:#e5e7eb;background:#fff;color:#1f2937;';
+    }
+
+    // Badge de numero: activo = blanco/verde, inactivo = gris
+    var numBg  = isActive ? 'background:#fff;color:#4e7a2b;' : 'background:#f3f4f6;color:#374151;';
+    var numTag = (idx <= 8)
+      ? '<span style="width:26px;height:26px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;' + numBg + '">' + (idx + 1) + '</span>'
+      : '<span style="width:26px;height:26px;flex-shrink:0;"></span>';
+
+    // Unidades como badge separado del nombre
+    var unidadesTag = (op.unidades > 1)
+      ? '<span style="font-size:10px;font-weight:800;opacity:0.70;margin-left:5px;letter-spacing:0.02em;">' + op.unidades + ' u.</span>'
+      : '';
+
+    // Precio como pill
+    var priceBg = isActive
+      ? 'background:rgba(255,255,255,0.22);color:#fff;border:1px solid rgba(255,255,255,0.35);'
+      : 'background:#111;color:#fff;border:none;';
+    var priceTag = '<span style="' + priceBg + 'border-radius:8px;padding:4px 11px;font-size:14px;font-weight:900;font-variant-numeric:tabular-nums;flex-shrink:0;white-space:nowrap;line-height:1.4;">Bs ' + Number(op.precio).toFixed(2) + '</span>';
+
+    btn.innerHTML = numTag
+      + '<span style="flex:1;font-size:15px;font-weight:700;line-height:1.25;text-align:left;">'
+      + op.nombre + unidadesTag
+      + '</span>'
+      + priceTag;
+    btn.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      _confirmarModalPres(idx);
+    });
+    lista.appendChild(btn);
+  });
+}
+
+function _confirmarModalPres(idx) {
+  var op = _mpOps[idx];
+  if (!op) return;
+  // Pasar la cantidad de unidades al campo — el greedy la descompone en el pack correcto
+  var cantEl = document.getElementById('cantidad');
+  if (cantEl) cantEl.value = op.unidades;
+  cerrarModal('modalPresentacion');
+  _mpIT  = null;
+  _mpOps = [];
+  if (typeof agregarDesdeFormulario === 'function') {
+    agregarDesdeFormulario();
+  }
+}
+
+function cerrarModalPresentacion() {
+  cerrarModal('modalPresentacion');
+  _mpIT  = null;
+  _mpOps = [];
+  inputProducto.value = '';
+  hiddenId.value = '';
+  var cantEl = document.getElementById('cantidad');
+  if (cantEl) cantEl.value = 1;
+  if (stockInfo) stockInfo.textContent = '';
+  inputProducto.focus();
+}
+
+// Teclado del modal — dispara antes que venta.js (el inline script se carga primero)
+document.addEventListener('keydown', function(e) {
+  var modal = document.getElementById('modalPresentacion');
+  if (!modal || modal.classList.contains('chebs-hidden')) return;
+
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    cerrarModalPresentacion();
+    return;
+  }
   if (e.key === 'ArrowDown') {
     e.preventDefault();
-    autoIndex = Math.min(autoIndex + 1, autoItems.length - 1);
-    renderAuto();
+    e.stopImmediatePropagation();
+    _mpIdx = Math.min(_mpIdx + 1, _mpOps.length - 1);
+    _renderModalPres();
+    var btns = document.querySelectorAll('#modal_pres_lista button');
+    if (btns[_mpIdx]) btns[_mpIdx].focus();
     return;
   }
   if (e.key === 'ArrowUp') {
     e.preventDefault();
-    autoIndex = Math.max(autoIndex - 1, 0);
-    renderAuto();
+    e.stopImmediatePropagation();
+    _mpIdx = Math.max(_mpIdx - 1, 0);
+    _renderModalPres();
+    var btns = document.querySelectorAll('#modal_pres_lista button');
+    if (btns[_mpIdx]) btns[_mpIdx].focus();
     return;
   }
   if (e.key === 'Enter') {
-    if (autoIndex >= 0 && autoItems[autoIndex]) {
-      e.preventDefault();
-      seleccionarItem(autoIndex);
-      return;
-    }
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    _confirmarModalPres(_mpIdx);
+    return;
   }
+  var n = parseInt(e.key, 10);
+  if (!isNaN(n) && n >= 1 && n <= _mpOps.length) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    _confirmarModalPres(n - 1);
+  }
+});
+
+inputProducto.addEventListener('keydown', (e) => {
+  // Escape: siempre cierra el dropdown
   if (e.key === 'Escape') {
     cerrarAuto();
+    return;
+  }
+
+  // Dropdown abierto: navegacion normal (sin cambios respecto al original)
+  if (!autoBox.classList.contains('hidden')) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      autoIndex = Math.min(autoIndex + 1, autoItems.length - 1);
+      renderAuto();
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      autoIndex = Math.max(autoIndex - 1, 0);
+      renderAuto();
+      return;
+    }
+    if (e.key === 'Enter' && autoIndex >= 0 && autoItems[autoIndex]) {
+      e.preventDefault();
+      seleccionarItem(autoIndex);
+    }
+    return;
+  }
+
+  // Dropdown cerrado + Enter: detectar barcode (digitos, longitud 6-50)
+  if (e.key === 'Enter') {
+    const val = inputProducto.value.trim();
+    if (/^\d{6,50}$/.test(val)) {
+      e.preventDefault();
+      e.stopPropagation();
+      clearTimeout(searchTimer);
+      buscarPorBarcode(val);
+    }
   }
 });
 

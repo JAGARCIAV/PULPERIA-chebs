@@ -14,15 +14,17 @@ function normalizarCosto($valor) {
    PRODUCTOS (base)
    ========================= */
 
-function guardarProducto($conexion, $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete, $costo_unidad = null) {
+function guardarProducto($conexion, $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete, $costo_unidad = null, $barcode = null) {
 
     $precio_unidad      = (is_numeric($precio_unidad) ? (float)$precio_unidad : 0.00);
     $precio_paquete     = (is_numeric($precio_paquete) ? (float)$precio_paquete : 0.00);
     $unidades_paquete   = (is_numeric($unidades_paquete) && (int)$unidades_paquete > 0) ? (int)$unidades_paquete : 1;
     $costo_unidad       = normalizarCosto($costo_unidad);
+    // barcode: '' → NULL, nunca cadena vacía en UNIQUE
+    $bc = ($barcode !== null && trim((string)$barcode) !== '') ? trim((string)$barcode) : null;
 
-    $sql = "INSERT INTO productos (nombre, descripcion, precio_unidad, precio_paquete, unidades_por_paquete, costo_unidad)
-            VALUES (?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO productos (nombre, descripcion, precio_unidad, precio_paquete, unidades_por_paquete, costo_unidad, barcode)
+            VALUES (?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conexion->prepare($sql);
     if (!$stmt) return 0;
 
@@ -31,11 +33,11 @@ function guardarProducto($conexion, $nombre, $descripcion, $precio_unidad, $prec
     // Si no es null, lo mandamos como double.
     if ($costo_unidad === null) {
         $null = null;
-        $stmt->bind_param("ssddis", $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete, $null);
+        $stmt->bind_param("ssddiss", $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete, $null, $bc);
     } else {
         // costo como string para evitar problemas raros de NULL/float en bind (estable en MariaDB)
         $cos = (string)$costo_unidad;
-        $stmt->bind_param("ssddis", $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete, $cos);
+        $stmt->bind_param("ssddiss", $nombre, $descripcion, $precio_unidad, $precio_paquete, $unidades_paquete, $cos, $bc);
     }
 
     $ok = $stmt->execute();
@@ -63,15 +65,17 @@ function obtenerProductoPorId($conexion, $id) {
     return $row;
 }
 
-function actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paquete, $activo, $costo_unidad = null) {
+function actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paquete, $activo, $costo_unidad = null, $barcode = null) {
     $id             = (int)$id;
     $activo         = (int)$activo;
     $precio_unidad  = (is_numeric($precio_unidad) ? (float)$precio_unidad : 0.00);
     $precio_paquete = (is_numeric($precio_paquete) ? (float)$precio_paquete : 0.00);
     $costo_unidad   = normalizarCosto($costo_unidad);
+    // barcode: '' → NULL, nunca cadena vacía en UNIQUE
+    $bc = ($barcode !== null && trim((string)$barcode) !== '') ? trim((string)$barcode) : null;
 
     $sql = "UPDATE productos
-            SET nombre=?, precio_unidad=?, precio_paquete=?, activo=?, costo_unidad=?
+            SET nombre=?, precio_unidad=?, precio_paquete=?, activo=?, costo_unidad=?, barcode=?
             WHERE id=?";
     $stmt = $conexion->prepare($sql);
     if (!$stmt) return false;
@@ -79,10 +83,10 @@ function actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paq
     // ✅ FIX NULL costo
     if ($costo_unidad === null) {
         $null = null;
-        $stmt->bind_param("sddiss", $nombre, $precio_unidad, $precio_paquete, $activo, $null, $id);
+        $stmt->bind_param("sddisss", $nombre, $precio_unidad, $precio_paquete, $activo, $null, $bc, $id);
     } else {
         $cos = (string)$costo_unidad;
-        $stmt->bind_param("sddiss", $nombre, $precio_unidad, $precio_paquete, $activo, $cos, $id);
+        $stmt->bind_param("sddisss", $nombre, $precio_unidad, $precio_paquete, $activo, $cos, $bc, $id);
     }
 
     $ok = $stmt->execute();

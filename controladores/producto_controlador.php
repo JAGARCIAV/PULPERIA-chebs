@@ -25,12 +25,21 @@ $precio_unidad = (float)($_POST['precio_unidad'] ?? 0);
 $costo_unidad_raw = trim((string)($_POST['costo_unidad'] ?? ''));
 $costo_unidad = ($costo_unidad_raw === '' ? null : (float)$costo_unidad_raw);
 
+// ✅ barcode: vacío → NULL (regla crítica: nunca guardar '')
+$barcode_raw = trim($_POST['barcode'] ?? '');
+$barcode = $barcode_raw !== '' ? $barcode_raw : null;
+
 // legacy (ya no lo usaremos para caja)
 $precio_paquete = 0.00;
 $unidades_paquete = 1;
 
 if ($nombre === '' || $precio_unidad <= 0) {
     header("Location: ../vistas/productos/crear.php?error=datos_invalidos");
+    exit;
+}
+
+if ($barcode !== null && mb_strlen($barcode) > 50) {
+    header("Location: ../vistas/productos/crear.php?error=barcode_largo");
     exit;
 }
 
@@ -62,6 +71,21 @@ if ($stmt) {
 /* =========================================================
    ✅ VALIDACIÓN BACKEND (NO se puede saltar)
    ========================================================= */
+
+// 0) barcode único: si viene, verificar que no esté ya en uso
+if ($barcode !== null) {
+    $stmt_bc = $conexion->prepare("SELECT id FROM productos WHERE barcode = ? LIMIT 1");
+    if ($stmt_bc) {
+        $stmt_bc->bind_param("s", $barcode);
+        $stmt_bc->execute();
+        $dup_bc = $stmt_bc->get_result()->fetch_assoc();
+        $stmt_bc->close();
+        if ($dup_bc) {
+            header("Location: ../vistas/productos/crear.php?error=barcode_duplicado");
+            exit;
+        }
+    }
+}
 
 // 1) costo_unidad no puede ser mayor que precio_unidad
 if ($costo_unidad !== null && $costo_unidad > $precio_unidad) {
@@ -124,7 +148,8 @@ try {
         $precio_unidad,
         $precio_paquete,
         $unidades_paquete,
-        $costo_unidad
+        $costo_unidad,
+        $barcode
     );
 
     if ((int)$id_nuevo <= 0) {

@@ -133,6 +133,14 @@ document.addEventListener('keydown', (e)=>{
         <div class="p-4 mb-4 rounded-2xl bg-red-100 border border-red-300 text-red-800 font-bold">
           ⚠ El costo mayorista no puede ser mayor que el precio de venta.
         </div>
+      <?php elseif(($_GET['error'] ?? '') === 'barcode_duplicado'): ?>
+        <div class="p-4 mb-4 rounded-2xl bg-red-100 border border-red-300 text-red-800 font-bold">
+          ⚠ Ese codigo de barras ya esta asignado a otro producto.
+        </div>
+      <?php elseif(($_GET['error'] ?? '') === 'barcode_largo'): ?>
+        <div class="p-4 mb-4 rounded-2xl bg-red-100 border border-red-300 text-red-800 font-bold">
+          ⚠ El codigo de barras es demasiado largo (max 50 caracteres).
+        </div>
       <?php endif; ?>
 
       <div id="form_error" class="hidden p-4 mb-4 rounded-2xl bg-red-100 border border-red-300 text-red-800 font-bold"></div>
@@ -154,6 +162,22 @@ document.addEventListener('keydown', (e)=>{
               class="w-full rounded-xl bg-pink-50 border-2 border-pink-300 px-3 py-2 text-gray-800
                      outline-none focus:ring-4 focus:ring-pink-200 focus:border-pink-500"
               placeholder="Ej: Cigarro, Coca 2L retornable">
+          </div>
+
+          <div>
+            <label class="block text-sm font-bold mb-1">
+              Codigo de barras
+              <span class="text-gray-500 font-semibold">(opcional)</span>
+            </label>
+            <input type="text" name="barcode" id="input_barcode"
+              maxlength="50"
+              autocomplete="off"
+              class="w-full rounded-xl bg-white border-2 border-chebs-line px-3 py-2 text-gray-800
+                     outline-none focus:ring-4 focus:ring-chebs-soft focus:border-chebs-green font-mono"
+              placeholder="Escanea o escribe el codigo">
+            <div class="text-xs text-gray-500 mt-1">
+              Puedes escanearlo con el lector apuntando aqui. Se asigna una sola vez.
+            </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
