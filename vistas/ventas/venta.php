@@ -953,7 +953,7 @@ if ($turnoAbierto) {
 <div id="modalPresentacion" class="chebs-hidden fixed inset-0 z-[9999]">
   <div class="absolute inset-0 bg-black/60" style="backdrop-filter:blur(3px);" onclick="cerrarModalPresentacion()"></div>
   <div class="absolute inset-0 flex items-center justify-center p-4">
-    <div class="w-full max-w-[400px] rounded-3xl bg-white overflow-hidden"
+    <div class="w-[360px] max-w-[90vw] rounded-3xl bg-white overflow-hidden"
          style="box-shadow:0 24px 64px rgba(0,0,0,0.35),0 0 0 1px rgba(0,0,0,0.07);">
 
       <!-- Cabecera -->
