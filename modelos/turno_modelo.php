@@ -29,7 +29,7 @@ function totalRetirosTurno($conexion, $turno_id) {
 function totalVentasTurno($conexion, $turno_id) {
     $turno_id = (int)$turno_id;
 
-    $stmt = $conexion->prepare("SELECT COALESCE(SUM(total),0) AS total FROM ventas WHERE turno_id=?");
+    $stmt = $conexion->prepare("SELECT COALESCE(SUM(total),0) AS total FROM ventas WHERE turno_id=? AND anulada=0");
     $stmt->bind_param("i", $turno_id);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();

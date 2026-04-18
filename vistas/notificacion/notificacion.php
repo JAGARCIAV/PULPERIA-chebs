@@ -33,6 +33,7 @@ include __DIR__ . "/../layout/header.php";
 <script>
 (() => {
   const BASE = "/PULPERIA-CHEBS";
+  const CSRF = <?= json_encode(get_csrf_token()) ?>;
   const list = document.getElementById("notif_list");
   const pageBadge = document.getElementById("page_badge");
 
@@ -126,6 +127,7 @@ include __DIR__ . "/../layout/header.php";
     const fd = new FormData();
     fd.append("accion","desactivar");
     fd.append("lote_id", id);
+    fd.append("csrf_token", CSRF);
 
     const j = await fetchJSON(`${BASE}/controladores/notificacion_accion.php`, {
       method:"POST",

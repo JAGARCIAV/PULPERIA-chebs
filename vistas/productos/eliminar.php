@@ -79,6 +79,7 @@ if ($img_db !== '') {
       </div>
 
       <form class="mt-6" method="POST" action="/PULPERIA-CHEBS/controladores/producto_eliminar.php">
+        <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
         <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
 
         <label class="block text-sm font-bold mb-2 text-chebs-black">

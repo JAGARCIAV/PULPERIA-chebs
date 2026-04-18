@@ -10,6 +10,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+    http_response_code(403);
+    header("Location: ../vistas/lotes/listar.php?err=" . urlencode("Error de seguridad. Recarga la página."));
+    exit;
+}
+
 $producto_id       = (int)($_POST['producto_id'] ?? 0);
 $fecha_vencimiento = trim((string)($_POST['fecha_vencimiento'] ?? ''));
 $cantidad          = (int)($_POST['cantidad'] ?? 0);
@@ -45,7 +51,7 @@ try {
     }
 
     // ✅ Sincronizar productos.stock_actual con la cantidad inicial del lote
-    $stmtp = $conexion->prepare("UPDATE productos SET stock_actual = stock_actual + ? WHERE id = ?");
+    $stmtp = $conexion->prepare("UPDATE productos SET stock_actual = COALESCE(stock_actual, 0) + ? WHERE id = ?");
     if (!$stmtp) {
         throw new Exception("No se pudo preparar la actualización de stock del producto.");
     }

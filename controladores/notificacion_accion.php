@@ -7,6 +7,11 @@ require_once __DIR__ . "/../modelos/lote_modelo.php";
 
 header("Content-Type: application/json; charset=utf-8");
 
+if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+  echo json_encode(["ok" => false, "msg" => "Error de seguridad."]);
+  exit;
+}
+
 $accion = $_POST["accion"] ?? "";
 $lote_id = isset($_POST["lote_id"]) ? (int)$_POST["lote_id"] : 0;
 

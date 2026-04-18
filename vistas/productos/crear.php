@@ -408,6 +408,26 @@ document.addEventListener('keydown', (e)=>{
   const btn  = document.getElementById('btn_add_pres');
   if(!body || !btn) return;
 
+  const costoUnidadInput = document.getElementById('costo_unidad');
+
+  function recalcCosto(tr){
+    const unidadesInput = tr.querySelector('[name="pres_unidades[]"]');
+    const costoInput    = tr.querySelector('[name="pres_costo[]"]');
+    const base = parseFloat(costoUnidadInput ? costoUnidadInput.value : '') || 0;
+    const u    = parseInt(unidadesInput ? unidadesInput.value : '') || 0;
+    if (base > 0 && u > 0) {
+      costoInput.value = (base * u).toFixed(2);
+    }
+  }
+
+  function recalcTodos(){
+    body.querySelectorAll('tr').forEach(tr => recalcCosto(tr));
+  }
+
+  if (costoUnidadInput) {
+    costoUnidadInput.addEventListener('input', recalcTodos);
+  }
+
   function addRow(nombre='', unidades='', precio='', costo=''){
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -431,8 +451,8 @@ document.addEventListener('keydown', (e)=>{
 
       <td class="px-3 py-2">
         <input name="pres_costo[]" type="number" step="0.01" min="0" value="${costo}"
-          class="w-full chebs-num"
-          placeholder="Ej: 5.00">
+          class="w-full chebs-num bg-gray-50" readonly
+          placeholder="Auto">
       </td>
 
       <td class="px-3 py-2 text-center">
@@ -443,7 +463,9 @@ document.addEventListener('keydown', (e)=>{
       </td>
     `;
     tr.querySelector('button').addEventListener('click', ()=> tr.remove());
+    tr.querySelector('[name="pres_unidades[]"]').addEventListener('input', ()=> recalcCosto(tr));
     body.appendChild(tr);
+    recalcCosto(tr);
   }
 
   btn.addEventListener('click', ()=> addRow());

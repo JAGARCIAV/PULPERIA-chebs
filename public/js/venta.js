@@ -222,7 +222,7 @@
       const u = parseInt(pres.unidades || 0, 10);
       const precio = Number(pres.precio_venta || 0);
 
-      if (u <= 0 || precio <= 0) continue;
+      if (u <= 1 || precio <= 0) continue;
       if (restante < u) continue;
 
       const packs = Math.floor(restante / u);

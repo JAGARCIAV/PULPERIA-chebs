@@ -10,6 +10,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   exit;
 }
 
+if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+  http_response_code(403);
+  header("Location: /PULPERIA-CHEBS/vistas/productos/listar.php?err=" . urlencode("Error de seguridad. Recarga la página."));
+  exit;
+}
+
 $id = (int)($_POST['id'] ?? 0);
 $confirm = trim((string)($_POST['confirm'] ?? ''));
 

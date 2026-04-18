@@ -7,6 +7,12 @@ require_once __DIR__ . "/../modelos/retiro_modelo.php";
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
+if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+    http_response_code(403);
+    header("Location: /PULPERIA-CHEBS/vistas/ventas/venta.php?ret_err=" . urlencode("Error de seguridad. Recarga la página."));
+    exit;
+}
+
 $turnoId = (int)($_POST['turno_id'] ?? 0);
 $monto   = (float)($_POST['monto'] ?? 0);
 $motivo  = $_POST['motivo'] ?? null;
@@ -14,6 +20,16 @@ $motivo  = $_POST['motivo'] ?? null;
 $adminId = (int)($_SESSION['user']['id'] ?? 0);
 if ($adminId <= 0) {
     header("Location: /PULPERIA-CHEBS/vistas/login.php");
+    exit;
+}
+
+if ($turnoId <= 0) {
+    header("Location: /PULPERIA-CHEBS/vistas/ventas/venta.php?ret_err=" . urlencode("Turno inválido."));
+    exit;
+}
+
+if ($monto <= 0) {
+    header("Location: /PULPERIA-CHEBS/vistas/ventas/venta.php?ret_err=" . urlencode("El monto debe ser mayor que cero."));
     exit;
 }
 

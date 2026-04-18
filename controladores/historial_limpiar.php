@@ -10,6 +10,12 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     die("Método no permitido");
 }
 
+if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+    http_response_code(403);
+    header("Location: ../vistas/ventas/venta.php?err=" . urlencode("Error de seguridad. Recarga la página."));
+    exit;
+}
+
 $turno = obtenerTurnoAbiertoHoy($conexion);
 if (!$turno) {
     header("Location: ../vistas/ventas/venta.php?turno_err=" . urlencode("No hay turno abierto."));

@@ -139,7 +139,11 @@ for ($i = 0; $i < $max; $i++) {
 
 /* =========================================================
    ✅ GUARDAR PRODUCTO + PRESENTACIONES + IMAGEN
+   - producto y presentaciones dentro de transacción (atómicos)
+   - imagen fuera: falla de imagen no invalida el producto
    ========================================================= */
+$conexion->begin_transaction();
+
 try {
     $id_nuevo = guardarProducto(
         $conexion,
@@ -153,6 +157,7 @@ try {
     );
 
     if ((int)$id_nuevo <= 0) {
+        $conexion->rollback();
         header("Location: ../vistas/productos/crear.php?error=guardar");
         exit;
     }
@@ -166,6 +171,8 @@ try {
         $pres_costos
     );
 
+    $conexion->commit();
+
     /* =========================================================
        ✅ SUBIR IMAGEN (OPCIONAL) Y GUARDAR EN BD
        ========================================================= */
@@ -174,24 +181,34 @@ try {
         if (($_FILES['imagen']['error'] ?? UPLOAD_ERR_OK) === UPLOAD_ERR_OK) {
 
             $tmp  = $_FILES['imagen']['tmp_name'] ?? '';
-            $name = $_FILES['imagen']['name'] ?? '';
             $size = (int)($_FILES['imagen']['size'] ?? 0);
 
-            // límite 5MB
-            if ($size <= 5 * 1024 * 1024) {
+            // Límite 5MB
+            if ($size > 0 && $size <= 5 * 1024 * 1024 && is_uploaded_file($tmp)) {
 
-                $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-                $permitidas = ['jpg','jpeg','png','webp'];
+                // ✅ Validar MIME real del binario (no confiar en nombre ni en $_FILES['type'])
+                $mime_map = [
+                    'image/jpeg' => 'jpg',
+                    'image/png'  => 'png',
+                    'image/webp' => 'webp',
+                ];
 
-                if (in_array($ext, $permitidas, true)) {
+                $finfo    = finfo_open(FILEINFO_MIME_TYPE);
+                $mime_real = finfo_file($finfo, $tmp);
+                finfo_close($finfo);
+
+                if ($mime_real !== false && isset($mime_map[$mime_real])) {
+
+                    // ✅ Extensión derivada del MIME validado, no del nombre original
+                    $ext = $mime_map[$mime_real];
 
                     $dir = __DIR__ . '/../uploads/productos/';
-                    if (!is_dir($dir)) @mkdir($dir, 0777, true);
+                    if (!is_dir($dir)) @mkdir($dir, 0755, true);
 
                     $nuevoNombre = 'prod_' . (int)$id_nuevo . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-                    $destino = $dir . $nuevoNombre;
+                    $destino     = $dir . $nuevoNombre;
 
-                    if (is_uploaded_file($tmp) && move_uploaded_file($tmp, $destino)) {
+                    if (move_uploaded_file($tmp, $destino)) {
 
                         $imagenPath = 'uploads/productos/' . $nuevoNombre;
 
@@ -211,6 +228,7 @@ try {
     exit;
 
 } catch (Throwable $e) {
+    $conexion->rollback();
     header("Location: ../vistas/productos/crear.php?error=sql");
     exit;
 }

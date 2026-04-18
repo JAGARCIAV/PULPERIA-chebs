@@ -31,6 +31,8 @@ if (isset($_GET['producto_id'])) {
     <form id="form_lote" action="../../controladores/lote_controlador.php" method="POST"
           class="px-8 py-8 space-y-6" onsubmit="return validarLote();">
 
+      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(get_csrf_token()) ?>">
+
       <!-- ============================================================
            BUSQUEDA DE PRODUCTO (escaneo + nombre)
            ============================================================ -->

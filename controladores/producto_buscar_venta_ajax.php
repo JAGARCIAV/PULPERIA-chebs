@@ -70,7 +70,7 @@ $stmt2 = $conexion->prepare(
      WHERE l.producto_id = ?
        AND l.activo = 1
        AND l.cantidad_unidades > 0
-       AND l.fecha_vencimiento >= CURDATE()'
+       AND (l.fecha_vencimiento IS NULL OR l.fecha_vencimiento = \'0000-00-00\' OR l.fecha_vencimiento >= CURDATE())'
 );
 if (!$stmt2) {
     echo json_encode(['modo' => 'error', 'resultado' => null]);

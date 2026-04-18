@@ -38,6 +38,9 @@ if (!$u) {
    2) Guardar cambios (POST)
    ========================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+    $err = "Error de seguridad. Recarga la página.";
+  } else {
   $nombre  = trim($_POST['nombre'] ?? '');
   $usuario = trim($_POST['usuario'] ?? '');
   $rol     = $_POST['rol'] ?? 'empleado';
@@ -121,6 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $u['usuario'] = $usuario;
   $u['rol'] = $rol;
   $u['activo'] = $activo;
+  } // cierra else del CSRF
 }
 
 /* =========================
@@ -166,6 +170,7 @@ include __DIR__ . "/../layout/header.php";
     </div>
 
     <form method="POST" class="px-6 py-6 space-y-5">
+      <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
 
       <div>
         <label class="block text-sm font-black text-pink-600 mb-2">Nombre</label>

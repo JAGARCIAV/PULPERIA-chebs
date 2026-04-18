@@ -51,16 +51,19 @@ if (!$permiso['ok']) {
 $conexion->begin_transaction();
 
 try {
+    // Primero: reclamar la anulación de forma atómica (AND anulada=0 en el UPDATE).
+    // Si otro proceso llegó primero, affected_rows=0 y el rollback ocurre
+    // antes de tocar el stock — imposible duplicar la devolución.
+    $claimed = marcarVentaAnulada($conexion, $venta_id);
+    if (!$claimed) {
+        throw new Exception("La venta ya fue anulada por otro proceso.");
+    }
+
     autoDesactivarLotesSinStock($conexion);
 
     $ok = devolverStockCompletoVenta($conexion, $venta_id);
     if (!$ok) {
         throw new Exception("No se pudo devolver stock (historial de lotes insuficiente).");
-    }
-
-    $ok2 = marcarVentaAnulada($conexion, $venta_id);
-    if (!$ok2) {
-        throw new Exception("No se pudo marcar la venta como anulada.");
     }
 
     autoDesactivarLotesSinStock($conexion);

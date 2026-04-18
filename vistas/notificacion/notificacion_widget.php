@@ -1,9 +1,10 @@
-<?php ?>
+<?php require_once __DIR__ . "/../../config/auth.php"; ?>
 <div id="notif_wrap" class="fixed top-4 right-4 z-[99999] space-y-3"></div>
 
 <script>
 (() => {
   const BASE = "/PULPERIA-CHEBS";
+  const CSRF = <?= json_encode(get_csrf_token()) ?>;
   const wrap = document.getElementById("notif_wrap");
   if (!wrap) return;
 
@@ -162,6 +163,7 @@
       const fd = new FormData();
       fd.append("accion", "desactivar");
       fd.append("lote_id", loteId);
+      fd.append("csrf_token", CSRF);
 
       try{
         const r = await fetch(`${BASE}/controladores/notificacion_accion.php`, {

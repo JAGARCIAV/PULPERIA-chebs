@@ -823,6 +823,7 @@ if ($turnoAbierto) {
 
       <form action="../../controladores/retiro_guardar.php" method="POST" onsubmit="return abrirConfirmacion('confirmRetiro');">
         <div class="px-6 py-5 space-y-3">
+          <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
           <input type="hidden" name="turno_id" value="<?= $turnoAbierto ? (int)$turnoAbierto["id"] : 0 ?>">
 
           <div class="rounded-2xl bg-chebs-soft/60 border border-chebs-line p-4">

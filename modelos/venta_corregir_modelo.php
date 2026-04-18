@@ -9,12 +9,16 @@ function ventaEstaAnulada($conexion, $venta_id) {
 function marcarVentaAnulada($conexion, $venta_id) {
     $venta_id = (int)$venta_id;
 
-    $stmt = $conexion->prepare("UPDATE ventas SET anulada=1, total=0 WHERE id=?");
+    // AND anulada=0: garantía atómica contra doble anulación concurrente.
+    // Si affected_rows=0, otro proceso ya anuló esta venta.
+    // total se conserva para auditoría histórica.
+    $stmt = $conexion->prepare("UPDATE ventas SET anulada=1 WHERE id=? AND anulada=0");
     $stmt->bind_param("i", $venta_id);
-    $ok = $stmt->execute();
+    $stmt->execute();
+    $affected = $stmt->affected_rows;
     $stmt->close();
 
-    return $ok;
+    return $affected === 1;
 }
 
 function obtenerDetalleVentaPorVenta($conexion, $venta_id) {

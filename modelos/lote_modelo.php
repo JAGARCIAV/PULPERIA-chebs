@@ -17,7 +17,7 @@ function autoDesactivarLotesSinStock($conexion) {
             SET activo = 0
             WHERE activo = 1
               AND cantidad_unidades <= 0";
-    @mysqli_query($conexion, $sql);
+    $conexion->query($sql);
 }
 
 /* =========================
@@ -185,10 +185,10 @@ function descontarStockFIFO($conexion, $producto_id, $unidades_a_descontar, $ven
         $up = $conexion->prepare("
             UPDATE lotes
             SET cantidad_unidades = cantidad_unidades - ?,
-                activo = IF(cantidad_unidades - ? = 0, 0, 1)
+                activo = IF(cantidad_unidades <= 0, 0, 1)
             WHERE id = ?
         ");
-        $up->bind_param("iii", $restar, $restar, $lote_id);
+        $up->bind_param("ii", $restar, $lote_id);
         $up->execute();
         $up->close();
 
@@ -446,7 +446,7 @@ function devolverStockProductoDesdeVenta($conexion, $venta_id, $producto_id, $un
     }
 
     if ($devuelto_total > 0) {
-        $sqlp = "UPDATE productos SET stock_actual = stock_actual + ? WHERE id = ?";
+        $sqlp = "UPDATE productos SET stock_actual = COALESCE(stock_actual, 0) + ? WHERE id = ?";
         $stmtp = $conexion->prepare($sqlp);
         $stmtp->bind_param("ii", $devuelto_total, $producto_id);
         $stmtp->execute();

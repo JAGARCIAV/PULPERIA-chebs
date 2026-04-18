@@ -29,6 +29,11 @@ if (!$data || !isset($data["carrito"]) || !is_array($data["carrito"]) || count($
 
 $carrito = $data["carrito"];
 
+if (count($carrito) > 100) {
+  echo json_encode(["ok" => false, "msg" => "Demasiados productos en el carrito (máximo 100)."]);
+  exit;
+}
+
 // 1. Ordenar carrito por ID de producto (Mitigación de Deadlocks)
 usort($carrito, function($a, $b) {
     return (int)($a["producto_id"] ?? 0) - (int)($b["producto_id"] ?? 0);
@@ -57,6 +62,10 @@ try {
 
     if ($producto_id <= 0 || $cantidad <= 0) {
       throw new Exception("Datos inválidos en carrito");
+    }
+
+    if ($cantidad > 9999) {
+      throw new Exception("Cantidad por ítem excede el límite permitido (máximo 9999).");
     }
 
     $p = obtenerProductoPorId($conexion, $producto_id);

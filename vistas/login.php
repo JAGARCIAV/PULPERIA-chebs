@@ -1,14 +1,6 @@
 <?php
-// ✅ Headers de seguridad HTTP
-header('X-Frame-Options: DENY');
-header('X-Content-Type-Options: nosniff');
-header('Referrer-Policy: same-origin');
-
-// ✅ Endurecer cookie de sesión (debe ir antes de session_start)
-ini_set('session.cookie_httponly', '1');
-ini_set('session.cookie_samesite', 'Strict');
-
-if (session_status() === PHP_SESSION_NONE) session_start();
+// auth.php gestiona: headers de seguridad, cookie flags y session_start()
+require_once __DIR__ . "/../config/auth.php";
 
 if (!empty($_SESSION['user'])) {
     header("Location: /PULPERIA-CHEBS/index.php");
@@ -105,6 +97,7 @@ $seg_bloqueo = ($error === 'bloqueado') ? max(0, (int)($_GET['seg'] ?? 300)) : 0
         <?php endif; ?>
 
         <form method="POST" action="/PULPERIA-CHEBS/controladores/login.php" class="space-y-3">
+          <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
           <div>
             <label class="text-sm font-semibold">Usuario</label>
             <input

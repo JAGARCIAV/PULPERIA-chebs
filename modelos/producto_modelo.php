@@ -103,7 +103,7 @@ function actualizarProducto($conexion, $id, $nombre, $precio_unidad, $precio_paq
 function obtenerProductosVendibles($conexion, $termino = '', $limite = null) {
     $params = [];
     $types = "";
-    $where = " WHERE p.activo = 1 AND l.activo = 1 AND l.cantidad_unidades > 0 AND l.fecha_vencimiento >= CURDATE() ";
+    $where = " WHERE p.activo = 1 AND l.activo = 1 AND l.cantidad_unidades > 0 AND (l.fecha_vencimiento IS NULL OR l.fecha_vencimiento = '0000-00-00' OR l.fecha_vencimiento >= CURDATE()) ";
 
     if ($termino !== '') {
         $where .= " AND p.nombre LIKE ? ";
