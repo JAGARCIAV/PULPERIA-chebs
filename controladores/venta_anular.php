@@ -78,6 +78,7 @@ try {
 
 } catch (Throwable $e) {
     $conexion->rollback();
+    error_log("[venta_anular] venta_id=$venta_id — " . $e->getMessage());
     header("Location: /PULPERIA-CHEBS/vistas/ventas/corregir_venta.php?id=$venta_id&err=" . urlencode($e->getMessage()));
     exit;
 }

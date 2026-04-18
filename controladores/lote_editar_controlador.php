@@ -78,6 +78,7 @@ try {
 
 } catch (Throwable $e) {
     $conexion->rollback();
+    error_log("[lote_editar_controlador] lote_id=$lote_id — " . $e->getMessage());
     header("Location: ../vistas/lotes/editar.php?id=" . $lote_id . "&err=sql");
     exit;
 }

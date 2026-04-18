@@ -185,10 +185,10 @@ function descontarStockFIFO($conexion, $producto_id, $unidades_a_descontar, $ven
         $up = $conexion->prepare("
             UPDATE lotes
             SET cantidad_unidades = cantidad_unidades - ?,
-                activo = IF(cantidad_unidades <= 0, 0, 1)
+                activo = IF(cantidad_unidades <= ?, 0, 1)
             WHERE id = ?
         ");
-        $up->bind_param("ii", $restar, $lote_id);
+        $up->bind_param("iii", $restar, $restar, $lote_id);
         $up->execute();
         $up->close();
 
@@ -270,11 +270,27 @@ function activarLote($conexion, $lote_id) {
     $lote_id = (int)$lote_id;
     if ($lote_id <= 0) return false;
 
-    $sql = "UPDATE lotes SET activo = 1 WHERE id = ?";
+    $lote = obtenerLotePorId($conexion, $lote_id);
+    if (!$lote) return false;
+
+    $cant    = (int)$lote['cantidad_unidades'];
+    $prod_id = (int)$lote['producto_id'];
+
+    $sql  = "UPDATE lotes SET activo = 1 WHERE id = ?";
     $stmt = $conexion->prepare($sql);
     $stmt->bind_param("i", $lote_id);
     $ok = $stmt->execute();
     $stmt->close();
+
+    if ($ok && $cant > 0 && $prod_id > 0) {
+        $stmtp = $conexion->prepare(
+            "UPDATE productos SET stock_actual = stock_actual + ? WHERE id = ?"
+        );
+        $stmtp->bind_param("ii", $cant, $prod_id);
+        $stmtp->execute();
+        $stmtp->close();
+    }
+
     return $ok;
 }
 

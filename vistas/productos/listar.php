@@ -36,6 +36,12 @@ if ($productos) {
     </div>
   <?php endif; ?>
 
+  <?php if(isset($_GET['warn']) && ($_GET['warn'] == '1')): ?>
+    <div class="p-4 mb-6 rounded-2xl bg-yellow-100 border border-yellow-300 text-yellow-900 font-bold">
+      ⚠️ <?= htmlspecialchars((string)($_GET['msg'] ?? 'Advertencia')) ?>
+    </div>
+  <?php endif; ?>
+
   <!-- Header -->
   <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
     <div>

@@ -33,7 +33,12 @@ $res = eliminarProductoConLotesSeguro($conexion, $id);
 
 if (!empty($res['ok'])) {
   $msg = urlencode((string)($res['msg'] ?? 'OK'));
-  header("Location: /PULPERIA-CHEBS/vistas/productos/listar.php?ok=1&msg={$msg}");
+  $fueBorrado = (strpos($res['msg'], 'eliminado correctamente') !== false);
+  if ($fueBorrado) {
+    header("Location: /PULPERIA-CHEBS/vistas/productos/listar.php?ok=1&msg={$msg}");
+  } else {
+    header("Location: /PULPERIA-CHEBS/vistas/productos/listar.php?warn=1&msg={$msg}");
+  }
   exit;
 }
 

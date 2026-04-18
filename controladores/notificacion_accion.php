@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . "/../config/auth.php";
-require_role(['admin','empleado']);
+require_role(['admin']);
 
 require_once __DIR__ . "/../config/conexion.php";
 require_once __DIR__ . "/../modelos/lote_modelo.php";
@@ -29,5 +29,6 @@ try {
   $ok = desactivarLote($conexion, $lote_id);
   echo json_encode(["ok" => (bool)$ok]);
 } catch (Throwable $e) {
-  echo json_encode(["ok" => false, "msg" => $e->getMessage()]);
+  error_log("[notificacion_accion] lote_id=$lote_id — " . $e->getMessage());
+  echo json_encode(["ok" => false, "msg" => "Error al procesar. Intente de nuevo."]);
 }

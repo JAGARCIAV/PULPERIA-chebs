@@ -366,7 +366,12 @@ function obtenerProductosConStock($conexion, $soloActivos = true) {
     $sql = "
       SELECT
         p.*,
-        COALESCE(SUM(CASE WHEN l.activo=1 THEN l.cantidad_unidades ELSE 0 END), 0) AS stock_total
+        COALESCE(SUM(CASE
+          WHEN l.activo=1
+           AND (l.fecha_vencimiento IS NULL OR l.fecha_vencimiento = '0000-00-00' OR l.fecha_vencimiento >= CURDATE())
+          THEN l.cantidad_unidades
+          ELSE 0
+      END), 0) AS stock_total
       FROM productos p
       LEFT JOIN lotes l ON l.producto_id = p.id
       $where

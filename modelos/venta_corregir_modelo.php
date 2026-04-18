@@ -59,7 +59,7 @@ function obtenerUnidadesPresentacion($conexion, $presentacion_id) {
     $presentacion_id = (int)$presentacion_id;
     if ($presentacion_id <= 0) return 0;
 
-    $stmt = $conexion->prepare("SELECT unidades FROM producto_presentaciones WHERE id=? AND activa=1 LIMIT 1");
+    $stmt = $conexion->prepare("SELECT unidades FROM producto_presentaciones WHERE id=? LIMIT 1");
     $stmt->bind_param("i", $presentacion_id);
     $stmt->execute();
     $r = $stmt->get_result()->fetch_assoc();

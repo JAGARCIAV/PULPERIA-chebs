@@ -66,6 +66,7 @@ try {
 
 } catch (Throwable $e) {
     $conexion->rollback();
+    error_log("[lote_controlador] " . $e->getMessage());
     header("Location: ../vistas/lotes/listar.php?err=guardar");
     exit;
 }

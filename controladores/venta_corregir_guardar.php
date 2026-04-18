@@ -2,6 +2,11 @@
 require_once __DIR__ . "/../config/auth.php";
 require_role(['admin','empleado']);
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: /PULPERIA-CHEBS/vistas/ventas/historial.php");
+    exit;
+}
+
 require_once __DIR__ . "/../config/conexion.php";
 require_once __DIR__ . "/../modelos/venta_modelo.php";
 require_once __DIR__ . "/../modelos/venta_corregir_modelo.php";
@@ -194,6 +199,7 @@ try {
 
 } catch (Throwable $e) {
   $conexion->rollback();
+  error_log("[venta_corregir_guardar] venta_id=$venta_id — " . $e->getMessage());
   header("Location: /PULPERIA-CHEBS/vistas/ventas/corregir_venta.php?id=$venta_id&err=" . urlencode($e->getMessage()));
   exit;
 }
