@@ -176,6 +176,31 @@ $diaData = [
    ====================================================== */
 $productos = $conexion->query("SELECT id, nombre FROM productos");
 $movimientos = obtenerMovimientos($conexion, $producto_id);
+
+/* ======================================================
+   Resumen del producto filtrado
+   ====================================================== */
+$infoProducto = null;
+if ($producto_id) {
+  $sqlInfo = "
+    SELECT
+      p.nombre,
+      p.stock_actual,
+      p.precio_unidad,
+      COALESCE(SUM(CASE WHEN v.anulada = 0 THEN d.unidades_reales ELSE 0 END), 0) AS total_unidades_vendidas,
+      COALESCE(SUM(CASE WHEN v.anulada = 0 THEN d.subtotal ELSE 0 END), 0)        AS total_dinero_vendido,
+      COUNT(DISTINCT CASE WHEN v.anulada = 0 THEN v.id END)                        AS total_ventas
+    FROM productos p
+    LEFT JOIN detalle_venta d ON d.producto_id = p.id
+    LEFT JOIN ventas v ON v.id = d.venta_id
+    WHERE p.id = ?
+    GROUP BY p.id
+  ";
+  $stmtInfo = $conexion->prepare($sqlInfo);
+  $stmtInfo->bind_param("i", $producto_id);
+  $stmtInfo->execute();
+  $infoProducto = $stmtInfo->get_result()->fetch_assoc();
+}
 ?>
 
 <div class="max-w-7xl mx-auto px-4 py-6">
@@ -411,6 +436,63 @@ $movimientos = obtenerMovimientos($conexion, $producto_id);
 
     </form>
   </div>
+
+  <!-- ✅ TARJETA RESUMEN DEL PRODUCTO -->
+  <?php if ($infoProducto): ?>
+  <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-chebs-line bg-chebs-soft/50 flex items-center justify-between gap-4">
+      <div>
+        <h2 class="text-lg font-black text-chebs-black">
+          <?= htmlspecialchars($infoProducto['nombre']) ?>
+        </h2>
+        <p class="text-xs text-gray-500 mt-0.5">Resumen completo del producto</p>
+      </div>
+      <span class="px-3 py-1 rounded-full text-xs font-black bg-chebs-green/10 text-chebs-green border border-chebs-green/20">
+        ID #<?= (int)$producto_id ?>
+      </span>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 divide-x divide-chebs-line">
+
+      <!-- Stock actual -->
+      <div class="p-5 flex flex-col gap-1">
+        <span class="text-xs text-gray-500 font-bold">Stock actual</span>
+        <span class="text-2xl font-black text-chebs-black">
+          <?= (int)$infoProducto['stock_actual'] ?>
+        </span>
+        <span class="text-xs text-gray-500">unidades en inventario</span>
+      </div>
+
+      <!-- Total unidades vendidas -->
+      <div class="p-5 flex flex-col gap-1">
+        <span class="text-xs text-gray-500 font-bold">Unidades vendidas</span>
+        <span class="text-2xl font-black text-chebs-black">
+          <?= number_format((float)$infoProducto['total_unidades_vendidas']) ?>
+        </span>
+        <span class="text-xs text-gray-500">unidades despachadas</span>
+      </div>
+
+      <!-- Total en dinero -->
+      <div class="p-5 flex flex-col gap-1">
+        <span class="text-xs text-gray-500 font-bold">Total vendido</span>
+        <span class="text-2xl font-black text-chebs-black">
+          Bs <?= number_format((float)$infoProducto['total_dinero_vendido'], 2) ?>
+        </span>
+        <span class="text-xs text-gray-500">en todas las ventas</span>
+      </div>
+
+      <!-- Número de ventas -->
+      <div class="p-5 flex flex-col gap-1">
+        <span class="text-xs text-gray-500 font-bold">Aparece en</span>
+        <span class="text-2xl font-black text-chebs-black">
+          <?= (int)$infoProducto['total_ventas'] ?>
+        </span>
+        <span class="text-xs text-gray-500">ventas distintas</span>
+      </div>
+
+    </div>
+  </div>
+  <?php endif; ?>
 
   <!-- Tabla movimientos -->
   <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden">
@@ -663,7 +745,13 @@ function validarFiltro(){
   }
 
   if(!hiddenP.value){
-    setError('Selecciona un producto válido de la lista o deja vacío para ver todos.');
+    // Auto-seleccionar primer resultado si hay coincidencia
+    filtrar(inputP.value);
+    if(autoItems.length > 0){
+      seleccionarItem(0);
+      return true;
+    }
+    setError('No se encontró ese producto. Revisa el nombre o deja vacío para ver todos.');
     inputP.focus();
     return false;
   }
