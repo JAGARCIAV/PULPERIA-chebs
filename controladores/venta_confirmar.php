@@ -163,9 +163,6 @@ try {
 
   actualizarTotalVenta($conexion, $venta_id);
 
-  // Limpieza final
-  autoDesactivarLotesSinStock($conexion);
-
   $conexion->commit();
   echo json_encode(["ok" => true, "venta_id" => $venta_id]);
   exit;

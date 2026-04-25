@@ -6,12 +6,19 @@ require_once "../../config/conexion.php";
 require_once "../../modelos/venta_modelo.php";
 include "../layout/header.php";
 
-$fecha     = $_GET['fecha'] ?? null;
-$turno     = $_GET['turno'] ?? null;
-$tipo      = $_GET['tipo'] ?? null;
-$busqueda  = $_GET['busqueda'] ?? null;
+$fecha    = $_GET['fecha']    ?? null;
+$turno    = $_GET['turno']    ?? null;
+$tipo     = $_GET['tipo']     ?? null;
+$busqueda = $_GET['busqueda'] ?? null;
+$pagina   = max(1, (int)($_GET['pagina'] ?? 1));
+$limite   = 50;
+$offset   = ($pagina - 1) * $limite;
 
-$ventasRs = obtenerVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda);
+$totalVentas = obtenerTotalVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda);
+$totalPaginas = max(1, (int)ceil($totalVentas / $limite));
+if ($pagina > $totalPaginas) { $pagina = $totalPaginas; $offset = ($pagina - 1) * $limite; }
+
+$ventasRs = obtenerVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda, $limite, $offset);
 
 /* =====================================================
    🎨 COLORES POR RESPONSABLE (FILA COMPLETA)
@@ -302,6 +309,46 @@ while($row = $ventasRs->fetch_assoc()){
 
       </table>
     </div>
+
+    <!-- Paginación -->
+    <?php if ($totalPaginas > 1): ?>
+    <?php
+      $qBase = array_filter([
+        'fecha'    => $fecha,
+        'turno'    => $turno,
+        'tipo'     => $tipo,
+        'busqueda' => $busqueda,
+      ]);
+      $qPrev = http_build_query($qBase + ['pagina' => $pagina - 1]);
+      $qNext = http_build_query($qBase + ['pagina' => $pagina + 1]);
+    ?>
+    <div class="flex items-center justify-between px-6 py-4 border-t border-chebs-line">
+      <span class="text-sm text-gray-500">
+        Mostrando <?= number_format($offset + 1) ?>–<?= number_format(min($offset + $limite, $totalVentas)) ?>
+        de <?= number_format($totalVentas) ?> ventas
+      </span>
+      <div class="flex gap-2">
+        <?php if ($pagina > 1): ?>
+          <a href="?<?= $qPrev ?>"
+             class="px-4 py-2 rounded-2xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition text-sm">
+            ← Anterior
+          </a>
+        <?php endif; ?>
+
+        <span class="px-4 py-2 rounded-2xl bg-chebs-green text-white font-black text-sm">
+          <?= $pagina ?> / <?= $totalPaginas ?>
+        </span>
+
+        <?php if ($pagina < $totalPaginas): ?>
+          <a href="?<?= $qNext ?>"
+             class="px-4 py-2 rounded-2xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition text-sm">
+            Siguiente →
+          </a>
+        <?php endif; ?>
+      </div>
+    </div>
+    <?php endif; ?>
+
   </div>
 
 </div>

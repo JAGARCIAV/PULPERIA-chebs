@@ -46,7 +46,6 @@ function guardarLote($conexion, $producto_id, $fecha_vencimiento, $cantidad) {
     $lote_id = (int)$conexion->insert_id;
     if ($lote_id <= 0) return false;
 
-    autoDesactivarLotesSinStock($conexion);
     return $lote_id;
 }
 
@@ -182,13 +181,16 @@ function descontarStockFIFO($conexion, $producto_id, $unidades_a_descontar, $ven
         $restar  = min($disp, $restante);
 
         // ✅ UPDATE atómico por lote
+        // IMPORTANTE: MySQL evalúa SET en orden, por lo que en el IF
+        // `cantidad_unidades` ya tiene el valor nuevo (después de restar).
+        // Correcto: desactivar si el nuevo valor es <= 0, no comparar con $restar.
         $up = $conexion->prepare("
             UPDATE lotes
             SET cantidad_unidades = cantidad_unidades - ?,
-                activo = IF(cantidad_unidades <= ?, 0, 1)
+                activo = IF(cantidad_unidades <= 0, 0, 1)
             WHERE id = ?
         ");
-        $up->bind_param("iii", $restar, $restar, $lote_id);
+        $up->bind_param("ii", $restar, $lote_id);
         $up->execute();
         $up->close();
 
@@ -282,13 +284,28 @@ function activarLote($conexion, $lote_id) {
     $ok = $stmt->execute();
     $stmt->close();
 
+    // Solo sumamos a stock_actual si hay un movimiento de desactivación previo
+    // que haya restado esa cantidad. Si el lote se desactivó por el bug de MySQL
+    // SET (activo=0 sin tocar stock_actual), sumar aquí inflaría el stock.
     if ($ok && $cant > 0 && $prod_id > 0) {
-        $stmtp = $conexion->prepare(
-            "UPDATE productos SET stock_actual = stock_actual + ? WHERE id = ?"
+        $chk = $conexion->prepare(
+            "SELECT COUNT(*) AS n FROM movimientos_inventario
+             WHERE lote_id = ? AND tipo = 'ajuste' AND motivo = 'Desactivación de lote'"
         );
-        $stmtp->bind_param("ii", $cant, $prod_id);
-        $stmtp->execute();
-        $stmtp->close();
+        $chk->bind_param("i", $lote_id);
+        $chk->execute();
+        $row = $chk->get_result()->fetch_assoc();
+        $chk->close();
+
+        // Solo si existe el movimiento de desactivación, el stock_actual fue restado → sumamos de vuelta
+        if ((int)($row['n'] ?? 0) > 0) {
+            $stmtp = $conexion->prepare(
+                "UPDATE productos SET stock_actual = stock_actual + ? WHERE id = ?"
+            );
+            $stmtp->bind_param("ii", $cant, $prod_id);
+            $stmtp->execute();
+            $stmtp->close();
+        }
     }
 
     return $ok;

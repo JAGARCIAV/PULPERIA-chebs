@@ -62,8 +62,6 @@ if (!is_array($detalle_ids) || count($detalle_ids) === 0) {
 $conexion->begin_transaction();
 
 try {
-  autoDesactivarLotesSinStock($conexion);
-
   for ($i=0; $i<count($detalle_ids); $i++) {
 
     $det_id = (int)$detalle_ids[$i];
@@ -187,7 +185,6 @@ try {
   }
 
   actualizarTotalVenta($conexion, $venta_id);
-  autoDesactivarLotesSinStock($conexion);
 
   $conexion->commit();
 

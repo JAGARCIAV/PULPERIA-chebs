@@ -134,7 +134,57 @@ function obtenerTotalVentasHoy($conexion) {
     return (float)($row["total_hoy"] ?? 0);
 }
 
-function obtenerVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo = null, $busqueda = null) {
+function _ventasFiltroBase($fecha, $turno, $tipo, $busqueda) {
+    $where  = " WHERE v.anulada = 0";
+    $params = [];
+    $types  = "";
+
+    if ($fecha) {
+        $where .= " AND DATE(v.fecha) = ?";
+        $params[] = $fecha;
+        $types .= "s";
+    }
+    if ($turno) {
+        if ($turno === "mañana") {
+            $where .= " AND TIME(v.fecha) < '12:00:00'";
+        } elseif ($turno === "tarde") {
+            $where .= " AND TIME(v.fecha) >= '12:00:00'";
+        }
+    }
+    if ($busqueda && $tipo) {
+        if ($tipo === "id") {
+            $where .= " AND v.id = ?";
+            $params[] = (int)$busqueda;
+            $types .= "i";
+        }
+        if ($tipo === "responsable") {
+            $where .= " AND u.nombre LIKE ?";
+            $params[] = "%$busqueda%";
+            $types .= "s";
+        }
+    }
+    return [$where, $params, $types];
+}
+
+function obtenerTotalVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo = null, $busqueda = null) {
+    [$where, $params, $types] = _ventasFiltroBase($fecha, $turno, $tipo, $busqueda);
+    $sql = "SELECT COUNT(*) AS total
+            FROM ventas v
+            JOIN turnos t ON t.id = v.turno_id
+            JOIN usuarios u ON u.id = t.usuario_id"
+           . $where;
+    $stmt = $conexion->prepare($sql);
+    if (!empty($params)) {
+        $stmt->bind_param($types, ...$params);
+    }
+    $stmt->execute();
+    $total = (int)($stmt->get_result()->fetch_assoc()['total'] ?? 0);
+    $stmt->close();
+    return $total;
+}
+
+function obtenerVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo = null, $busqueda = null, $limite = 50, $offset = 0) {
+    [$where, $params, $types] = _ventasFiltroBase($fecha, $turno, $tipo, $busqueda);
 
     $sql = "SELECT v.id, v.fecha, v.total,
                    v.turno_id,
@@ -145,45 +195,16 @@ function obtenerVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo =
                    END AS turno
             FROM ventas v
             JOIN turnos t ON t.id = v.turno_id
-            JOIN usuarios u ON u.id = t.usuario_id
-            WHERE v.anulada = 0";
+            JOIN usuarios u ON u.id = t.usuario_id"
+           . $where
+           . " ORDER BY v.id DESC LIMIT ? OFFSET ?";
 
-    $params = [];
-    $types  = "";
-
-    if ($fecha) {
-        $sql .= " AND DATE(v.fecha) = ?";
-        $params[] = $fecha;
-        $types .= "s";
-    }
-
-    if ($turno) {
-        if ($turno === "mañana") {
-            $sql .= " AND TIME(v.fecha) < '12:00:00'";
-        } elseif ($turno === "tarde") {
-            $sql .= " AND TIME(v.fecha) >= '12:00:00'";
-        }
-    }
-
-    if ($busqueda && $tipo) {
-        if ($tipo === "id") {
-            $sql .= " AND v.id = ?";
-            $params[] = (int)$busqueda;
-            $types .= "i";
-        }
-        if ($tipo === "responsable") {
-            $sql .= " AND u.nombre LIKE ?";
-            $params[] = "%$busqueda%";
-            $types .= "s";
-        }
-    }
-
-    $sql .= " ORDER BY v.id DESC LIMIT 200";
+    $params[] = $limite;
+    $params[] = $offset;
+    $types   .= "ii";
 
     $stmt = $conexion->prepare($sql);
-    if (!empty($params)) {
-        $stmt->bind_param($types, ...$params);
-    }
+    $stmt->bind_param($types, ...$params);
     $stmt->execute();
     $res = $stmt->get_result();
     $stmt->close();

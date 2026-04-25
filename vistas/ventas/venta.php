@@ -18,9 +18,6 @@ $userId = (int)($_SESSION['user']['id'] ?? 0);
 // ✅ Turno abierto primero
 $turnoAbierto = obtenerTurnoAbiertoHoy($conexion);
 
-// ✅ Datos base (Carga masiva eliminada)
-autoDesactivarLotesSinStock($conexion);
-
 $totalHoy  = obtenerTotalVentasHoy($conexion);
 
 // ✅ Historial desde marca del turno — FIX #6: pasa turno_id para filtrar correctamente
