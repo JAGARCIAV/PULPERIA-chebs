@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(wc -l /c/xampp/htdocs/PULPERIA-chebs/vistas/*/*.php)"
+      "Bash(wc -l /c/xampp/htdocs/PULPERIA-chebs/vistas/*/*.php)",
+      "Bash(/mnt/c/xampp/mysql/bin/mysql -u root --socket=/mnt/c/xampp/mysql/mysql.sock -e \"SHOW DATABASES;\")"
     ]
   }
 }

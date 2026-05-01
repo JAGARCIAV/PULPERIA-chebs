@@ -367,6 +367,17 @@ function actualizarCantidadLote($conexion, $id, $nueva_cantidad) {
         $stmtp->close();
     }
 
+    // Si el lote quedó con stock positivo, reactivar el producto si estaba inactivo
+    // (puede quedar inactivo por el fallback de eliminación fallida)
+    if ($nueva_cantidad > 0 && $prod_id > 0) {
+        $stmtp = $conexion->prepare(
+            "UPDATE productos SET activo = 1 WHERE id = ? AND activo = 0"
+        );
+        $stmtp->bind_param("i", $prod_id);
+        $stmtp->execute();
+        $stmtp->close();
+    }
+
     autoDesactivarLotesSinStock($conexion);
 }
 
