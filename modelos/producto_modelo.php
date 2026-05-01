@@ -269,7 +269,7 @@ function eliminarProductoConLotesSeguro(mysqli $conexion, int $producto_id): arr
     // 3) Si tiene ventas: solo desactivar el PRODUCTO, NO tocar los lotes
     // Esto evita el bug donde el fallback apagaba lotes con stock real
     if ($tieneVentas) {
-        $up = $conexion->prepare("UPDATE productos SET activo=0 WHERE id=? LIMIT 1");
+        $up = $conexion->prepare("UPDATE productos SET activo=0, barcode=NULL WHERE id=? LIMIT 1");
         if ($up) {
             $up->bind_param("i", $producto_id);
             $up->execute();
@@ -341,7 +341,7 @@ function eliminarProductoConLotesSeguro(mysqli $conexion, int $producto_id): arr
 
         // Fallback de último recurso: si por alguna FK inesperada falló,
         // solo desactivar el producto, NUNCA los lotes
-        $up = $conexion->prepare("UPDATE productos SET activo=0 WHERE id=? LIMIT 1");
+        $up = $conexion->prepare("UPDATE productos SET activo=0, barcode=NULL WHERE id=? LIMIT 1");
         if ($up) {
             $up->bind_param("i", $producto_id);
             $up->execute();
