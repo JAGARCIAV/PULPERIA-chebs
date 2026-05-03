@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/auth.php';
 require_role(['admin', 'empleado']);
 require_once __DIR__ . '/../config/conexion.php';
+require_once __DIR__ . '/../modelos/lote_modelo.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -57,31 +58,9 @@ if (!$prod) {
 $producto_id = (int)$prod['id'];
 
 // ---------------------------------------------------------------------------
-// PASO 2: Verificar stock vendible con la misma regla que ventas usa
-// Regla identica a obtenerProductosVendibles():
-//   - producto activo
-//   - lote activo
-//   - lote con unidades > 0
-//   - fecha de vencimiento >= hoy
+// PASO 2: Verificar stock vendible (lotes activos, no vencidos, con unidades)
 // ---------------------------------------------------------------------------
-$stmt2 = $conexion->prepare(
-    'SELECT SUM(l.cantidad_unidades) AS stock_total
-     FROM lotes l
-     WHERE l.producto_id = ?
-       AND l.activo = 1
-       AND l.cantidad_unidades > 0
-       AND (l.fecha_vencimiento IS NULL OR l.fecha_vencimiento = \'0000-00-00\' OR l.fecha_vencimiento >= CURDATE())'
-);
-if (!$stmt2) {
-    echo json_encode(['modo' => 'error', 'resultado' => null]);
-    exit;
-}
-$stmt2->bind_param('i', $producto_id);
-$stmt2->execute();
-$stockRow = $stmt2->get_result()->fetch_assoc();
-$stmt2->close();
-
-$stock_total = (int)($stockRow['stock_total'] ?? 0);
+$stock_total = obtenerStockDisponible($conexion, $producto_id);
 
 // ---------------------------------------------------------------------------
 // PASO 3: Presentaciones activas del producto (para modal en caja)

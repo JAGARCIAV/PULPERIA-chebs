@@ -59,8 +59,6 @@ try {
         throw new Exception("La venta ya fue anulada por otro proceso.");
     }
 
-    autoDesactivarLotesSinStock($conexion);
-
     $ok = devolverStockCompletoVenta($conexion, $venta_id);
     if (!$ok) {
         throw new Exception("No se pudo devolver stock (historial de lotes insuficiente).");

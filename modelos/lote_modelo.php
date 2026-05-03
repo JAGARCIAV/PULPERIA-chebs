@@ -83,8 +83,6 @@ function obtenerLotes($conexion) {
 function obtenerStockDisponible($conexion, $producto_id) {
     $producto_id = (int)$producto_id;
 
-    autoDesactivarLotesSinStock($conexion);
-
     $sql = "SELECT COALESCE(SUM(cantidad_unidades),0) AS total
             FROM lotes
             WHERE producto_id = ?
@@ -210,16 +208,6 @@ function descontarStockFIFO($conexion, $producto_id, $unidades_a_descontar, $ven
         $descontado_total     += $restar;
     }
 
-    // 3. ACTUALIZACIÓN SÍNCRONA DE PRODUCTO (Dentro de la misma transacción)
-    if ($descontado_total > 0) {
-        $sqlp = "UPDATE productos SET stock_actual = GREATEST(stock_actual - ?, 0) WHERE id = ?";
-        $stmtp = $conexion->prepare($sqlp);
-        $stmtp->bind_param("ii", $descontado_total, $producto_id);
-        $stmtp->execute();
-        $stmtp->close();
-    }
-
-    autoDesactivarLotesSinStock($conexion);
     return true;
 }
 
@@ -243,14 +231,6 @@ function desactivarLote($conexion, $lote_id) {
             -$cant_lote,
             'Desactivación de lote'
         );
-
-        // ✅ Sincronizar productos.stock_actual (GREATEST evita negativos)
-        $stmtp = $conexion->prepare(
-            "UPDATE productos SET stock_actual = GREATEST(stock_actual - ?, 0) WHERE id = ?"
-        );
-        $stmtp->bind_param("ii", $cant_lote, $prod_id);
-        $stmtp->execute();
-        $stmtp->close();
     }
 
     $sql = "UPDATE lotes 
@@ -261,7 +241,6 @@ function desactivarLote($conexion, $lote_id) {
     $ok = $stmt->execute();
     $stmt->close();
 
-    autoDesactivarLotesSinStock($conexion);
     return $ok;
 }
 
@@ -283,30 +262,6 @@ function activarLote($conexion, $lote_id) {
     $stmt->bind_param("i", $lote_id);
     $ok = $stmt->execute();
     $stmt->close();
-
-    // Solo sumamos a stock_actual si hay un movimiento de desactivación previo
-    // que haya restado esa cantidad. Si el lote se desactivó por el bug de MySQL
-    // SET (activo=0 sin tocar stock_actual), sumar aquí inflaría el stock.
-    if ($ok && $cant > 0 && $prod_id > 0) {
-        $chk = $conexion->prepare(
-            "SELECT COUNT(*) AS n FROM movimientos_inventario
-             WHERE lote_id = ? AND tipo = 'ajuste' AND motivo = 'Desactivación de lote'"
-        );
-        $chk->bind_param("i", $lote_id);
-        $chk->execute();
-        $row = $chk->get_result()->fetch_assoc();
-        $chk->close();
-
-        // Solo si existe el movimiento de desactivación, el stock_actual fue restado → sumamos de vuelta
-        if ((int)($row['n'] ?? 0) > 0) {
-            $stmtp = $conexion->prepare(
-                "UPDATE productos SET stock_actual = stock_actual + ? WHERE id = ?"
-            );
-            $stmtp->bind_param("ii", $cant, $prod_id);
-            $stmtp->execute();
-            $stmtp->close();
-        }
-    }
 
     return $ok;
 }
@@ -352,19 +307,10 @@ function actualizarCantidadLote($conexion, $id, $nueva_cantidad) {
     $stmt->execute();
     $stmt->close();
 
-    // ✅ Registrar movimiento y sincronizar stock_actual solo si hubo cambio real
     $diff = $nueva_cantidad - $cant_anterior;
     if ($diff !== 0 && $prod_id > 0) {
-        $tipo   = $diff > 0 ? 'entrada' : 'ajuste';
+        $tipo = $diff > 0 ? 'entrada' : 'ajuste';
         registrarMovimiento($conexion, $prod_id, $id, $tipo, $diff, 'Corrección de cantidad lote');
-
-        // GREATEST evita negativos si stock_actual ya estaba desincrónizado
-        $stmtp = $conexion->prepare(
-            "UPDATE productos SET stock_actual = GREATEST(stock_actual + ?, 0) WHERE id = ?"
-        );
-        $stmtp->bind_param("ii", $diff, $prod_id);
-        $stmtp->execute();
-        $stmtp->close();
     }
 
     // Si el lote quedó con stock positivo, reactivar el producto si estaba inactivo
@@ -378,7 +324,6 @@ function actualizarCantidadLote($conexion, $id, $nueva_cantidad) {
         $stmtp->close();
     }
 
-    autoDesactivarLotesSinStock($conexion);
 }
 
 /* =========================
@@ -489,15 +434,6 @@ function devolverStockProductoDesdeVenta($conexion, $venta_id, $producto_id, $un
         $devuelto_total     += $a_devolver;
     }
 
-    if ($devuelto_total > 0) {
-        $sqlp = "UPDATE productos SET stock_actual = COALESCE(stock_actual, 0) + ? WHERE id = ?";
-        $stmtp = $conexion->prepare($sqlp);
-        $stmtp->bind_param("ii", $devuelto_total, $producto_id);
-        $stmtp->execute();
-        $stmtp->close();
-    }
-
-    autoDesactivarLotesSinStock($conexion);
     return ($unidades_restantes <= 0);
 }
 
@@ -553,25 +489,6 @@ function corregirProductoDeLote($conexion, $lote_id, $nuevo_producto_id) {
     $stmt->close();
 
     if (!$ok) return false;
-
-    // ✅ Sincronizar stock_actual de ambos productos si el lote tenía unidades
-    if ($cant > 0) {
-        // Producto anterior: restar (GREATEST evita negativos)
-        $stmtA = $conexion->prepare(
-            "UPDATE productos SET stock_actual = GREATEST(stock_actual - ?, 0) WHERE id = ?"
-        );
-        $stmtA->bind_param("ii", $cant, $producto_actual);
-        $stmtA->execute();
-        $stmtA->close();
-
-        // Producto nuevo: sumar
-        $stmtB = $conexion->prepare(
-            "UPDATE productos SET stock_actual = stock_actual + ? WHERE id = ?"
-        );
-        $stmtB->bind_param("ii", $cant, $nuevo_producto_id);
-        $stmtB->execute();
-        $stmtB->close();
-    }
 
     // ✅ Movimiento con cantidad real (antes era 0)
     registrarMovimiento(

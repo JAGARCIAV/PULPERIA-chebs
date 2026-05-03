@@ -50,15 +50,6 @@ try {
         throw new Exception("Lote creado (ID $lote_id) pero no se pudo registrar el movimiento.");
     }
 
-    // ✅ Sincronizar productos.stock_actual con la cantidad inicial del lote
-    $stmtp = $conexion->prepare("UPDATE productos SET stock_actual = COALESCE(stock_actual, 0) + ? WHERE id = ?");
-    if (!$stmtp) {
-        throw new Exception("No se pudo preparar la actualización de stock del producto.");
-    }
-    $stmtp->bind_param("ii", $cantidad, $producto_id);
-    $stmtp->execute();
-    $stmtp->close();
-
     $conexion->commit();
 
     header("Location: ../vistas/lotes/listar.php?ok=1");

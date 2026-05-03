@@ -142,25 +142,6 @@ function obtenerProductosVendibles($conexion, $termino = '', $limite = null) {
 }
 
 /* =========================
-   STOCK (unidades) - legado
-   ========================= */
-function obtenerStockTotal($conexion, $producto_id) {
-    $producto_id = (int)$producto_id;
-    $sql = "SELECT COALESCE(SUM(cantidad_unidades),0) AS total_stock
-            FROM lotes
-            WHERE producto_id=? AND activo=1";
-    $stmt = $conexion->prepare($sql);
-    if (!$stmt) return 0;
-
-    $stmt->bind_param("i", $producto_id);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-
-    return (int)($row['total_stock'] ?? 0);
-}
-
-/* =========================
    PRESENTACIONES (packs)
    ========================= */
 

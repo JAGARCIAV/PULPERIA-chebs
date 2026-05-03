@@ -185,7 +185,13 @@ if ($producto_id) {
   $sqlInfo = "
     SELECT
       p.nombre,
-      p.stock_actual,
+      (SELECT COALESCE(SUM(l2.cantidad_unidades), 0)
+       FROM lotes l2
+       WHERE l2.producto_id = p.id
+         AND l2.activo = 1
+         AND l2.cantidad_unidades > 0
+         AND (l2.fecha_vencimiento IS NULL OR l2.fecha_vencimiento = '0000-00-00' OR l2.fecha_vencimiento >= CURDATE())
+      ) AS stock_actual,
       p.precio_unidad,
       COALESCE(SUM(CASE WHEN v.anulada = 0 THEN d.unidades_reales ELSE 0 END), 0) AS total_unidades_vendidas,
       COALESCE(SUM(CASE WHEN v.anulada = 0 THEN d.subtotal ELSE 0 END), 0)        AS total_dinero_vendido,
