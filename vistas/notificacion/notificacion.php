@@ -5,6 +5,40 @@ require_role(['admin']);
 include __DIR__ . "/../layout/header.php";
 ?>
 
+<!-- MODAL: CONFIRMAR DESACTIVAR LOTE -->
+<div id="modalDesact" class="hidden fixed inset-0 z-[9999]">
+  <div id="modalDesact_backdrop" class="absolute inset-0 bg-black/60" style="backdrop-filter:blur(3px);"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+    <div class="w-full max-w-sm rounded-3xl bg-white overflow-hidden pointer-events-auto"
+         style="box-shadow:0 24px 64px rgba(0,0,0,0.35),0 0 0 1px rgba(0,0,0,0.07);">
+      <div class="px-6 pt-6 pb-5 border-b border-red-100" style="background:linear-gradient(160deg,#fff5f5 0%,#fff 100%);">
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-black tracking-widest uppercase mb-3"
+              style="background:rgba(220,38,38,0.08);border-color:rgba(220,38,38,0.22);color:#dc2626;">
+          Acción irreversible
+        </span>
+        <h3 class="text-xl font-black text-gray-900">¿Desactivar lote vencido?</h3>
+        <p class="text-sm text-gray-600 mt-2 leading-relaxed" id="modalDesact_texto"></p>
+      </div>
+      <div class="px-6 py-5 flex gap-3 justify-end">
+        <button id="modalDesact_cancelar"
+                class="px-5 py-2.5 rounded-2xl border-2 border-gray-200 bg-white text-gray-700 font-bold hover:bg-gray-50 transition">
+          Cancelar
+        </button>
+        <button id="modalDesact_ok"
+                class="px-5 py-2.5 rounded-2xl bg-red-600 text-white font-black hover:bg-red-700 transition">
+          Sí, desactivar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast de feedback -->
+<div id="notif_toast"
+     class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[10000] px-5 py-3 rounded-2xl text-white text-sm font-bold shadow-lg transition-all"
+     style="min-width:220px;text-align:center;">
+</div>
+
 <div class="max-w-[1440px] mx-auto px-6 py-6">
   <div class="bg-white border border-chebs-line rounded-3xl shadow-soft overflow-hidden">
     <div class="px-6 py-4 bg-chebs-soft/50 border-b border-chebs-line flex items-center justify-between">
@@ -37,6 +71,46 @@ include __DIR__ . "/../layout/header.php";
   const list = document.getElementById("notif_list");
   const pageBadge = document.getElementById("page_badge");
 
+  // ---- Toast ----
+  let _toastTimer = null;
+  function showToast(msg, ok = false) {
+    const t = document.getElementById('notif_toast');
+    t.textContent = msg;
+    t.style.background = ok ? '#4e7a2b' : '#dc2626';
+    t.classList.remove('hidden');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => t.classList.add('hidden'), 3500);
+  }
+
+  // ---- Modal de confirmación custom ----
+  let _resolveConfirm = null;
+
+  function confirmar(nombre, unidades) {
+    return new Promise(resolve => {
+      _resolveConfirm = resolve;
+      document.getElementById('modalDesact_texto').textContent =
+        `Se darán de baja ${unidades} unidad(es) de "${nombre}". Las unidades se eliminarán del inventario de forma permanente.`;
+      document.getElementById('modalDesact').classList.remove('hidden');
+      setTimeout(() => document.getElementById('modalDesact_ok').focus(), 30);
+    });
+  }
+
+  function cerrarModalDesact(result) {
+    document.getElementById('modalDesact').classList.add('hidden');
+    if (_resolveConfirm) { _resolveConfirm(result); _resolveConfirm = null; }
+  }
+
+  document.getElementById('modalDesact_ok').addEventListener('click', () => cerrarModalDesact(true));
+  document.getElementById('modalDesact_cancelar').addEventListener('click', () => cerrarModalDesact(false));
+  document.getElementById('modalDesact_backdrop').addEventListener('click', () => cerrarModalDesact(false));
+  document.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('modalDesact');
+    if (modal.classList.contains('hidden')) return;
+    if (e.key === 'Escape') { e.preventDefault(); cerrarModalDesact(false); }
+    if (e.key === 'Enter')  { e.preventDefault(); cerrarModalDesact(true); }
+  });
+
+  // ---- Utilidades ----
   function esc(s){
     return String(s ?? "")
       .replaceAll("&","&amp;")
@@ -120,13 +194,11 @@ include __DIR__ . "/../layout/header.php";
     const btn = e.target.closest("[data-act='desactivar']");
     if(!btn) return;
 
-    const fila = btn.closest(".rounded-2xl");
-    const nombre   = fila ? (fila.querySelector(".font-black")?.textContent.trim() || "este lote") : "este lote";
-    const unidades = fila ? ((fila.textContent.match(/Unidades:\s*(\d+)/) || [])[1] || "?") : "?";
+    const row = btn.closest(".rounded-2xl");
+    const nombre   = row ? (row.querySelector(".font-black")?.textContent.trim() || "este lote") : "este lote";
+    const unidades = row ? ((row.textContent.match(/Unidades:\s*(\d+)/) || [])[1] || "?") : "?";
 
-    const confirmado = confirm(
-      `¿Dar de baja ${unidades} unidad(es) de "${nombre}"?\n\nEsta acción es IRREVERSIBLE. Las unidades se eliminarán del inventario.`
-    );
+    const confirmado = await confirmar(nombre, unidades);
     if (!confirmado) return;
 
     const id = btn.getAttribute("data-id");
@@ -146,11 +218,10 @@ include __DIR__ . "/../layout/header.php";
     if(j && j.ok === true){
       await cargar();
     } else {
-      alert(j?.msg || "No se pudo desactivar.");
+      showToast(j?.msg || "No se pudo desactivar.");
+      btn.disabled = false;
+      btn.classList.remove("opacity-60","cursor-not-allowed");
     }
-
-    btn.disabled = false;
-    btn.classList.remove("opacity-60","cursor-not-allowed");
   });
 
   cargar();

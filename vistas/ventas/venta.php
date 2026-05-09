@@ -954,7 +954,7 @@ if ($turnoAbierto) {
     <div class="w-[360px] max-w-[90vw] rounded-3xl bg-white overflow-hidden"
          style="box-shadow:0 24px 64px rgba(0,0,0,0.35),0 0 0 1px rgba(0,0,0,0.07);">
 
-      <!-- Cabecera -->
+      <!-- Cabecera (siempre visible) -->
       <div class="px-6 pt-6 pb-5 border-b border-chebs-line" style="background:linear-gradient(160deg,#eef5e7 0%,#fff 100%);">
         <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-black tracking-widest uppercase mb-3"
               style="background:rgba(78,122,43,0.10);border-color:rgba(78,122,43,0.22);color:#4e7a2b;">
@@ -962,36 +962,81 @@ if ($turnoAbierto) {
         </span>
         <h3 class="text-xl font-black text-chebs-black leading-tight" id="modal_pres_nombre"
             style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">Producto</h3>
-        <p class="text-xs text-gray-500 mt-1.5 font-semibold">Selecciona como vender este producto</p>
+        <p class="text-xs text-gray-500 mt-1.5 font-semibold" id="modal_pres_subtitulo">Selecciona como vender este producto</p>
       </div>
 
-      <!-- Lista de opciones -->
-      <div class="px-5 py-4">
-        <div id="modal_pres_lista" class="space-y-2"></div>
+      <!-- STEP 1: Lista de opciones -->
+      <div id="modal_pres_step1">
+        <div class="px-5 py-4">
+          <div id="modal_pres_lista" class="space-y-2"></div>
+        </div>
+        <div class="px-5 py-3 border-t border-chebs-line" style="background:#f9fafb;">
+          <div class="flex items-center justify-center gap-3 flex-wrap">
+            <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
+              <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">1&ndash;9</kbd>
+              seleccionar
+            </span>
+            <span class="text-gray-300 text-xs select-none">&middot;</span>
+            <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
+              <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">&uarr;&darr;</kbd>
+              navegar
+            </span>
+            <span class="text-gray-300 text-xs select-none">&middot;</span>
+            <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
+              <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">Enter</kbd>
+              confirmar
+            </span>
+            <span class="text-gray-300 text-xs select-none">&middot;</span>
+            <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
+              <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">Esc</kbd>
+              cancelar
+            </span>
+          </div>
+        </div>
       </div>
 
-      <!-- Pie: hints de teclado -->
-      <div class="px-5 py-3 border-t border-chebs-line" style="background:#f9fafb;">
-        <div class="flex items-center justify-center gap-3 flex-wrap">
-          <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
-            <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">1&ndash;9</kbd>
-            seleccionar
-          </span>
-          <span class="text-gray-300 text-xs select-none">&middot;</span>
-          <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
-            <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">&uarr;&darr;</kbd>
-            navegar
-          </span>
-          <span class="text-gray-300 text-xs select-none">&middot;</span>
-          <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
-            <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">Enter</kbd>
-            confirmar
-          </span>
-          <span class="text-gray-300 text-xs select-none">&middot;</span>
-          <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
-            <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">Esc</kbd>
-            cancelar
-          </span>
+      <!-- STEP 2: Selector de cantidad (solo para Unidad) -->
+      <div id="modal_pres_step2" class="chebs-hidden">
+        <div class="px-5 py-6">
+          <p class="text-xs text-gray-500 text-center font-semibold mb-5">¿Cuántas unidades?</p>
+          <div class="flex items-center justify-center gap-5">
+            <button id="mp_cant_dec" type="button"
+                    style="width:56px;height:56px;border-radius:16px;border:2px solid #e5e7eb;background:#fff;font-size:28px;font-weight:900;color:#374151;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;line-height:1;">
+              &minus;
+            </button>
+            <span id="mp_cant_display"
+                  style="min-width:90px;text-align:center;font-size:56px;font-weight:900;color:#1f2937;line-height:1;font-variant-numeric:tabular-nums;">
+              1
+            </span>
+            <button id="mp_cant_inc" type="button"
+                    style="width:56px;height:56px;border-radius:16px;border:2px solid #4e7a2b;background:#4e7a2b;font-size:28px;font-weight:900;color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;line-height:1;">
+              +
+            </button>
+          </div>
+        </div>
+        <div class="px-5 pb-5">
+          <button id="mp_cant_ok" type="button"
+                  style="width:100%;padding:14px 0;border-radius:16px;background:#4e7a2b;color:#fff;font-size:16px;font-weight:900;border:none;cursor:pointer;letter-spacing:0.01em;">
+            Agregar al carrito
+          </button>
+        </div>
+        <div class="px-5 py-3 border-t border-chebs-line" style="background:#f9fafb;">
+          <div class="flex items-center justify-center gap-3 flex-wrap">
+            <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
+              <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">0&ndash;9</kbd>
+              escribir
+            </span>
+            <span class="text-gray-300 text-xs select-none">&middot;</span>
+            <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
+              <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">Enter</kbd>
+              confirmar
+            </span>
+            <span class="text-gray-300 text-xs select-none">&middot;</span>
+            <span class="inline-flex items-center gap-1.5 text-[10px] text-gray-500">
+              <kbd style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid #d1d5db;background:#fff;font-weight:900;color:#374151;font-size:10px;line-height:1.5;box-shadow:0 1px 0 #c0c8d0;">Esc</kbd>
+              volver
+            </span>
+          </div>
         </div>
       </div>
 
@@ -1387,9 +1432,12 @@ async function buscarPorBarcode(codigo) {
 // MODAL DE PRESENTACIONES (barcode con packs)
 // =========================================================================
 
-var _mpIT  = null;
-var _mpOps = [];
-var _mpIdx = 0;
+var _mpIT       = null;
+var _mpOps      = [];
+var _mpIdx      = 0;
+var _mpStep     = 1;
+var _mpCantidad = 1;
+var _mpTyping   = false;
 
 function abrirModalPresentacion(it) {
   _mpIT  = it;
@@ -1463,7 +1511,24 @@ function _renderModalPres() {
 function _confirmarModalPres(idx) {
   var op = _mpOps[idx];
   if (!op) return;
-  // Pasar la cantidad de unidades al campo — el greedy la descompone en el pack correcto
+  if (op.unidades === 1) {
+    // Unidad suelta: ir a step 2 para elegir cantidad
+    _mpIdx    = idx;
+    _mpStep   = 2;
+    _mpCantidad = 1;
+    _mpTyping   = false;
+    _actualizarDisplayCantidad();
+    document.getElementById('modal_pres_step1').classList.add('chebs-hidden');
+    document.getElementById('modal_pres_step2').classList.remove('chebs-hidden');
+    var sub = document.getElementById('modal_pres_subtitulo');
+    if (sub) sub.textContent = 'Selecciona la cantidad de unidades';
+    setTimeout(function() {
+      var incBtn = document.getElementById('mp_cant_inc');
+      if (incBtn) incBtn.focus();
+    }, 30);
+    return;
+  }
+  // Pack/presentación: agregar directamente con las unidades del pack
   var cantEl = document.getElementById('cantidad');
   if (cantEl) cantEl.value = op.unidades;
   cerrarModal('modalPresentacion');
@@ -1474,10 +1539,53 @@ function _confirmarModalPres(idx) {
   }
 }
 
+function _actualizarDisplayCantidad() {
+  var el = document.getElementById('mp_cant_display');
+  if (el) el.textContent = String(_mpCantidad);
+}
+
+function _confirmarStep2() {
+  if (_mpCantidad < 1) _mpCantidad = 1;
+  var cantEl = document.getElementById('cantidad');
+  if (cantEl) cantEl.value = _mpCantidad;
+  cerrarModal('modalPresentacion');
+  _mpStep   = 1;
+  _mpTyping = false;
+  _mpIT     = null;
+  _mpOps    = [];
+  if (typeof agregarDesdeFormulario === 'function') {
+    agregarDesdeFormulario();
+  }
+}
+
+function _volverStep1() {
+  _mpStep   = 1;
+  _mpTyping = false;
+  document.getElementById('modal_pres_step1').classList.remove('chebs-hidden');
+  document.getElementById('modal_pres_step2').classList.add('chebs-hidden');
+  var sub = document.getElementById('modal_pres_subtitulo');
+  if (sub) sub.textContent = 'Selecciona como vender este producto';
+  _renderModalPres();
+  setTimeout(function() {
+    var btns = document.querySelectorAll('#modal_pres_lista button');
+    if (btns[_mpIdx]) btns[_mpIdx].focus();
+  }, 30);
+}
+
 function cerrarModalPresentacion() {
   cerrarModal('modalPresentacion');
-  _mpIT  = null;
-  _mpOps = [];
+  _mpIT       = null;
+  _mpOps      = [];
+  _mpStep     = 1;
+  _mpCantidad = 1;
+  _mpTyping   = false;
+  // Resetear step1/step2 al estado inicial
+  var s1 = document.getElementById('modal_pres_step1');
+  var s2 = document.getElementById('modal_pres_step2');
+  if (s1) s1.classList.remove('chebs-hidden');
+  if (s2) s2.classList.add('chebs-hidden');
+  var sub = document.getElementById('modal_pres_subtitulo');
+  if (sub) sub.textContent = 'Selecciona como vender este producto';
   inputProducto.value = '';
   hiddenId.value = '';
   var cantEl = document.getElementById('cantidad');
@@ -1491,6 +1599,61 @@ document.addEventListener('keydown', function(e) {
   var modal = document.getElementById('modalPresentacion');
   if (!modal || modal.classList.contains('chebs-hidden')) return;
 
+  // ---- STEP 2: selector de cantidad ----
+  if (_mpStep === 2) {
+    if (e.key === 'Escape') {
+      e.preventDefault(); e.stopImmediatePropagation();
+      _volverStep1();
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault(); e.stopImmediatePropagation();
+      _confirmarStep2();
+      return;
+    }
+    if (e.key === 'Backspace') {
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (_mpTyping) {
+        var s = String(_mpCantidad);
+        _mpCantidad = s.length > 1 ? parseInt(s.slice(0, -1), 10) : 1;
+        if (_mpCantidad === 1 && s.length <= 1) _mpTyping = false;
+      } else {
+        _mpCantidad = 1;
+      }
+      _actualizarDisplayCantidad();
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault(); e.stopImmediatePropagation();
+      _mpCantidad = Math.min(_mpCantidad + 1, 999);
+      _mpTyping = false;
+      _actualizarDisplayCantidad();
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault(); e.stopImmediatePropagation();
+      _mpCantidad = Math.max(_mpCantidad - 1, 1);
+      _mpTyping = false;
+      _actualizarDisplayCantidad();
+      return;
+    }
+    var d = parseInt(e.key, 10);
+    if (!isNaN(d)) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (!_mpTyping) {
+        _mpCantidad = d === 0 ? 1 : d;
+        if (d !== 0) _mpTyping = true;
+      } else {
+        var next = parseInt(String(_mpCantidad) + String(d), 10);
+        if (next <= 999) _mpCantidad = next;
+      }
+      _actualizarDisplayCantidad();
+      return;
+    }
+    return;
+  }
+
+  // ---- STEP 1: selección de presentación ----
   if (e.key === 'Escape') {
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -1527,6 +1690,24 @@ document.addEventListener('keydown', function(e) {
     e.stopImmediatePropagation();
     _confirmarModalPres(n - 1);
   }
+});
+
+// Botones del step 2
+document.getElementById('mp_cant_dec').addEventListener('mousedown', function(e) {
+  e.preventDefault();
+  _mpCantidad = Math.max(_mpCantidad - 1, 1);
+  _mpTyping = false;
+  _actualizarDisplayCantidad();
+});
+document.getElementById('mp_cant_inc').addEventListener('mousedown', function(e) {
+  e.preventDefault();
+  _mpCantidad = Math.min(_mpCantidad + 1, 999);
+  _mpTyping = false;
+  _actualizarDisplayCantidad();
+});
+document.getElementById('mp_cant_ok').addEventListener('mousedown', function(e) {
+  e.preventDefault();
+  _confirmarStep2();
 });
 
 inputProducto.addEventListener('keydown', (e) => {
