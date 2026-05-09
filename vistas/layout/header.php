@@ -31,7 +31,7 @@ $actUsuarios = esRuta($ruta, '/vistas/perfiles/');
 $actCaja     = esRuta($ruta, '/vistas/ventas/venta.php');
 
 /* ✅ Clases base */
-$clsLink = "px-4 py-2 rounded-xl hover:bg-chebs-soft transition";
+$clsLink = "px-4 py-2 rounded-xl hover:bg-chebs-soft transition-colors";
 
 /* ✅ Activo con parpadeo (para todo MENOS Caja) */
 $clsActiveBlink = "bg-chebs-soft ring-2 ring-chebs-green shadow-soft chebs-blink";
@@ -64,30 +64,19 @@ $esCaja = $actCaja;
       display:block !important;
     }
 
-    /* ✅ EFECTO “pestaña activa” (parpadeo suave) */
-/* 🔥 EFECTO ACTIVO FUERTE CHEBS */
+    /* Pestaña activa — solo opacity: GPU-composited, sin repaint */
 @keyframes chebsPulseStrong {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(34,197,94,0.7);
-  }
-  50% {
-    transform: scale(1.08);
-    box-shadow: 0 0 18px 6px rgba(34,197,94,0.6);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(34,197,94,0.7);
-  }
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
 }
 
-
-
 .chebs-blink {
-  animation: chebsPulseStrong 1s ease-in-out infinite;
+  will-change: opacity;
+  animation: chebsPulseStrong 1.4s ease-in-out infinite;
   background: linear-gradient(90deg, #dcfce7, #bbf7d0);
   color: #065f46 !important;
   font-weight: 800;
+  box-shadow: 0 0 0 2px rgba(34,197,94,0.35);
 }
   </style>
 </head>
