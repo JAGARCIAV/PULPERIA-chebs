@@ -113,6 +113,7 @@ function obtenerLotesVencidosActivos($conexion) {
         INNER JOIN productos p ON p.id = l.producto_id
         WHERE l.activo = 1
           AND l.fecha_vencimiento < CURDATE()
+          AND l.cantidad_unidades > 0
         ORDER BY l.fecha_vencimiento ASC, l.id ASC
     ";
     $res = $conexion->query($sql);

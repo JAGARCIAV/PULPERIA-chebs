@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . "/../config/auth.php";
-require_role(['admin','empleado']);
+require_role(['admin']);
 
 require_once __DIR__ . "/../config/conexion.php";
 require_once __DIR__ . "/../modelos/lote_modelo.php";
@@ -22,7 +22,19 @@ if ($lote_id <= 0) {
     exit;
 }
 
-desactivarLote($conexion, $lote_id);
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$conexion->begin_transaction();
+
+try {
+    $ok = desactivarLote($conexion, $lote_id);
+    if (!$ok) {
+        throw new Exception("No se pudo desactivar el lote.");
+    }
+    $conexion->commit();
+} catch (Throwable $e) {
+    $conexion->rollback();
+    error_log("[lote_desactivar] lote_id=$lote_id — " . $e->getMessage());
+}
 
 header("Location: /PULPERIA-CHEBS/vistas/notificacion/notificacion.php");
 exit;

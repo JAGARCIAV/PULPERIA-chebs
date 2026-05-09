@@ -25,10 +25,18 @@ if ($lote_id <= 0) {
   exit;
 }
 
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+$conexion->begin_transaction();
+
 try {
   $ok = desactivarLote($conexion, $lote_id);
-  echo json_encode(["ok" => (bool)$ok]);
+  if (!$ok) {
+    throw new Exception("desactivarLote retornó false");
+  }
+  $conexion->commit();
+  echo json_encode(["ok" => true]);
 } catch (Throwable $e) {
+  $conexion->rollback();
   error_log("[notificacion_accion] lote_id=$lote_id — " . $e->getMessage());
   echo json_encode(["ok" => false, "msg" => "Error al procesar. Intente de nuevo."]);
 }

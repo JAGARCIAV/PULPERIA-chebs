@@ -158,6 +158,17 @@
     }
 
     if (act === "desactivar") {
+      // Leer datos del card para mostrar confirmación con el stock real
+      const nombreEl  = popupCard ? popupCard.querySelector(".font-black") : null;
+      const nombre    = nombreEl ? nombreEl.textContent.trim() : "este lote";
+      const unidadesEl = popupCard ? [...popupCard.querySelectorAll("div")].find(d => d.textContent.includes("Unidades:")) : null;
+      const unidades  = unidadesEl ? (unidadesEl.textContent.match(/Unidades:\s*(\d+)/) || [])[1] || "?" : "?";
+
+      const confirmado = confirm(
+        `¿Dar de baja ${unidades} unidad(es) de "${nombre}"?\n\nEsta acción es IRREVERSIBLE. Las unidades se eliminarán del inventario.`
+      );
+      if (!confirmado) return;
+
       actBtn.disabled = true;
 
       const fd = new FormData();

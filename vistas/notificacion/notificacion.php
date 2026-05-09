@@ -120,6 +120,15 @@ include __DIR__ . "/../layout/header.php";
     const btn = e.target.closest("[data-act='desactivar']");
     if(!btn) return;
 
+    const fila = btn.closest(".rounded-2xl");
+    const nombre   = fila ? (fila.querySelector(".font-black")?.textContent.trim() || "este lote") : "este lote";
+    const unidades = fila ? ((fila.textContent.match(/Unidades:\s*(\d+)/) || [])[1] || "?") : "?";
+
+    const confirmado = confirm(
+      `¿Dar de baja ${unidades} unidad(es) de "${nombre}"?\n\nEsta acción es IRREVERSIBLE. Las unidades se eliminarán del inventario.`
+    );
+    if (!confirmado) return;
+
     const id = btn.getAttribute("data-id");
     btn.disabled = true;
     btn.classList.add("opacity-60","cursor-not-allowed");
