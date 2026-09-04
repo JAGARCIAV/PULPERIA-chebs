@@ -1,10 +1,26 @@
 <?php
 // modelos/turno_modelo.php
 
+/**
+ * Devuelve el turno actualmente abierto (el "turno en curso").
+ *
+ * ⚠️ FIX C-1 (turno de medianoche):
+ * Antes filtraba por `fecha = CURDATE()`. Eso rompía la operación cuando un
+ * turno se abría un día y seguía activo pasada la medianoche:
+ *   - crearVenta() no encontraba turno  -> "No hay turno abierto", no se podía vender.
+ *   - turno_cerrar.php no encontraba el turno -> quedaba 'abierto' para siempre (huérfano).
+ *   - al día siguiente se podía abrir OTRO turno -> 2 turnos 'abierto' a la vez.
+ *
+ * El sistema ya garantiza un único turno abierto a la vez (ver abrirTurno()),
+ * así que basta con buscar por estado. Todo el cálculo de ventas/caja se hace
+ * por turno_id, no por fecha, así que el dinero sigue cuadrando.
+ *
+ * El nombre se mantiene ("...Hoy") solo para no tocar los ~7 llamadores.
+ */
 function obtenerTurnoAbiertoHoy($conexion) {
     $sql = "SELECT *
             FROM turnos
-            WHERE fecha = CURDATE() AND estado = 'abierto'
+            WHERE estado = 'abierto'
             ORDER BY id DESC
             LIMIT 1";
     $res = $conexion->query($sql);

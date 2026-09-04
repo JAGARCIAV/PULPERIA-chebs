@@ -134,8 +134,16 @@ function obtenerTotalVentasHoy($conexion) {
     return (float)($row["total_hoy"] ?? 0);
 }
 
-function _ventasFiltroBase($fecha, $turno, $tipo, $busqueda) {
-    $where  = " WHERE v.anulada = 0";
+function _ventasFiltroBase($fecha, $turno, $tipo, $busqueda, $estado = 'todas') {
+    // ✅ Historial admin: por defecto se ven TODAS (activas + anuladas), marcadas
+    // en la vista. 'activas' / 'anuladas' filtran una u otra. Caja (venta.php)
+    // NO usa esta función — sigue sin ver anuladas (obtenerUltimasVentasDesde).
+    $where  = " WHERE 1=1";
+    if ($estado === 'activas') {
+        $where .= " AND v.anulada = 0";
+    } elseif ($estado === 'anuladas') {
+        $where .= " AND v.anulada = 1";
+    }
     $params = [];
     $types  = "";
 
@@ -145,10 +153,15 @@ function _ventasFiltroBase($fecha, $turno, $tipo, $busqueda) {
         $types .= "s";
     }
     if ($turno) {
+        // ✅ FIX I-1: antes se calculaba por la hora de CADA VENTA (v.fecha),
+        // así que un mismo turno que cruzaba el mediodía quedaba partido entre
+        // "mañana" y "tarde" en el reporte. Ahora se usa la hora en que se
+        // ABRIÓ EL TURNO (t.abierto_en) — todas las ventas de un mismo turno
+        // caen siempre del mismo lado, que es lo que representa "turno real".
         if ($turno === "mañana") {
-            $where .= " AND TIME(v.fecha) < '12:00:00'";
+            $where .= " AND TIME(t.abierto_en) < '12:00:00'";
         } elseif ($turno === "tarde") {
-            $where .= " AND TIME(v.fecha) >= '12:00:00'";
+            $where .= " AND TIME(t.abierto_en) >= '12:00:00'";
         }
     }
     if ($busqueda && $tipo) {
@@ -166,8 +179,8 @@ function _ventasFiltroBase($fecha, $turno, $tipo, $busqueda) {
     return [$where, $params, $types];
 }
 
-function obtenerTotalVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo = null, $busqueda = null) {
-    [$where, $params, $types] = _ventasFiltroBase($fecha, $turno, $tipo, $busqueda);
+function obtenerTotalVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo = null, $busqueda = null, $estado = 'todas') {
+    [$where, $params, $types] = _ventasFiltroBase($fecha, $turno, $tipo, $busqueda, $estado);
     $sql = "SELECT COUNT(*) AS total
             FROM ventas v
             JOIN turnos t ON t.id = v.turno_id
@@ -183,19 +196,25 @@ function obtenerTotalVentasFiltradas($conexion, $fecha = null, $turno = null, $t
     return $total;
 }
 
-function obtenerVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo = null, $busqueda = null, $limite = 50, $offset = 0) {
-    [$where, $params, $types] = _ventasFiltroBase($fecha, $turno, $tipo, $busqueda);
+function obtenerVentasFiltradas($conexion, $fecha = null, $turno = null, $tipo = null, $busqueda = null, $estado = 'todas', $limite = 50, $offset = 0) {
+    [$where, $params, $types] = _ventasFiltroBase($fecha, $turno, $tipo, $busqueda, $estado);
 
     $sql = "SELECT v.id, v.fecha, v.total,
                    v.turno_id,
+                   v.anulada,
+                   v.anulado_en,
+                   au.nombre AS anulado_por_nombre,
                    u.nombre AS responsable,
+                   -- ✅ FIX I-1: mañana/tarde según cuándo se ABRIÓ el turno
+                   -- (t.abierto_en), no según la hora de cada venta suelta.
                    CASE
-                     WHEN TIME(v.fecha) < '12:00:00' THEN 'mañana'
+                     WHEN TIME(t.abierto_en) < '12:00:00' THEN 'mañana'
                      ELSE 'tarde'
                    END AS turno
             FROM ventas v
             JOIN turnos t ON t.id = v.turno_id
-            JOIN usuarios u ON u.id = t.usuario_id"
+            JOIN usuarios u ON u.id = t.usuario_id
+            LEFT JOIN usuarios au ON au.id = v.anulado_por"
            . $where
            . " ORDER BY v.id DESC LIMIT ? OFFSET ?";
 

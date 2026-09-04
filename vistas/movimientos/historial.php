@@ -172,10 +172,17 @@ $diaData = [
 ];
 
 /* ======================================================
-   Historial de movimientos
+   Historial de movimientos (PAGINADO, igual que historial de ventas)
    ====================================================== */
-$productos = $conexion->query("SELECT id, nombre FROM productos");
-$movimientos = obtenerMovimientos($conexion, $producto_id);
+$pagina = max(1, (int)($_GET['pagina'] ?? 1));
+$limite = 50;
+$offset = ($pagina - 1) * $limite;
+
+$totalMovimientos = contarMovimientos($conexion, $producto_id);
+$totalPaginas     = max(1, (int)ceil($totalMovimientos / $limite));
+if ($pagina > $totalPaginas) { $pagina = $totalPaginas; $offset = ($pagina - 1) * $limite; }
+
+$movimientos = obtenerMovimientos($conexion, $producto_id, $limite, $offset);
 
 /* ======================================================
    Resumen del producto filtrado
@@ -581,10 +588,53 @@ if ($producto_id) {
               </td>
             </tr>
           <?php } ?>
+
+          <?php if ($totalMovimientos === 0): ?>
+            <tr>
+              <td colspan="6" class="px-4 py-6 text-gray-600">No hay movimientos registrados.</td>
+            </tr>
+          <?php endif; ?>
         </tbody>
 
       </table>
     </div>
+
+    <!-- Paginación (igual que historial de ventas) -->
+    <?php if ($totalPaginas > 1): ?>
+    <?php
+      $qBase = array_filter([
+        'producto_id' => $producto_id,
+      ]);
+      $qPrev = http_build_query($qBase + ['pagina' => $pagina - 1]);
+      $qNext = http_build_query($qBase + ['pagina' => $pagina + 1]);
+    ?>
+    <div class="flex items-center justify-between px-6 py-4 border-t border-chebs-line">
+      <span class="text-sm text-gray-500">
+        Mostrando <?= number_format($offset + 1) ?>–<?= number_format(min($offset + $limite, $totalMovimientos)) ?>
+        de <?= number_format($totalMovimientos) ?> movimientos
+      </span>
+      <div class="flex gap-2">
+        <?php if ($pagina > 1): ?>
+          <a href="?<?= $qPrev ?>"
+             class="px-4 py-2 rounded-2xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition text-sm">
+            ← Anterior
+          </a>
+        <?php endif; ?>
+
+        <span class="px-4 py-2 rounded-2xl bg-chebs-green text-white font-black text-sm">
+          <?= $pagina ?> / <?= $totalPaginas ?>
+        </span>
+
+        <?php if ($pagina < $totalPaginas): ?>
+          <a href="?<?= $qNext ?>"
+             class="px-4 py-2 rounded-2xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition text-sm">
+            Siguiente →
+          </a>
+        <?php endif; ?>
+      </div>
+    </div>
+    <?php endif; ?>
+
   </div>
 
 </div>

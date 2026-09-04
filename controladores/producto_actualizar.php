@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__ . "/../config/auth.php";
-require_role(['admin','empleado']);
+// ✅ FIX C-2: solo admin. La vista (vistas/productos/editar.php) ya era
+// admin-only; este controlador aceptaba también 'empleado', lo que permitía
+// editar precio/costo/barcode de cualquier producto con un POST directo,
+// saltándose el menú. Verificado y corregido.
+require_role(['admin']);
 
 require_once __DIR__ . "/../config/conexion.php";
 require_once __DIR__ . "/../modelos/producto_modelo.php";

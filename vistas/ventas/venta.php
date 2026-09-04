@@ -692,7 +692,7 @@ if ($turnoAbierto) {
                 <div class="mt-3 flex items-center justify-between">
                   <a href="/PULPERIA-CHEBS/vistas/ventas/corregir_venta.php?id=<?= (int)$v['id'] ?>"
                      class="text-xs font-black text-red-600 bg-red-50 px-3 py-2 rounded-xl hover:bg-red-100 transition border border-red-100">
-                    Corregir venta
+                    Anular venta
                   </a>
 
                   <div class="font-black text-chebs-green tabular-nums">

@@ -14,11 +14,16 @@ $pagina   = max(1, (int)($_GET['pagina'] ?? 1));
 $limite   = 50;
 $offset   = ($pagina - 1) * $limite;
 
-$totalVentas = obtenerTotalVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda);
+// ✅ Estado: Todas (por defecto, con marca ANULADA) / Activas / Anuladas.
+// Caja (venta.php) sigue sin ver anuladas — esto solo aplica a este informe (admin).
+$estado = $_GET['estado'] ?? 'todas';
+if (!in_array($estado, ['todas', 'activas', 'anuladas'], true)) $estado = 'todas';
+
+$totalVentas = obtenerTotalVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda, $estado);
 $totalPaginas = max(1, (int)ceil($totalVentas / $limite));
 if ($pagina > $totalPaginas) { $pagina = $totalPaginas; $offset = ($pagina - 1) * $limite; }
 
-$ventasRs = obtenerVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda, $limite, $offset);
+$ventasRs = obtenerVentasFiltradas($conexion, $fecha, $turno, $tipo, $busqueda, $estado, $limite, $offset);
 
 /* =====================================================
    🎨 COLORES POR RESPONSABLE (FILA COMPLETA)
@@ -108,6 +113,9 @@ $primeraPorRespDia = []; // clave "resp|YYYY-MM-DD" => fechaHoraMinima (string)
 while($row = $ventasRs->fetch_assoc()){
   $ventas[] = $row;
 
+  // ✅ una venta ANULADA no cuenta como "primera venta del día" de nadie
+  if ((int)($row['anulada'] ?? 0) === 1) continue;
+
   $resp = (string)($row['responsable'] ?? '');
   $respKey = strtolower(trim($resp));
 
@@ -142,7 +150,7 @@ while($row = $ventasRs->fetch_assoc()){
 
   <!-- Filtros -->
   <div class="bg-white border border-chebs-line rounded-3xl shadow-soft p-6 mb-6">
-    <form method="GET" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+    <form method="GET" class="grid grid-cols-1 md:grid-cols-7 gap-4 items-end">
 
       <!-- Fecha -->
       <div class="md:col-span-1">
@@ -163,6 +171,18 @@ while($row = $ventasRs->fetch_assoc()){
           <option value="">Todos</option>
           <option value="mañana" <?= (($_GET['turno'] ?? '') === 'mañana' ? 'selected' : '') ?>>Mañana</option>
           <option value="tarde" <?= (($_GET['turno'] ?? '') === 'tarde' ? 'selected' : '') ?>>Tarde</option>
+        </select>
+      </div>
+
+      <!-- Estado (activas / anuladas) -->
+      <div class="md:col-span-1">
+        <label class="block text-sm font-bold mb-2 text-chebs-black">Estado</label>
+        <select name="estado"
+                class="w-full px-4 py-3 rounded-2xl border border-chebs-line bg-white
+                       focus:outline-none focus:ring-2 focus:ring-green-600/40">
+          <option value="todas"    <?= ($estado === 'todas'    ? 'selected' : '') ?>>Todas</option>
+          <option value="activas"  <?= ($estado === 'activas'  ? 'selected' : '') ?>>Solo activas</option>
+          <option value="anuladas" <?= ($estado === 'anuladas' ? 'selected' : '') ?>>Solo anuladas</option>
         </select>
       </div>
 
@@ -216,6 +236,7 @@ while($row = $ventasRs->fetch_assoc()){
             <th class="px-4 py-3 font-black">Fecha</th>
             <th class="px-4 py-3 font-black">Turno</th>
             <th class="px-4 py-3 font-black">Responsable</th>
+            <th class="px-4 py-3 font-black">Estado</th>
             <th class="px-4 py-3 font-black">Total</th>
             <th class="px-4 py-3 font-black text-right">Detalle</th>
           </tr>
@@ -247,9 +268,17 @@ while($row = $ventasRs->fetch_assoc()){
             );
 
             $badgeResp = colorResponsableBadge($resp);
+
+            // ✅ marca de venta anulada (independiente del color por responsable)
+            $estaAnulada = (int)($v['anulada'] ?? 0) === 1;
+            if ($estaAnulada) {
+              $bgFila    = "bg-gray-100";
+              $hoverFila = "hover:bg-gray-200/70";
+              $borderFila = "border-red-300";
+            }
           ?>
 
-          <tr class="transition <?= $bgFila ?> <?= $hoverFila ?> border-l-4 <?= $borderFila ?>">
+          <tr class="transition <?= $bgFila ?> <?= $hoverFila ?> border-l-4 <?= $borderFila ?> <?= $estaAnulada ? 'opacity-70' : '' ?>">
 
             <td class="px-4 py-3 font-semibold">#<?= (int)$v['id'] ?></td>
 
@@ -284,16 +313,38 @@ while($row = $ventasRs->fetch_assoc()){
               </span>
             </td>
 
-            <td class="px-4 py-3 font-black text-chebs-black">
+            <td class="px-4 py-3">
+              <?php if ($estaAnulada): ?>
+                <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black border bg-red-100 text-red-800 border-red-300">
+                  ⛔ ANULADA
+                </span>
+                <div class="text-[11px] text-gray-500 mt-1">
+                  <?php if (!empty($v['anulado_por_nombre'])): ?>
+                    por <?= htmlspecialchars($v['anulado_por_nombre']) ?>
+                  <?php endif; ?>
+                  <?php if (!empty($v['anulado_en'])): ?>
+                    · <?= htmlspecialchars($v['anulado_en']) ?>
+                  <?php endif; ?>
+                </div>
+              <?php else: ?>
+                <span class="inline-flex px-3 py-1 rounded-xl text-xs font-black border bg-green-50 text-green-700 border-green-200">
+                  ✅ OK
+                </span>
+              <?php endif; ?>
+            </td>
+
+            <td class="px-4 py-3 font-black <?= $estaAnulada ? 'line-through text-gray-500' : 'text-chebs-black' ?>">
               Bs <?= number_format((float)$v['total'], 2) ?>
             </td>
 
             <td class="px-4 py-3 text-right">
-              <button type="button"
-                      class="px-4 py-2 rounded-xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition"
-                      onclick="location.href='corregir_venta.php?id=<?= (int)$v['id'] ?>'">
-                Editar
-              </button>
+              <?php if (!$estaAnulada): ?>
+                <button type="button"
+                        class="px-4 py-2 rounded-xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition"
+                        onclick="location.href='corregir_venta.php?id=<?= (int)$v['id'] ?>'">
+                  Anular
+                </button>
+              <?php endif; ?>
 
               <button type="button"
                       class="px-4 py-2 rounded-xl border border-chebs-line bg-white font-black hover:bg-chebs-soft transition"
@@ -318,6 +369,7 @@ while($row = $ventasRs->fetch_assoc()){
         'turno'    => $turno,
         'tipo'     => $tipo,
         'busqueda' => $busqueda,
+        'estado'   => $estado,
       ]);
       $qPrev = http_build_query($qBase + ['pagina' => $pagina - 1]);
       $qNext = http_build_query($qBase + ['pagina' => $pagina + 1]);

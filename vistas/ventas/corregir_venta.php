@@ -3,7 +3,6 @@ require_once __DIR__ . "/../../config/auth.php";
 require_role(['admin','empleado']);
 
 require_once __DIR__ . "/../../config/conexion.php";
-require_once __DIR__ . "/../../modelos/producto_modelo.php";
 require_once __DIR__ . "/../../modelos/venta_modelo.php";
 require_once __DIR__ . "/../../modelos/venta_corregir_modelo.php";
 
@@ -40,16 +39,6 @@ while ($d = $detallesRes->fetch_assoc()) {
     $detallesArr[] = $d;
 }
 
-// Productos activos para datalist (solo si se va a editar)
-$productosArr = [];
-if (!$anulada && $permiso['ok']) {
-    $productos = obtenerProductos($conexion, true);
-    if ($productos) {
-        while ($p = $productos->fetch_assoc()) {
-            $productosArr[] = ["id" => (int)$p["id"], "nombre" => (string)$p["nombre"]];
-        }
-    }
-}
 ?>
 
 <div class="max-w-[1200px] mx-auto px-6 py-6">
@@ -215,15 +204,11 @@ if (!$anulada && $permiso['ok']) {
         </div>
 
       <!-- ============================================================
-           ESTADO 3: CON PERMISO — formulario editable completo
+           ESTADO 3: CON PERMISO — detalle de solo lectura + Anular venta
+           (Ya no se puede cambiar producto / cantidad / borrar línea:
+            si la venta está mal, se anula y se rehace en caja.)
            ============================================================ -->
       <?php else: ?>
-
-        <?php if (isset($_GET["ok"])): ?>
-          <div class="mb-4 rounded-2xl bg-green-50 border border-green-200 text-green-700 font-bold p-4">
-            ✅ Cambios guardados y stock ajustado.
-          </div>
-        <?php endif; ?>
 
         <?php if (isset($_GET["err"])): ?>
           <div class="mb-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 font-bold p-4">
@@ -231,112 +216,52 @@ if (!$anulada && $permiso['ok']) {
           </div>
         <?php endif; ?>
 
-        <form method="POST" action="/PULPERIA-CHEBS/controladores/venta_corregir_guardar.php" class="space-y-4">
-          <input type="hidden" name="venta_id" value="<?= (int)$venta_id ?>">
-          <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
+        <div class="overflow-auto rounded-2xl border border-chebs-line mb-6">
+          <table class="min-w-[600px] w-full text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="text-left p-4 font-black">PRODUCTO</th>
+                <th class="text-left p-4 font-black">TIPO</th>
+                <th class="text-center p-4 font-black">CANT.</th>
+                <th class="text-right p-4 font-black">PRECIO</th>
+                <th class="text-right p-4 font-black">SUBTOTAL</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              <?php foreach ($detallesArr as $d): ?>
+              <tr class="bg-white">
+                <td class="p-4 font-bold"><?= htmlspecialchars($d["nombre"]) ?></td>
+                <td class="p-4 text-gray-500">
+                  <span class="inline-flex px-2 py-1 rounded-lg bg-gray-100 text-gray-700 font-bold text-xs">
+                    <?= htmlspecialchars($d["tipo_venta"]) ?>
+                  </span>
+                </td>
+                <td class="p-4 text-center"><?= (int)$d["cantidad"] ?></td>
+                <td class="p-4 text-right">Bs <?= number_format((float)$d["precio_unitario"], 2) ?></td>
+                <td class="p-4 text-right font-bold">Bs <?= number_format((float)$d["subtotal"], 2) ?></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
 
-          <div class="overflow-auto rounded-2xl border border-chebs-line">
-            <table class="min-w-[900px] w-full text-sm">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="text-left p-4 font-black">PRODUCTO ORIGINAL</th>
-                  <th class="text-left p-4 font-black">CAMBIAR POR (OPCIONAL)</th>
-                  <th class="text-left p-4 font-black">CANTIDAD</th>
-                  <th class="text-left p-4 font-black">ELIMINAR</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y">
+        <div class="flex flex-col sm:flex-row gap-3 justify-end">
 
-              <?php $i = 0; foreach ($detallesArr as $d): ?>
-                <tr class="bg-white">
-                  <td class="p-4">
-                    <div class="font-black"><?= htmlspecialchars($d["nombre"]) ?></div>
-                    <div class="text-xs text-gray-500">
-                      Precio: Bs <?= number_format((float)$d["precio_unitario"], 2) ?>
-                      <span class="ml-2 inline-flex px-2 py-1 rounded-lg bg-gray-100 text-gray-700 font-bold">
-                        <?= htmlspecialchars($d["tipo_venta"]) ?>
-                      </span>
-                    </div>
-                    <input type="hidden" name="detalle_id[]" value="<?= (int)$d["id"] ?>">
-                  </td>
+          <a href="/PULPERIA-CHEBS/vistas/ventas/venta.php"
+             class="px-5 py-3 rounded-2xl border border-chebs-line font-black hover:bg-gray-50 text-center">
+            Volver a caja
+          </a>
 
-                  <td class="p-4">
-                    <input
-                      type="text"
-                      list="lista_prod_<?= $i ?>"
-                      placeholder="Buscar otro producto..."
-                      class="w-full rounded-xl border border-chebs-line px-3 py-2"
-                      oninput="window.__setNuevoProdId(this, <?= $i ?>)"
-                    >
-                    <input type="hidden" name="nuevo_producto_id[]" id="nuevo_producto_id_<?= $i ?>" value="">
+          <button
+            type="button"
+            id="btn_abrir_modal_anular"
+            class="px-6 py-3 rounded-2xl bg-red-600 text-white font-black hover:bg-red-700"
+          >
+            Anular venta
+          </button>
+        </div>
 
-                    <datalist id="lista_prod_<?= $i ?>">
-                      <?php foreach ($productosArr as $p): ?>
-                        <option value="<?= htmlspecialchars($p["nombre"]) ?>" data-id="<?= (int)$p["id"] ?>"></option>
-                      <?php endforeach; ?>
-                    </datalist>
-
-                    <div class="text-xs text-gray-400 mt-1">Déjalo vacío para mantener el original</div>
-                  </td>
-
-                  <td class="p-4">
-                    <div class="inline-flex items-center rounded-xl border border-chebs-line overflow-hidden">
-                      <button type="button" onclick="qtyStep(this,-1)"
-                              class="w-9 h-9 flex items-center justify-center bg-gray-50
-                                     hover:bg-gray-100 active:bg-gray-200 text-gray-600
-                                     font-black text-lg transition-colors select-none border-r border-chebs-line">−</button>
-                      <input
-                        type="number"
-                        min="0"
-                        name="cantidad[]"
-                        value="<?= (int)$d["cantidad"] ?>"
-                        class="qty-stepper-input w-14 h-9 bg-white text-center font-black text-sm outline-none"
-                      >
-                      <button type="button" onclick="qtyStep(this,1)"
-                              class="w-9 h-9 flex items-center justify-center bg-gray-50
-                                     hover:bg-gray-100 active:bg-gray-200 text-gray-600
-                                     font-black text-lg transition-colors select-none border-l border-chebs-line">+</button>
-                    </div>
-                  </td>
-
-                  <td class="p-4">
-                    <label class="inline-flex items-center gap-2">
-                      <input type="checkbox" value="1" name="eliminar[<?= $i ?>]">
-                      <span class="font-bold text-red-600">Borrar</span>
-                    </label>
-                  </td>
-                </tr>
-              <?php $i++; endforeach; ?>
-
-              </tbody>
-            </table>
-          </div>
-
-          <div class="flex flex-col sm:flex-row gap-3 justify-end">
-
-            <button
-              type="button"
-              id="btn_abrir_modal_anular"
-              class="px-5 py-3 rounded-2xl bg-red-600 text-white font-black hover:bg-red-700"
-            >
-              Anular venta
-            </button>
-
-            <a href="/PULPERIA-CHEBS/vistas/ventas/venta.php"
-               class="px-5 py-3 rounded-2xl border border-chebs-line font-black hover:bg-gray-50 text-center">
-              Cancelar
-            </a>
-
-            <button
-              type="submit"
-              class="px-6 py-3 rounded-2xl bg-chebs-green text-white font-black hover:bg-chebs-greenDark"
-            >
-              Guardar Cambios
-            </button>
-          </div>
-        </form>
-
-        <!-- Form de anulación separado (evita forms anidados) -->
+        <!-- Form de anulación -->
         <form id="form_anular" method="POST" action="/PULPERIA-CHEBS/controladores/venta_anular.php">
           <input type="hidden" name="venta_id" value="<?= (int)$venta_id ?>">
           <input type="hidden" name="csrf_token" value="<?= get_csrf_token() ?>">
@@ -389,39 +314,7 @@ if (!$anulada && $permiso['ok']) {
 </div>
 <?php endif; ?>
 
-<style>
-  .qty-stepper-input::-webkit-outer-spin-button,
-  .qty-stepper-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .qty-stepper-input { -moz-appearance: textfield; }
-</style>
-
 <script>
-function qtyStep(btn, delta) {
-  const input = btn.parentNode.querySelector('input[type="number"]');
-  if (!input) return;
-  const min = parseInt(input.min ?? 0, 10);
-  const next = parseInt(input.value || 0, 10) + delta;
-  input.value = next < min ? min : next;
-}
-
-window.__setNuevoProdId = function(input, idx) {
-  const dl  = document.getElementById("lista_prod_" + idx);
-  const hid = document.getElementById("nuevo_producto_id_" + idx);
-  if (!dl || !hid) return;
-
-  const val = (input.value || "").trim();
-  if (!val) { hid.value = ""; return; }
-
-  const opts = dl.querySelectorAll("option");
-  for (const o of opts) {
-    if ((o.value || "").trim() === val) {
-      hid.value = o.getAttribute("data-id") || "";
-      return;
-    }
-  }
-  hid.value = "";
-};
-
 (function() {
   const modal   = document.getElementById("modal_anular");
   const btnAbrir = document.getElementById("btn_abrir_modal_anular");
